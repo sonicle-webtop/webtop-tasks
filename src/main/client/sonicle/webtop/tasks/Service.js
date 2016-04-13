@@ -41,9 +41,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.model.FolderNode',
 		'Sonicle.webtop.tasks.model.GridTask',
 		'Sonicle.webtop.tasks.view.Sharing',
-		'Sonicle.webtop.tasks.view.Category'
-		//'Sonicle.webtop.tasks.view.Task',
-		//'Sonicle.webtop.tasks.view.CategoryChooser'
+		'Sonicle.webtop.tasks.view.Category',
+		'Sonicle.webtop.tasks.view.Task',
+		'Sonicle.webtop.tasks.view.CategoryChooser'
 	],
 	mixins: [
 		'WT.mixin.FoldersTree'

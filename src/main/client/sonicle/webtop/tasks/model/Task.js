@@ -48,5 +48,53 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
 		WTF.field('percentange', 'int', true, {defaultValue: 0}),
 		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'})
-	]
+	],
+	
+	setStartDate: function(date) {
+		var me = this,
+				due = me.get('dueDate'), dt;
+		dt = me.setDatePart('startDate', date);
+		if(!Ext.isDate(dt) || !Ext.isDate(due)) return;
+		if(dt > due) me.set('dueDate', dt);
+	},
+	
+	setDueDate: function(date) {
+		var me = this,
+				start = me.get('startDate'), dt;
+		dt = me.setDatePart('dueDate', date);
+		if(!Ext.isDate(dt) || !Ext.isDate(start)) return;
+		if(dt < start) me.set('startDate', dt);
+	},
+	
+	setReminderDate: function(date) {
+		var me = this,
+			dt = me.setDatePart('reminderDate', date);
+		if(!Ext.isDate(dt)) return;
+		me.set('reminderDate', dt);
+	},
+	
+	setReminderTime: function(date) {
+		var me = this,
+			dt = me.setTimePart('reminderDate', date);
+		if(!Ext.isDate(dt)) return;
+		me.set('reminderDate', dt);
+	},
+	
+	setDatePart: function(field, date) {
+		var me = this,
+				v = me.get(field), dt;
+		if(!Ext.isDate(date) || !Ext.isDate(v)) return;
+		dt = Sonicle.Date.copyDate(date, v);
+		me.set(field, dt);
+		return dt;
+	},
+	
+	setTimePart: function(field, date) {
+		var me = this,
+				v = me.get(field), dt;
+		if(!Ext.isDate(date) || !Ext.isDate(v)) return;
+		dt = Sonicle.Date.copyTime(date, v);
+		me.set(field, dt);
+		return dt;
+	}
 });
