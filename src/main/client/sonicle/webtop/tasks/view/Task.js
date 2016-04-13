@@ -208,7 +208,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 						WTF.lookupCombo('id', 'desc', {
 							bind: '{record.importance}',
 							store: Ext.create(me.mys.preNs('store.Importance'), {
-								autoLoad: true,
+								autoLoad: true
 							}),
 							fieldLabel: me.mys.res('task.fld-importance.lbl')
 						})
@@ -234,12 +234,12 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					items: [{
 						xtype: 'datefield',
 						bind: '{startDate}',
-						startDay: WT.getStartDay(),
+						startDay: WT.getStartDay()
 					},
 						WTF.lookupCombo('id', 'desc', {
 							bind: '{record.status}',
 							store: Ext.create(me.mys.preNs('store.Status'), {
-								autoLoad: true,
+								autoLoad: true
 							}),
 							fieldLabel: me.mys.res('task.fld-status.lbl')
 						})
@@ -248,7 +248,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					items: [{
 						xtype: 'datefield',
 						bind: '{dueDate}',
-						startDay: WT.getStartDay(),
+						startDay: WT.getStartDay()
 					}, {
 						xtype: 'numberfield',
 						step: 25,
@@ -256,7 +256,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 						maxValue: 100,
 						allowDecimal: false,
 						bind: '{record.percentage}',
-						fieldLabel: me.mys.res('task.fld-percentage.lbl'),
+						fieldLabel: me.mys.res('task.fld-percentage.lbl')
 					}]
 				}]
 			}, {
@@ -289,7 +289,6 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 	onViewLoad: function(s, success) {
 		if(!success) return;
 		var me = this,
-				model = me.getModel(),
 				owner = me.lref('fldowner');
 		
 		me.updateCategoryFilters();
