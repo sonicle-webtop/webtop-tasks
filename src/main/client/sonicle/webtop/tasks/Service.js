@@ -38,10 +38,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Color',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.SimpleModel',
-		'Sonicle.webtop.tasks.model.FolderNode'
-		//'Sonicle.webtop.tasks.model.GridTask',
-		//'Sonicle.webtop.tasks.view.Sharing',
-		//'Sonicle.webtop.tasks.view.Category',
+		'Sonicle.webtop.tasks.model.FolderNode',
+		'Sonicle.webtop.tasks.model.GridTask',
+		'Sonicle.webtop.tasks.view.Sharing',
+		'Sonicle.webtop.tasks.view.Category'
 		//'Sonicle.webtop.tasks.view.Task',
 		//'Sonicle.webtop.tasks.view.CategoryChooser'
 	],
@@ -155,7 +155,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'importance',
 					header: me.res('gptasks.importance.lbl'),
 					renderer: WTF.resColRenderer({
-						id: me.mys.ID,
+						id: me.ID,
 						key: 'store.importance'
 					}),
 					flex: 1
@@ -169,7 +169,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'status',
 					header: me.res('gptasks.status.lbl'),
 					renderer: WTF.resColRenderer({
-						id: me.mys.ID,
+						id: me.ID,
 						key: 'store.status'
 					}),
 					flex: 1

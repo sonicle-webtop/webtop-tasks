@@ -25,41 +25,20 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
  * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-package com.sonicle.webtop.tasks.bol;
+package com.sonicle.webtop.tasks.bol.model;
 
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.tasks.bol.OTask;
 
 /**
  *
  * @author rfullone
  */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
-	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
-	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
-	
-	public String getCategoryUserId() {
-		return categoryUserId;
-	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}
-	
+public class Task extends OTask {
+    
 }

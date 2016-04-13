@@ -34,7 +34,10 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OTask;
+import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.model.CategoryFolder;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -48,47 +51,47 @@ public class JsGridTask {
 	public String description;
 	public String startDate;
 	public String dueDate;
-	public Integer importance;
+	public String completedDate;
+	public Short importance;
 	public Boolean isPrivate;
 	public String status;
-	public Integer percentage;
+	public Short percentage;
 	public String reminderDate;
 	//public String publicUid;
     public Integer categoryId;
 	public String categoryName;
     public String categoryColor;
-	public String _rights;
+	public String _frights;
+	public String _erights;
 	public String _profileId;
 
 	
 	public JsGridTask() {}
 	
-	public JsGridTask(OTask task, UserProfile.Id profileId, DateTimeZone profileTz) {
+	public JsGridTask(CategoryFolder folder, VTask task, DateTimeZone profileTz) {
 		DateTimeFormatter ymdhmsZoneFmt = DateTimeUtils.createYmdHmsFormatter(profileTz);
 		
 		taskId = task.getTaskId();
         subject = task.getSubject();
         description = task.getDescription();
-        startDate = ymdhmsZoneFmt.print(task.getStartDate());
-        dueDate = ymdhmsZoneFmt.print(task.getDueDate());
+        if (task.getStartDate()!=null)
+            startDate = ymdhmsZoneFmt.print(task.getStartDate());
+        if (task.getDueDate()!=null)
+            dueDate = ymdhmsZoneFmt.print(task.getDueDate());
+        if (task.getCompletedDate()!=null)
+            completedDate = ymdhmsZoneFmt.print(task.getCompletedDate());
         importance = task.getImportance();
         isPrivate = task.getIsPrivate();
         status = task.getStatus();
         percentage = task.getCompletionPercentage();
         reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
         //publicUid;
-        categoryId; = task.getCategoryId();
-        categoryName = task.get
-        categoryColor;
-        _rights;
-        _profileId;
+        categoryId = task.getCategoryId();
+        categoryName = folder.getCategory().getName();
+        categoryColor = folder.getCategory().getColor();
+        _frights = folder.getPerms().toString();
+        _erights = folder.getElementsPerms().toString();
+        _profileId = folder.getCategory().getProfileId().toString();
 	}
 	
-	public static class Update {
-		public String id;
-		public String startDate;
-		public String endDate;
-		public String timezone;
-		public String title;
-	}
 }

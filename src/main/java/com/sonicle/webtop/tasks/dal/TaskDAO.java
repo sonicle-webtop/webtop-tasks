@@ -40,8 +40,10 @@ import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
+import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
 import java.sql.Connection;
 import java.util.List;
+import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 
@@ -103,6 +105,113 @@ public class TaskDAO extends BaseDAO {
 				TASKS.SUBJECT.asc()
 			)
 			.fetchInto(VTask.class);
+	}
+	
+	public OTask selectById(Connection con, int taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select()
+			.from(TASKS)
+			.where(TASKS.TASK_ID.equal(taskId))
+			.fetchOneInto(OTask.class);
+	}
+	
+	public int insert(Connection con, OTask item, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		item.setRevisionStatus(OTask.REV_STATUS_NEW);
+		item.setRevisionTimestamp(revisionTimestamp);
+		TasksRecord record = dsl.newRecord(TASKS, item);
+		return dsl
+			.insertInto(TASKS)
+			.set(record)
+			.execute();
+	}
+	
+	public int update(Connection con, OTask item, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		item.setRevisionStatus(OTask.REV_STATUS_MODIFIED);
+		item.setRevisionTimestamp(revisionTimestamp);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.CATEGORY_ID,item.getCategoryId())
+			.set(TASKS.SUBJECT,item.getSubject())
+			.set(TASKS.DESCRIPTION,item.getDescription())
+			.set(TASKS.START_DATE,item.getStartDate())
+			.set(TASKS.DUE_DATE,item.getDueDate())
+			.set(TASKS.COMPLETED_DATE,item.getCompletedDate())
+			.set(TASKS.IMPORTANCE,item.getImportance())
+			.set(TASKS.IS_PRIVATE,item.getIsPrivate())
+			.set(TASKS.STATUS,item.getStatus())
+			.set(TASKS.COMPLETION_PERCENTAGE,item.getCompletionPercentage())
+			.set(TASKS.REMINDER_DATE,item.getReminderDate())
+			.set(TASKS.REVISION_STATUS,item.getRevisionStatus())
+			.set(TASKS.REVISION_TIMESTAMP,item.getRevisionTimestamp())
+			.where(
+					TASKS.TASK_ID.equal(item.getTaskId())
+			)
+			.execute();
+	}
+	
+	public int updateCategory(Connection con, int contactId, int categoryId, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.CATEGORY_ID, categoryId)
+			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_MODIFIED)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(
+				TASKS.TASK_ID.equal(contactId)
+			)
+			.execute();
+	}
+	
+	public int updateRevision(Connection con, int taskId, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(
+				TASKS.TASK_ID.equal(taskId)
+			)
+			.execute();
+	}
+	
+	public int updateRevisionStatus(Connection con, int taskId, String revisionStatus, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.REVISION_STATUS, revisionStatus)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(
+				TASKS.TASK_ID.equal(taskId)
+			)
+			.execute();
+	}
+	
+	public int logicDeleteById(Connection con, int taskId, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_DELETED)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(
+				TASKS.TASK_ID.equal(taskId)
+				.and(TASKS.REVISION_STATUS.notEqual(OTask.REV_STATUS_DELETED))
+			)
+			.execute();
+	}
+	
+	public int logicDeleteByCategoryId(Connection con, int categoryId, DateTime revisionTimestamp) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_DELETED)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(
+				TASKS.CATEGORY_ID.equal(categoryId)
+				.and(TASKS.REVISION_STATUS.notEqual(OTask.REV_STATUS_DELETED))
+			)
+			.execute();
 	}
 	
 }

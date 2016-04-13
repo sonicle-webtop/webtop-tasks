@@ -52,9 +52,11 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTOperationException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.tasks.bol.OCategory;
+import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolder;
 import com.sonicle.webtop.tasks.bol.model.CategoryRoot;
+import com.sonicle.webtop.tasks.bol.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import java.sql.Connection;
@@ -65,6 +67,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 
 /**
@@ -87,6 +94,22 @@ public class TasksManager extends BaseManager {
 	
 	public TasksManager(RunContext context, UserProfile.Id targetProfileId) {
 		super(context, targetProfileId);
+	}
+	
+    public static DateTime parseYmdHmsWithZone(String date, String time, DateTimeZone tz) {
+		return parseYmdHmsWithZone(date + " " + time, tz);
+	}
+	
+	public static DateTime parseYmdHmsWithZone(String dateTime, DateTimeZone tz) {
+		String dt = StringUtils.replace(dateTime, "T", " ");
+		DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").withZone(tz);
+		return formatter.parseDateTime(dt);
+	}
+    
+    private void writeLog(String action, String data) {
+		CoreManager core = WT.getCoreManager(getRunContext());
+		core.setSoftwareName(getSoftwareName());
+		core.writeLog(action, data);
 	}
 	
 	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
@@ -336,6 +359,7 @@ public class TasksManager extends BaseManager {
 		Connection con = null;
 		
 		try {
+            // TODO: implementare filtro task privati
 			con = WT.getConnection(getManifest());
 			
 			// Lists desired groups (tipically visibles) coming from passed list
@@ -356,8 +380,226 @@ public class TasksManager extends BaseManager {
 			DbUtils.closeQuietly(con);
 		}
 	}
+
+    private Task createTask (OTask task) {
+        return (Task) task;
+    }
+    
+	public Task getTask(int taskId) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			OTask task = tdao.selectById(con, taskId);
+			if(task == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryFolder(task.getCategoryId(), "READ"); // Rights check!
+			
+			return createTask(task);
+		
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} catch(WTException ex) {
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
 	
-	private OCategory doInsertCategory(Connection con, OCategory item) throws WTException {
+	public void addTask(Task task) throws WTException {
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategoryElements(task.getCategoryId(), "CREATE"); // Rights check!
+			
+			con = WT.getConnection(SERVICE_ID);
+			con.setAutoCommit(false);
+			OTask result = doInsertTask(con, task);
+			DbUtils.commitQuietly(con);
+			writeLog("TASK_INSERT", String.valueOf(result.getTaskId()));
+			
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	public void updateTask(Task task) throws WTException {
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE"); // Rights check!
+			
+			con = WT.getConnection(SERVICE_ID);
+			con.setAutoCommit(false);
+			doUpdateTask(con, task);
+			DbUtils.commitQuietly(con);
+			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));			
+            
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+    
+	public void deleteTasksByCategory(int categoryId) throws WTException {
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategoryElements(categoryId, "DELETE"); // Rights check!
+			
+			con = WT.getConnection(SERVICE_ID);
+			con.setAutoCommit(false);
+			doDeleteTasksByCategory(con, categoryId);
+			DbUtils.commitQuietly(con);
+			writeLog("TASK_DELETE", "*");
+			
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	public void deleteTask(int taskId) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			OTask cont = tdao.selectById(con, taskId);
+			if(cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryElements(cont.getCategoryId(), "DELETE"); // Rights check!
+			
+			con.setAutoCommit(false);
+			doDeleteTask(con, taskId);
+			DbUtils.commitQuietly(con);
+			writeLog("TASK_DELETE", String.valueOf(taskId));
+			
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	public void deleteTask(ArrayList<Integer> taskIds) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			con.setAutoCommit(false);
+			
+			for(Integer taskId : taskIds) {
+				if(taskId == null) continue;
+				OTask task = tdao.selectById(con, taskId);
+				if(task == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+				checkRightsOnCategoryElements(task.getCategoryId(), "DELETE"); // Rights check!
+				
+				doDeleteTask(con, taskId);
+			}
+			
+			DbUtils.commitQuietly(con);
+			writeLog("TASK_DELETE", "*");
+			
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	public void moveTask(boolean copy, int taskId, int targetCategoryId) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			OTask cont = tdao.selectById(con, taskId);
+			if(cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryFolder(cont.getCategoryId(), "READ"); // Rights check!
+			
+			if(copy || (targetCategoryId != cont.getCategoryId())) {
+				checkRightsOnCategoryElements(targetCategoryId, "CREATE"); // Rights check!
+				
+				Task task = createTask(cont);
+
+				con.setAutoCommit(false);
+				doMoveTask(con, copy, task, targetCategoryId);
+				DbUtils.commitQuietly(con);
+				writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
+			}
+			
+		} catch(SQLException | DAOException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw new WTException(ex, "DB error");
+		} catch(Exception ex) {
+			DbUtils.rollbackQuietly(con);
+			throw ex;
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+
+	private OTask doInsertTask(Connection con, Task item) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+        if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(WT.generateUUID());
+        item.setTaskId(tdao.getSequence(con).intValue());
+        tdao.insert(con, item, createRevisionTimestamp());
+        return item;
+	}
+	
+	private void doUpdateTask(Connection con, Task task) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+        tdao.update(con, task, createRevisionTimestamp());
+	}
+	
+	private int doDeleteTask(Connection con, int taskId) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		return tdao.logicDeleteById(con, taskId, createRevisionTimestamp());
+	}
+	
+	private int doDeleteTasksByCategory(Connection con, int categoryId) throws WTException {
+		TaskDAO tdao = TaskDAO.getInstance();
+		return tdao.logicDeleteByCategoryId(con, categoryId, createRevisionTimestamp());
+	}
+	
+	private void doMoveTask(Connection con, boolean copy, Task task, int targetCategoryId) throws WTException {
+		if(copy) {
+			task.setCategoryId(targetCategoryId);
+            doInsertTask(con, task);
+		} else {
+			TaskDAO tdao = TaskDAO.getInstance();
+			tdao.updateCategory(con, task.getTaskId(), targetCategoryId, createRevisionTimestamp());
+		}
+	}
+	
+    private OCategory doInsertCategory(Connection con, OCategory item) throws WTException {
 		CategoryDAO dao = CategoryDAO.getInstance();
 		item.setCategoryId(dao.getSequence(con).intValue());
 		if(item.getIsDefault()) dao.resetIsDefaultByDomainUser(con, item.getDomainId(), item.getUserId());
@@ -498,6 +740,10 @@ public class TasksManager extends BaseManager {
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, getRunProfileId().toString());
 	}
     
+	private DateTime createRevisionTimestamp() {
+		return DateTime.now(DateTimeZone.UTC);
+	}
+	
     public static class CategoryTasks {
 		public final OCategory folder;
 		public final List<VTask> tasks;

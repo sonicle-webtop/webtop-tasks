@@ -31,22 +31,22 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-
-Ext.define('Sonicle.webtop.tasks.store.Importance', {
-	extend: 'Ext.data.ArrayStore',
-	
-	model: 'WT.model.Simple',
-	data: [
-		[0, ''],
-		[1, ''],
-		[2, '']
-	],
-	
-	constructor: function(cfg) {
-		var me = this;
-		Ext.each(me.config.data, function(row) {
-			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.importance.'+row[0]);
-		});
-		me.callParent([cfg]);
-	}
+Ext.define('Sonicle.webtop.tasks.model.Task', {
+	extend: 'WT.ux.data.BaseModel',
+	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageTasks'),
+	identifier: 'negative',
+	idProperty: 'taskId',
+	fields: [
+		WTF.field('taskId', 'int', false),
+		WTF.field('categoryId', 'int', false),
+		WTF.field('subject', 'string', false),
+		WTF.field('description', 'string', true),
+		WTF.field('startDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('dueDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('importance', 'string', false, {defaultValue: 1}),
+		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
+		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
+		WTF.field('percentange', 'int', true, {defaultValue: 0}),
+		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'})
+	]
 });
