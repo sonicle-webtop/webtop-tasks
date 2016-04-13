@@ -31,7 +31,7 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.contacts.view.CategoryChooser', {
+Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 	extend: 'WT.sdk.DockableView',
 	requires: [
 		'Sonicle.form.field.IconComboBox',
