@@ -96,6 +96,7 @@ public class JsTask {
 		if(!StringUtils.isBlank(js.dueDate)) item.setDueDate(TasksManager.parseYmdHmsWithZone(js.dueDate,DateTimeZone.UTC));
 		if(!StringUtils.isBlank(js.completedDate)) item.setCompletedDate(TasksManager.parseYmdHmsWithZone(js.completedDate,DateTimeZone.UTC));
         item.setImportance(js.importance);
+        item.setIsPrivate(js.isPrivate);
         item.setStatus(js.status);
         item.setCompletionPercentage(js.percentage);
 		if(!StringUtils.isBlank(js.reminderDate)) item.setReminderDate(TasksManager.parseYmdHmsWithZone(js.reminderDate,DateTimeZone.UTC));

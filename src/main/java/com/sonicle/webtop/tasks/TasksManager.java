@@ -568,7 +568,7 @@ public class TasksManager extends BaseManager {
 
 	private OTask doInsertTask(Connection con, Task item) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
-        if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(WT.generateUUID());
+		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(WT.generateUUID());
         item.setTaskId(tdao.getSequence(con).intValue());
         tdao.insert(con, item, createRevisionTimestamp());
         return item;

@@ -360,12 +360,13 @@ public class Service extends BaseService {
 			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if(crud.equals(Crud.READ)) {
-				String query = ServletUtils.getStringParameter(request, "query", true);
+				String query = ServletUtils.getStringParameter(request, "query", null);
+				String pattern = (query == null) ? "%" : ("%" + query.toLowerCase() + "%");
 				
 				List<TasksManager.CategoryTasks> foldTasks = null;
 				Integer[] checked = getCheckedFolders();
 				for (CategoryRoot root : getCheckedRoots()) {
-					foldTasks = manager.listTasks(root, checked, "%" + query + "%");
+					foldTasks = manager.listTasks(root, checked, pattern);
 					// Iterates over category->tasks
 					for (TasksManager.CategoryTasks foldTask : foldTasks) {
 						CategoryFolder fold = folders.get(foldTask.folder.getCategoryId());

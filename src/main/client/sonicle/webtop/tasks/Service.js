@@ -139,6 +139,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			items: [{
 				region: 'center',
 				xtype: 'grid',
+				reference: 'gptasks',
 				store: {
 					model: 'Sonicle.webtop.tasks.model.GridTask',
 					proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', 'tasks', {
@@ -176,14 +177,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}, {
 					dataIndex: 'precenteage',
 					header: me.res('gptasks.percentage.lbl'),
-					width: 100
+					width: 120
 				}, {
 					xtype: 'socolorcolumn',
 					dataIndex: 'categoryName',
 					colorField: 'categoryColor',
 					displayField: 'CategoryName',
 					header: me.res('gptasks.category.lbl'),
-					width: 100
+					width: 150
 				}],
 				listeners: {
 					rowdblclick: function(s, rec) {

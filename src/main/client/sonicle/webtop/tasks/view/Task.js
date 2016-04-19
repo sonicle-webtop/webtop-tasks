@@ -31,19 +31,18 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.task.view.Task', {
+Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WT.sdk.ModelView',
 	requires: [
-		'Sonicle.form.field.Palette',
 		'Sonicle.form.Separator',
 		'Sonicle.form.field.IconComboBox',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.ValueModel',
 		'WT.ux.field.SuggestCombo',
 		'Sonicle.webtop.tasks.model.Task',
-		'Sonicle.webtop.tasks.model.CategoryLkp',
 		'Sonicle.webtop.tasks.store.Importance',
-		'Sonicle.webtop.tasks.store.Status'
+		'Sonicle.webtop.tasks.store.Status',
+		'Sonicle.webtop.tasks.model.CategoryLkp'
 	],
 	
 	dockableConfig: {
@@ -65,7 +64,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					return (val) ? Ext.Date.clone(val): null;
 				},
 				set: function(val) {
-					this.get('record').setStartDate(val);
+					this.get('record').setDatePart('startDate', val);
 				}
 			},
 			dueDate: {
@@ -74,7 +73,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					return (val) ? Ext.Date.clone(val): null;
 				},
 				set: function(val) {
-					this.get('record').setDueDate(val);
+					this.get('record').setDatePart('dueDate', val);
 				}
 			},
 			reminderDate: {
@@ -83,7 +82,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					return (val) ? Ext.Date.clone(val): null;
 				},
 				set: function(val) {
-					this.get('record').setReminderDate(val);
+					this.get('record').setDatePart('reminderDate', val);
 				}
 			},
 			reminderTime: {
@@ -92,7 +91,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					return (val) ? Ext.Date.clone(val): null;
 				},
 				set: function(val) {
-					this.get('record').setReminderTime(val);
+					this.get('record').setTimePart('reminderDate', val);
 				}
 			},
 			isPrivate: WTF.checkboxBind('record', 'isPrivate')
@@ -100,8 +99,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 	},
 	
 	initComponent: function() {
-		var me = this,
-				vm = me.getViewModel();
+		var me = this;
 		
 		Ext.apply(me, {
 			tbar: [
@@ -121,16 +119,16 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 						me.deleteTask();
 					}
 				}),
-				/*'-',
-				me.addAction('print', {
-					text: null,
-					tooltip: WT.res('act-print.lbl'),
-					iconCls: 'wt-icon-print-xs',
-					handler: function() {
-						//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
-						me.printTask(me.getModel().getId());
-					}
-				}),*/
+				//'-',
+				//me.addAction('print', {
+				//	text: null,
+				//	tooltip: WT.res('act-print.lbl'),
+				//	iconCls: 'wt-icon-print-xs',
+				//	handler: function() {
+				//		//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
+				//		me.printTask(me.getModel().getId());
+				//	}
+				//}),
 				'->',
 				WTF.localCombo('id', 'desc', {
 					reference: 'fldowner',
@@ -138,7 +136,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					store: {
 						autoLoad: true,
 						model: 'WT.model.Simple',
-						proxy: WTF.proxy(me.mys.ID, 'LookupTasksRoots', 'roots')
+						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryRoots', 'roots')
 					},
 					fieldLabel: me.mys.res('task.fld-owner.lbl'),
 					labelWidth: 75,
@@ -169,7 +167,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 		me.callParent(arguments);
 		
 		me.add({
-			regione: 'center',
+			region: 'center',
 			xtype: 'wtform',
 			modelValidation: true,
 			defaults: {
@@ -177,7 +175,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 			},
 			items: [{
 				xtype: 'wtsuggestcombo',
-				reference: 'fldtitle',
+				reference: 'fldsubject',
 				bind: '{record.subject}',
 				sid: me.mys.ID,
 				suggestionContext: 'tasksubject',
@@ -234,7 +232,8 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					items: [{
 						xtype: 'datefield',
 						bind: '{startDate}',
-						startDay: WT.getStartDay()
+						startDay: WT.getStartDay(),
+						fieldLabel: me.mys.res('task.fld-startday.lbl')
 					},
 						WTF.lookupCombo('id', 'desc', {
 							bind: '{record.status}',
@@ -248,7 +247,9 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					items: [{
 						xtype: 'datefield',
 						bind: '{dueDate}',
-						startDay: WT.getStartDay()
+						startDay: WT.getStartDay(),
+						fieldLabel: me.mys.res('task.fld-duedate.lbl'),
+						labelWidth: 120,
 					}, {
 						xtype: 'numberfield',
 						step: 25,
@@ -256,7 +257,8 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 						maxValue: 100,
 						allowDecimal: false,
 						bind: '{record.percentage}',
-						fieldLabel: me.mys.res('task.fld-percentage.lbl')
+						fieldLabel: me.mys.res('task.fld-percentage.lbl'),
+						labelWidth: 120
 					}]
 				}]
 			}, {
@@ -266,6 +268,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 				fieldLabel: me.mys.res('task.fld-reminderDate.lbl'),
 				layout: 'hbox',
 				defaults: {
+					labelWidth: 120,
 					margin: '0 10 0 0'
 				},
 				items: [{
@@ -276,7 +279,7 @@ Ext.define('Sonicle.webtop.task.view.Task', {
 					width: 105
 				}, {
 					xtype: 'timefield',
-					bind: '{endTime}',
+					bind: '{reminderTime}',
 					format: WT.getShortTimeFmt(),
 					margin: '0 5 0 0',
 					width: 80
