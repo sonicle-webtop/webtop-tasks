@@ -60,6 +60,7 @@ import com.sonicle.webtop.tasks.bol.model.CategoryRoot;
 import com.sonicle.webtop.tasks.bol.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -68,6 +69,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.logging.Level;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -382,8 +385,14 @@ public class TasksManager extends BaseManager {
 		}
 	}
 
-    private Task createTask (OTask task) {
-        return (Task) task;
+    private Task createTask (OTask otask) throws WTException {
+		try {
+			Task task = new Task();
+			BeanUtils.copyProperties(task, otask);
+			return task;
+		} catch (Exception exc) {
+			throw new WTException(exc,"Error creating bean");
+		}
     }
     
 	public Task getTask(int taskId) throws WTException {
@@ -393,11 +402,11 @@ public class TasksManager extends BaseManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			
-			OTask task = tdao.selectById(con, taskId);
-			if(task == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
-			checkRightsOnCategoryFolder(task.getCategoryId(), "READ"); // Rights check!
+			OTask otask = tdao.selectById(con, taskId);
+			if(otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ"); // Rights check!
 			
-			return createTask(task);
+			return createTask(otask);
 		
 		} catch(SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
@@ -541,14 +550,14 @@ public class TasksManager extends BaseManager {
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			OTask cont = tdao.selectById(con, taskId);
-			if(cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
-			checkRightsOnCategoryFolder(cont.getCategoryId(), "READ"); // Rights check!
+			OTask otask = tdao.selectById(con, taskId);
+			if(otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ"); // Rights check!
 			
-			if(copy || (targetCategoryId != cont.getCategoryId())) {
+			if(copy || (targetCategoryId != otask.getCategoryId())) {
 				checkRightsOnCategoryElements(targetCategoryId, "CREATE"); // Rights check!
 				
-				Task task = createTask(cont);
+				Task task = createTask(otask);
 
 				con.setAutoCommit(false);
 				doMoveTask(con, copy, task, targetCategoryId);
@@ -567,8 +576,14 @@ public class TasksManager extends BaseManager {
 		}
 	}
 
-	private OTask doInsertTask(Connection con, Task item) throws WTException {
+	private OTask doInsertTask(Connection con, Task task) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
+		OTask item = new OTask();
+		try {
+			BeanUtils.copyProperties(item, task);
+		} catch (IllegalAccessException | InvocationTargetException ex) {
+			throw new WTException(ex,"Error creating bean");
+		}
 		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(IdentifierUtils.getUUID());
         item.setTaskId(tdao.getSequence(con).intValue());
         tdao.insert(con, item, createRevisionTimestamp());
@@ -577,7 +592,13 @@ public class TasksManager extends BaseManager {
 	
 	private void doUpdateTask(Connection con, Task task) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
-        tdao.update(con, task, createRevisionTimestamp());
+		OTask item = new OTask();
+		try {
+			BeanUtils.copyProperties(item, task);
+		} catch (IllegalAccessException | InvocationTargetException ex) {
+			throw new WTException(ex,"Error creating bean");
+		}
+        tdao.update(con, item, createRevisionTimestamp());
 	}
 	
 	private int doDeleteTask(Connection con, int taskId) throws WTException {

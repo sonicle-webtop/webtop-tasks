@@ -148,6 +148,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						}
 					})
 				},
+				selModel: WTF.multiRowSelection(false),
 				columns: [{
 					dataIndex: 'subject',
 					header: me.res('gptasks.subject.lbl'),
@@ -175,19 +176,39 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}),
 					flex: 1
 				}, {
-					dataIndex: 'precenteage',
+					xtype: 'widgetcolumn',
+					dataIndex: 'progress',
 					header: me.res('gptasks.percentage.lbl'),
+					widget: {
+						xtype: 'progressbarwidget',
+						textTpl: ['{percent:number("0")}%']
+					},
 					width: 120
 				}, {
 					xtype: 'socolorcolumn',
 					dataIndex: 'categoryName',
 					colorField: 'categoryColor',
-					displayField: 'CategoryName',
+					displayField: 'categoryName',
 					header: me.res('gptasks.category.lbl'),
 					width: 150
 				}],
 				listeners: {
+					selectionchange: function() {
+						me.updateDisabled('showTask');
+						//me.updateDisabled('printTask');
+						me.updateDisabled('copyTask');
+						me.updateDisabled('moveTask');
+						me.updateDisabled('deleteTask');
+					},
 					rowdblclick: function(s, rec) {
+						var er = me.toRightsObj(rec.get('_erights'));
+						me.showTask(er.UPDATE, rec.get('taskId'));
+					},
+					rowcontextmenu: function(s, rec, itm, i, e) {
+						WT.showContextMenu(e, me.getRef('cxmGrid'), {
+							task: rec,
+							tasks: s.getSelection()
+						});
 					}
 				}
 			}, {
@@ -257,7 +278,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				var rec = me.getSelectedTask(), er;
 				if(rec) {
 					er = me.toRightsObj(rec.get('_erights'));
-					me.showTask(er.UPDATE, rec.get('id'));
+					me.showTask(er.UPDATE, rec.get('taskId'));
 				}
 			}
 		});
@@ -354,7 +375,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		}));
 		
-		/*me.addRef('cxmGrid', Ext.create({
+		me.addRef('cxmGrid', Ext.create({
 			xtype: 'menu',
 			items: [
 				me.getAction('showTask'),
@@ -369,28 +390,22 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				},
 				me.getAction('deleteTask')
 			]
-		}));*/
+		}));
 	},
 	
 	onActivate: function() {
-		/*var me = this,
+		var me = this,
 				gp = me.gpTasks();
 		
 		if(me.needsReload) {
 			me.needsReload = false;
-			if(gp.getStore().loadCount === 0) { // The first time...
-				// ...sets startup letter!
-				me.reloadTasks('A');
-			} else {
-				me.reloadTasks();
-			}
+			me.reloadTasks();
 		}
 		
 		me.updateDisabled('showTask');
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
-		*/
 	},
 	
 	onCategoryViewSave: function(s, success, model) {
@@ -422,6 +437,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		if(me.isActive()) {
 			sto = me.gpTasks().getStore();
+			pars = {};
 			if(query !== undefined) Ext.apply(pars, {query: query});
 			WTU.loadWithExtraParams(sto, pars);
 		} else {
@@ -452,11 +468,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 			sto = me.gpTasks().getStore(),
 			ids = me.selectionIds(sel),
-			msg, name;
+			msg;
 		
 		if(sel.length === 1) {
-			name = Sonicle.String.join(' ', sel[0].get('firstName'), sel[0].get('lastName'));
-			msg = me.res('task.confirm.delete', Ext.String.ellipsis(name, 40));
+			msg = me.res('task.confirm.delete', Ext.String.ellipsis(sel[0].get('subject'), 40));
 		} else {
 			msg = me.res('gptasks.confirm.delete.selection');
 		}
@@ -464,7 +479,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.confirm(msg, function(bid) {
 			if(bid === 'yes') {
 				me.deleteTasks(ids, {
-					cb: function(success) {
+					callback: function(success) {
 						if(success) sto.remove(sel);
 						//me.reloadTasks();
 					}
@@ -480,7 +495,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				cat = sel[0].get('categoryId');
 		
 		me.confirmMoveTask(copy, id, pid, cat, {
-			cb: function() {
+			callback: function() {
 				me.reloadTasks();
 			}
 		});
@@ -492,12 +507,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}, this);
 	},
 	
-	confirmMoveTask: function(copy, id, ownerId, catId) {
+	confirmMoveTask: function(copy, id, ownerId, catId, opts) {
 		var me = this,
 				vw = me.createCategoryChooser(copy, ownerId, catId);
 		
 		vw.getView().on('viewok', function(s) {
-			me.moveTask(copy, id, s.getVMData().categoryId);
+			me.moveTask(copy, id, s.getVMData().categoryId, opts);
 		});
 		vw.show();
 	},
@@ -572,7 +587,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		vwc.show(false, function() {
 			vwc.getView().begin(mode, {
 				data: {
-					id: id
+					taskId: id
 				}
 			});
 		});
@@ -587,7 +602,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				ids: WTU.arrayAsParam(ids)
 			},
 			callback: function(success, json) {
-				Ext.callback(opts.cb, opts.scope || me, [success, json]);
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
 			}
 		});
 	},
@@ -604,7 +619,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				targetCategoryId: targetCategoryId
 			},
 			callback: function(success, json) {
-				Ext.callback(opts.cb, opts.scope || me, [success, json]);
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
 			}
 		});
 	},

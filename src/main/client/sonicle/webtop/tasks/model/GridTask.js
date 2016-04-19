@@ -44,7 +44,10 @@ Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 		WTF.roField('importance', 'string'),
 		WTF.roField('isPrivate', 'boolean'),
 		WTF.roField('status', 'string'),
-		WTF.roField('percentange', 'int'),
+		WTF.roField('percentage', 'int'),
+		WTF.calcField('progress', 'number','percentage', function (v, rec) {
+			return Ext.isEmpty(rec.get('percentage'))?0:rec.get('percentage')/100;
+		}),
 		WTF.roField('reminderDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.calcField('hasReminder', 'boolean', 'reminderDate', function (v, rec) {
 			return Ext.isEmpty(rec.get('reminderDate'));

@@ -45,6 +45,7 @@ public class JsCategoryLkp {
 	public String userId;
 	public String name;
 	public Boolean isDefault;
+	public Boolean isPrivate;
 	public String color;
 	
 	public JsCategoryLkp(OCategory item) {
@@ -53,6 +54,7 @@ public class JsCategoryLkp {
 		userId = item.getUserId();
 		name = item.getName();
 		isDefault = item.getIsDefault();
+		isPrivate = item.getIsPrivate();
 		color = item.getHexColor();
 	}
 }

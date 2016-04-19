@@ -41,6 +41,7 @@ Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
 		WTF.field('userId', 'string', false),
 		WTF.field('name', 'string', false),
 		WTF.field('isDefault', 'boolean', false, {defaultValue: false}),
+		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
 		WTF.calcField('colorCls', 'string', 'color', function(v, rec) {
 			return (rec.get('color')) ? 'wt-palette-' + rec.get('color').replace('#', '') : v;

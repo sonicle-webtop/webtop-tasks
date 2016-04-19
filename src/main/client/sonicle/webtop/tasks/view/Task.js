@@ -47,13 +47,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	
 	dockableConfig: {
 		title: '{task.tit}',
-		iconCls: 'wttasks-icon-tasks-xs',
-		width: 650,
-		height: 510
+		iconCls: 'wttasks-icon-task-xs',
+		width: 580,
+		height: 380
 	},
 	confirm: 'yn',
 	autoToolbar: false,
-	fieldTitle: 'title',
+	fieldTitle: 'subject',
 	modelName: 'Sonicle.webtop.tasks.model.Task',
 	
 	viewModel: {
