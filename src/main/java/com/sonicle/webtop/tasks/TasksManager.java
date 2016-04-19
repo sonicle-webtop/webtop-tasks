@@ -51,6 +51,7 @@ import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTOperationException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
+import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
@@ -568,7 +569,7 @@ public class TasksManager extends BaseManager {
 
 	private OTask doInsertTask(Connection con, Task item) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
-		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(WT.generateUUID());
+		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(IdentifierUtils.getUUID());
         item.setTaskId(tdao.getSequence(con).intValue());
         tdao.insert(con, item, createRevisionTimestamp());
         return item;
