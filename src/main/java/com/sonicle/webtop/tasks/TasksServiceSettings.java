@@ -33,55 +33,19 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.webtop.core.app.RunContext;
-import com.sonicle.webtop.core.app.WT;
-import com.sonicle.webtop.core.sdk.BaseController;
-import com.sonicle.webtop.core.sdk.BaseReminder;
-import com.sonicle.webtop.core.sdk.UserProfile;
-import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.core.sdk.WTOperationException;
-import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesProfiles;
-import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesReminders;
-import java.util.ArrayList;
-import java.util.List;
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
+import com.sonicle.webtop.core.sdk.BaseServiceSettings;
 
 /**
  *
  * @author rfullone
  */
-public class TasksController extends BaseController implements IControllerHandlesProfiles, IControllerHandlesReminders {
-    public static final Logger logger = WT.getLogger(TasksController.class);
+public class TasksServiceSettings extends BaseServiceSettings {
 
-    public TasksController(RunContext context) {
-        super(context);
-    }
-
-    @Override
-    public void initializeProfile(UserProfile.Id profileId) throws WTException {
-		TasksManager manager = new TasksManager(getRunContext(), profileId);
-		
-		// Adds built-in category
-		try {
-			manager.addBuiltInCategory();
-		} catch(WTOperationException ex) {
-			// Do nothing...
-		} catch(WTException ex) {
-			throw ex;
-		}
-    }
-
-    @Override
-    public void cleanupProfile(UserProfile.Id profileId, boolean deep) throws WTException {
-		//TODO: implementare cleanup utente
-		//ContactsManager manager = new ContactsManager(getRunContext(), profileId);
-    }
-
-    @Override
-    public List<BaseReminder> returnReminders(DateTime now) {
-		TasksManager manager = new TasksManager(getRunContext());
-		return manager.getRemindersToBeNotified(now);
-    }
-    
+	public TasksServiceSettings(String serviceId, String domainId) {
+		super(serviceId, domainId);
+	}
+	
+	public String getDefaultTaskReminderDelivery() {
+		return getString(DEFAULT_PREFIX + TasksUserSettings.TASK_REMINDER_DELIVERY, TasksUserSettings.TASK_REMINDER_DELIVERY_APP);
+	}
 }

@@ -47,6 +47,9 @@ import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.core.sdk.AuthException;
 import com.sonicle.webtop.core.sdk.BaseManager;
+import com.sonicle.webtop.core.sdk.BaseReminder;
+import com.sonicle.webtop.core.sdk.ReminderEmail;
+import com.sonicle.webtop.core.sdk.ReminderInApp;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTOperationException;
@@ -69,6 +72,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -576,6 +580,58 @@ public class TasksManager extends BaseManager {
 		}
 	}
 
+	public List<BaseReminder> getRemindersToBeNotified(DateTime now) {
+		ArrayList<BaseReminder> alerts = new ArrayList<>();
+		HashMap<UserProfile.Id, Boolean> byEmailCache = new HashMap<>();
+		TaskDAO dao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			con.setAutoCommit(false);
+			
+			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now);
+			for(VTask task : tasks) {
+				if(!byEmailCache.containsKey(task.getCategoryProfileId())) {
+					TasksUserSettings us = new TasksUserSettings(SERVICE_ID, task.getCategoryProfileId());
+					boolean bool = us.getTaskReminderDelivery().equals(TasksUserSettings.TASK_REMINDER_DELIVERY_EMAIL);
+					byEmailCache.put(task.getCategoryProfileId(), bool);
+				}
+
+				int ret = dao.updateRemindedOn(con, task.getTaskId(), now);
+				if(ret != 1) continue;
+
+				if(byEmailCache.get(task.getCategoryProfileId())) {
+					UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
+					alerts.add(createTaskReminderAlertEmail(ud.getLocale(), task));
+				} else {
+					alerts.add(createTaskReminderAlertWeb(task));
+				}
+			}
+			DbUtils.commitQuietly(con);
+			
+		} catch(Exception ex) {
+			logger.error("Error collecting reminder alerts", ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+		return alerts;
+	}
+	
+	private ReminderInApp createTaskReminderAlertWeb(VTask task) {
+		ReminderInApp alert = new ReminderInApp(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
+		alert.setTitle(task.getSubject());
+		alert.setDate(task.getReminderDate());
+		alert.setTimezone(DateTimeZone.UTC.getID());
+		return alert;
+	}
+	
+	private ReminderEmail createTaskReminderAlertEmail(Locale locale, VTask task) {
+		ReminderEmail alert = new ReminderEmail(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
+		//TODO: completare email
+		return alert;
+	}
+	
 	private OTask doInsertTask(Connection con, Task task) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
 		OTask item = new OTask();

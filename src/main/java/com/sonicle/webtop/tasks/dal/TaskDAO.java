@@ -106,6 +106,50 @@ public class TaskDAO extends BaseDAO {
 			)
 			.fetchInto(VTask.class);
 	}
+
+	public List<VTask> viewExpridedForUpdateByUntil(Connection con, DateTime until) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.CATEGORY_ID,
+				TASKS.SUBJECT,
+				TASKS.REMINDER_DATE,
+				TASKS.PUBLIC_UID
+			)
+			.select(
+				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
+				CATEGORIES.USER_ID.as("category_user_id")
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.REMINDER_DATE.isNotNull()
+				.and(
+					TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_NEW)
+					.or(TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_MODIFIED))
+				)
+				.and(TASKS.REMINDER_DATE.lessThan(until))
+			)
+			.orderBy(
+				TASKS.REMINDER_DATE.asc(),TASKS.SUBJECT.asc()
+			)
+			.forUpdate()
+			.fetchInto(VTask.class);
+	}
+	
+	public int updateRemindedOn(Connection con, int taskId, DateTime remindedOn) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS)
+			.set(TASKS.REMINDED_ON, remindedOn)
+			.set(TASKS.REMINDER_DATE, (DateTime) null)
+			.where(
+				TASKS.TASK_ID.equal(taskId)
+			)
+			.execute();
+	}	
 	
 	public OTask selectById(Connection con, int taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);

@@ -43,10 +43,20 @@ import java.util.HashSet;
  * @author malbinola
  */
 public class TasksUserSettings extends BaseUserSettings {
+	private TasksServiceSettings ss;
 	
 	public TasksUserSettings(String serviceId, UserProfile.Id profileId) {
 		super(serviceId, profileId);
+		ss = new TasksServiceSettings(serviceId, profileId.getDomainId());
 	}
+	
+	/**
+	 * [string][default]
+	 * Set reminder delivery mode
+	 */
+	public static final String TASK_REMINDER_DELIVERY = "task.reminder.delivery";
+	public static final String TASK_REMINDER_DELIVERY_APP = "app";
+	public static final String TASK_REMINDER_DELIVERY_EMAIL = "email";
 	
 	/**
 	 * [string]
@@ -65,6 +75,16 @@ public class TasksUserSettings extends BaseUserSettings {
 	 * List of checked (or visible) folders (groups).
 	 */
 	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
+	
+	public String getTaskReminderDelivery() {
+		String value = getString(TASK_REMINDER_DELIVERY, null);
+		if(value != null) return value;
+		return ss.getDefaultTaskReminderDelivery();
+	}
+	
+	public boolean setTaskReminderDelivery(String value) {
+		return setString(TASK_REMINDER_DELIVERY, value);
+	}
 	
 	public String getSelectedRoot() {
 		return getString(SELECTED_ROOT, null);
