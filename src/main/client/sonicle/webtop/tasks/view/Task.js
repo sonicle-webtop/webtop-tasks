@@ -48,8 +48,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	dockableConfig: {
 		title: '{task.tit}',
 		iconCls: 'wttasks-icon-task-xs',
-		width: 580,
-		height: 380
+		width: 700,
+		height: 480
 	},
 	confirm: 'yn',
 	autoToolbar: false,
@@ -94,7 +94,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					this.get('record').setTimePart('reminderDate', val);
 				}
 			},
-			isPrivate: WTF.checkboxBind('record', 'isPrivate')
+			isPrivate: WTF.checkboxBind('record', 'isPrivate'),
+			hasReminder: {
+				bind: {bindTo: '{record.reminderDate}'},
+				get: function(val) {
+					return !Ext.isEmpty(val);
+				}
+			}
 		}
 	},
 	
@@ -233,14 +239,22 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{startDate}',
 						startDay: WT.getStartDay(),
-						fieldLabel: me.mys.res('task.fld-startday.lbl')
+						fieldLabel: me.mys.res('task.fld-startDate.lbl')
 					},
 						WTF.lookupCombo('id', 'desc', {
 							bind: '{record.status}',
 							store: Ext.create(me.mys.preNs('store.Status'), {
 								autoLoad: true
 							}),
-							fieldLabel: me.mys.res('task.fld-status.lbl')
+							fieldLabel: me.mys.res('task.fld-status.lbl'),
+							listeners: {
+								select: function(s, rec) {
+									if (rec.get('id') === 'notstarted') 
+										me.getModel().set('percentage',0);
+									if (rec.get('id') === 'completed') 
+										me.getModel().set('percentage',100);
+								}
+							}
 						})
 					]
 				}, {
@@ -248,8 +262,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{dueDate}',
 						startDay: WT.getStartDay(),
-						fieldLabel: me.mys.res('task.fld-duedate.lbl'),
-						labelWidth: 120,
+						fieldLabel: me.mys.res('task.fld-dueDate.lbl'),
+						labelWidth: 120
 					}, {
 						xtype: 'numberfield',
 						step: 25,
@@ -258,28 +272,49 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						allowDecimal: false,
 						bind: '{record.percentage}',
 						fieldLabel: me.mys.res('task.fld-percentage.lbl'),
-						labelWidth: 120
+						labelWidth: 120,
+						listeners: {
+							blur: function(s) {
+								var nv = s.getValue();
+								if (nv === 100) 
+									me.getModel().set('status','completed');
+								if (nv === 0) 
+									me.getModel().set('status','notstarted');
+							}
+						}
 					}]
 				}]
 			}, {
 				xtype: 'formseparator'
 			}, {
 				xtype: 'fieldcontainer',
-				fieldLabel: me.mys.res('task.fld-reminderDate.lbl'),
 				layout: 'hbox',
 				defaults: {
 					labelWidth: 120,
 					margin: '0 10 0 0'
 				},
 				items: [{
+					width: 100,
+					xtype: 'checkbox',
+					reference: 'fldhasreminder',
+					bind: '{hasReminder}',
+					hideEmptyLabel: true,
+					boxLabel: me.mys.res('task.fld-reminderDate.lbl'),
+				},{
 					xtype: 'datefield',
-					bind: '{reminderDate}',
+					bind: {
+						value: '{reminderDate}',
+						disabled: '{!fldhasreminder.checked}'
+					},
 					startDay: WT.getStartDay(),
 					margin: '0 5 0 0',
 					width: 105
 				}, {
 					xtype: 'timefield',
-					bind: '{reminderTime}',
+					bind: {
+						value: '{reminderTime}',
+						disabled: '{!fldhasreminder.checked}'
+					},
 					format: WT.getShortTimeFmt(),
 					margin: '0 5 0 0',
 					width: 80
@@ -320,6 +355,14 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		mo.set({
 			isPrivate: cat.get('isPrivate')
 		});
+	},
+	
+	saveView: function(closeAfter) {
+		var me = this,
+				rec = me.getModel();
+		if (!me.lref('fldhasreminder').getValue())
+			rec.set('reminderDate',null);
+		me.callParent(arguments);
 	},
 	
 	saveTask: function() {

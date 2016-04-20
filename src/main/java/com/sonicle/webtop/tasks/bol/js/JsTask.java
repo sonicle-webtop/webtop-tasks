@@ -81,7 +81,8 @@ public class JsTask {
         isPrivate = task.getIsPrivate();
         status = task.getStatus();
         percentage = task.getCompletionPercentage();
-        reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
+        if (task.getReminderDate()!=null)
+			reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
         //publicUid;
         _profileId = ownerId.toString();
 	}

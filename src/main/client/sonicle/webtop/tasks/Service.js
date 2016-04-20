@@ -136,6 +136,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			xtype: 'container',
 			layout: 'border',
 			referenceHolder: true,
+			viewModel: {
+				formulas: {
+					selectedTask: {
+						bind: {bindTo: '{gptasks.selection}'},
+						get: function (val) {
+							return val;
+						}
+					}
+				}
+			},
 			items: [{
 				region: 'center',
 				xtype: 'grid',
@@ -212,7 +222,55 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				}
 			}, {
-				region: 'east'
+				region: 'east',
+				xtype: 'wtform',
+				split: true,
+				collapsible: true,
+				title: me.getName(),
+				width: 200,
+				defaults: {
+					labelAlign: 'top'
+				},
+				items: [{
+					xtype: 'textfield',
+					bind: '{selectedTask.subject}',
+					readOnly: true,
+					fieldLabel: me.res('task.fld-subject.lbl'),
+					anchor: '100%'
+				}, WTF.lookupCombo('id', 'desc', {
+					bind: '{selectedTask.importance}',
+					store: Ext.create(me.preNs('store.Importance'), {
+						autoLoad: true
+					}),
+					readOnly: true,
+					fieldLabel: me.res('task.fld-importance.lbl')
+				}), {
+					xtype: 'datefield',
+					bind: '{selectedTask.startDate}',
+					format: WT.getShortDateFmt(),
+					readOnly: true,
+					fieldLabel: me.res('task.fld-startDate.lbl')
+				}, {
+					xtype: 'datefield',
+					bind: '{selectedTask.dueDate}',
+					format: WT.getShortDateFmt(),
+					readOnly: true,
+					fieldLabel: me.res('task.fld-dueDate.lbl'),
+					width: 100
+				}, WTF.lookupCombo('id', 'desc', {
+					bind: '{selectedTask.status}',
+					store: Ext.create(me.preNs('store.Status'), {
+						autoLoad: true
+					}),
+					readOnly: true,
+					fieldLabel: me.res('task.fld-status.lbl')
+				}), {
+					xtype: 'textareafield',
+					bind: '{selectedTask.description}',
+					readOnly: true,
+					fieldLabel: me.res('task.fld-description.lbl'),
+					anchor: '100%'
+				}]
 			}
 			]
 		}));
