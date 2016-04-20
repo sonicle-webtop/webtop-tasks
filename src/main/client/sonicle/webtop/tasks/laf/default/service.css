@@ -11,3 +11,5 @@
 .wttasks-icon-task-xs { background-image: url('task_16.png') !important; }
 .wttasks-icon-newTask-xs { background-image: url('task-new_16.png') !important; }
 .wttasks-icon-addTask-xs { background-image: url('task-add_16.png') !important; }
+.wttasks-row-completed { text-decoration: line-through; color: #808080; }
+.wttasks-row-expired { color: #E60D35; }

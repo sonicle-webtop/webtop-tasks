@@ -39,9 +39,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.ValueModel',
 		'WT.ux.field.SuggestCombo',
-		'Sonicle.webtop.tasks.model.Task',
 		'Sonicle.webtop.tasks.store.Importance',
 		'Sonicle.webtop.tasks.store.Status',
+		'Sonicle.webtop.tasks.model.Task',
 		'Sonicle.webtop.tasks.model.CategoryLkp'
 	],
 	

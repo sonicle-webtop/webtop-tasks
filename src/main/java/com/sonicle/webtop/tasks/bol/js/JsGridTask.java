@@ -84,7 +84,8 @@ public class JsGridTask {
         isPrivate = task.getIsPrivate();
         status = task.getStatus();
         percentage = task.getCompletionPercentage();
-        reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
+        if (task.getReminderDate()!=null)
+			reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
         //publicUid;
         categoryId = task.getCategoryId();
         categoryName = folder.getCategory().getName();

@@ -38,6 +38,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Color',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.SimpleModel',
+		'Sonicle.webtop.tasks.store.Importance',
+		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.FolderNode',
 		'Sonicle.webtop.tasks.model.GridTask',
 		'Sonicle.webtop.tasks.view.Sharing',
@@ -143,6 +145,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						get: function (val) {
 							return val;
 						}
+					},
+					selectedTaskPercentage: {
+						bind: {bindTo: '{selectedTask.percentage}'},
+						get: function (val) {
+							return Ext.isEmpty(val) ? '' : val + '%';
+						}
+					},
+					selectedTaskReminder: {
+						bind: {bindTo: '{selectedTask.reminderDate}'},
+						get: function (val) {
+							return !Ext.isDate(val) ? WT.res('word.none.male') : Ext.Date.format(val, WT.getShortDateTimeFmt());
+						}
 					}
 				}
 			},
@@ -157,6 +171,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							query: null
 						}
 					})
+				},
+				viewConfig: {
+					getRowClass: function (rec, indx) {
+						if (rec.get('status') === 'completed')
+							return 'wttasks-row-completed';
+						if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(rec.get('dueDate'),new Date(),false)>0 )
+							return 'wttasks-row-expired';
+						return '';
+					}
 				},
 				selModel: WTF.multiRowSelection(false),
 				columns: [{
@@ -193,6 +216,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						xtype: 'progressbarwidget',
 						textTpl: ['{percent:number("0")}%']
 					},
+					sortable: true,
 					width: 120
 				}, {
 					xtype: 'socolorcolumn',
@@ -226,53 +250,62 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				xtype: 'wtform',
 				split: true,
 				collapsible: true,
-				title: me.getName(),
+				title: WT.res('word.preview'),
 				width: 200,
 				defaults: {
-					labelAlign: 'top'
+					labelAlign: 'top',
+					readOnly: true,
+					anchor: '100%'
 				},
 				items: [{
 					xtype: 'textfield',
 					bind: '{selectedTask.subject}',
-					readOnly: true,
-					fieldLabel: me.res('task.fld-subject.lbl'),
-					anchor: '100%'
+					fieldLabel: me.res('task.fld-subject.lbl')
 				}, WTF.lookupCombo('id', 'desc', {
 					bind: '{selectedTask.importance}',
 					store: Ext.create(me.preNs('store.Importance'), {
 						autoLoad: true
 					}),
-					readOnly: true,
 					fieldLabel: me.res('task.fld-importance.lbl')
 				}), {
 					xtype: 'datefield',
 					bind: '{selectedTask.startDate}',
 					format: WT.getShortDateFmt(),
-					readOnly: true,
 					fieldLabel: me.res('task.fld-startDate.lbl')
+				},{
+					xtype: 'checkbox',
+					bind: '{selectedTask.isPrivate}',
+					hideEmptyLabel: true,
+					boxLabel: me.res('task.fld-private.lbl')
 				}, {
 					xtype: 'datefield',
 					bind: '{selectedTask.dueDate}',
 					format: WT.getShortDateFmt(),
-					readOnly: true,
-					fieldLabel: me.res('task.fld-dueDate.lbl'),
-					width: 100
+					fieldLabel: me.res('task.fld-dueDate.lbl')
 				}, WTF.lookupCombo('id', 'desc', {
 					bind: '{selectedTask.status}',
 					store: Ext.create(me.preNs('store.Status'), {
 						autoLoad: true
 					}),
-					readOnly: true,
 					fieldLabel: me.res('task.fld-status.lbl')
 				}), {
+					xtype: 'displayfield',
+					bind: '{selectedTaskPercentage}',
+					labelAlign: 'left',
+					labelWidth: 90,
+					fieldLabel: me.res('gptasks.percentage.lbl')
+				}, {
+					xtype: 'displayfield',
+					bind: '{selectedTaskReminder}',
+					labelAlign: 'left',
+					labelWidth: 90,
+					fieldLabel: me.res('task.fld-reminderDate.lbl')
+				}, {
 					xtype: 'textareafield',
 					bind: '{selectedTask.description}',
-					readOnly: true,
-					fieldLabel: me.res('task.fld-description.lbl'),
-					anchor: '100%'
+					fieldLabel: me.res('task.fld-description.lbl')
 				}]
-			}
-			]
+			}]
 		}));
 	},
 	
