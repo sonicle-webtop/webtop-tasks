@@ -384,8 +384,8 @@ public class TasksManager extends BaseManager {
 			Task task = new Task();
 			BeanUtils.copyProperties(task, otask);
 			return task;
-		} catch (Exception exc) {
-			throw new WTException(exc,"Error creating bean");
+		} catch (Exception ex) {
+			throw new WTException(ex, "Error creating bean");
 		}
     }
     
