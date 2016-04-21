@@ -84,8 +84,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 	setDatePart: function(field, date) {
 		var me = this,
 				v = me.get(field) || new Date(), dt;
-		if(!Ext.isDate(date) || !Ext.isDate(v)) return;
-		dt = Sonicle.Date.copyDate(date, v);
+		dt = (!Ext.isDate(date)) ? null : Sonicle.Date.copyDate(date, v);
 		me.set(field, dt);
 		return dt;
 	},

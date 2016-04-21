@@ -264,6 +264,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{dueDate}',
 						startDay: WT.getStartDay(),
+						triggers: {
+							clear: WTF.clearTrigger()
+						},
 						fieldLabel: me.mys.res('task.fld-dueDate.lbl'),
 						labelWidth: 120
 					}, {
