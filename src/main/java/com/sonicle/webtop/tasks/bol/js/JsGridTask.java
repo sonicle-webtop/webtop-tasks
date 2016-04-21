@@ -33,13 +33,9 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.core.sdk.UserProfile;
-import com.sonicle.webtop.tasks.bol.OCategory;
-import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolder;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
 
 /**
  *
@@ -64,28 +60,21 @@ public class JsGridTask {
 	public String _frights;
 	public String _erights;
 	public String _profileId;
-
 	
 	public JsGridTask() {}
 	
 	public JsGridTask(CategoryFolder folder, VTask task, DateTimeZone profileTz) {
-		DateTimeFormatter ymdhmsZoneFmt = DateTimeUtils.createYmdHmsFormatter(profileTz);
-		
 		taskId = task.getTaskId();
         subject = task.getSubject();
         description = task.getDescription();
-        if (task.getStartDate()!=null)
-            startDate = ymdhmsZoneFmt.print(task.getStartDate());
-        if (task.getDueDate()!=null)
-            dueDate = ymdhmsZoneFmt.print(task.getDueDate());
-        if (task.getCompletedDate()!=null)
-            completedDate = ymdhmsZoneFmt.print(task.getCompletedDate());
+		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), profileTz);
+		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
+		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
         importance = task.getImportance();
         isPrivate = task.getIsPrivate();
         status = task.getStatus();
         percentage = task.getCompletionPercentage();
-        if (task.getReminderDate()!=null)
-			reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
+		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
         //publicUid;
         categoryId = task.getCategoryId();
         categoryName = folder.getCategory().getName();
@@ -94,5 +83,4 @@ public class JsGridTask {
         _erights = folder.getElementsPerms().toString();
         _profileId = folder.getCategory().getProfileId().toString();
 	}
-	
 }

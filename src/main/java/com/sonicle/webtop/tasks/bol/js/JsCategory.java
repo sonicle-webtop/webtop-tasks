@@ -64,7 +64,7 @@ public class JsCategory {
 		isPrivate = bean.getIsPrivate();
 	}
 	
-	public static OCategory buildFolder(JsCategory js) {
+	public static OCategory createFolder(JsCategory js) {
 		OCategory bean = new OCategory();
 		bean.setCategoryId(js.categoryId);
 		bean.setDomainId(js.domainId);

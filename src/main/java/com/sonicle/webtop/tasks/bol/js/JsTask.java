@@ -35,11 +35,8 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.sdk.UserProfile;
-import com.sonicle.webtop.tasks.TasksManager;
 import com.sonicle.webtop.tasks.bol.model.Task;
-import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
 
 /**
  *
@@ -65,42 +62,36 @@ public class JsTask {
 	public JsTask() {}
 	
 	public JsTask(UserProfile.Id ownerId, Task task, DateTimeZone profileTz) {
-		DateTimeFormatter ymdhmsZoneFmt = DateTimeUtils.createYmdHmsFormatter(profileTz);
-		
 		taskId = task.getTaskId();
         categoryId = task.getCategoryId();
         subject = task.getSubject();
         description = task.getDescription();
-        if (task.getStartDate()!=null)
-            startDate = ymdhmsZoneFmt.print(task.getStartDate());
-        if (task.getDueDate()!=null)
-            dueDate = ymdhmsZoneFmt.print(task.getDueDate());
-        if (task.getCompletedDate()!=null)
-            completedDate = ymdhmsZoneFmt.print(task.getCompletedDate());
+		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), profileTz);
+		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
+		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
         importance = task.getImportance();
         isPrivate = task.getIsPrivate();
         status = task.getStatus();
         percentage = task.getCompletionPercentage();
-        if (task.getReminderDate()!=null)
-			reminderDate = ymdhmsZoneFmt.print(task.getReminderDate());
+		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
         //publicUid;
         _profileId = ownerId.toString();
 	}
 	
-	public static Task buildTask(JsTask js, DateTimeZone profileTz) {
+	public static Task createTask(JsTask js, DateTimeZone profileTz) {
         Task item = new Task();
         item.setTaskId(js.taskId);
         item.setCategoryId(js.categoryId);
         item.setSubject(js.subject);
         item.setDescription(js.description);
-		if(!StringUtils.isBlank(js.startDate)) item.setStartDate(TasksManager.parseYmdHmsWithZone(js.startDate, DateTimeZone.UTC));
-		if(!StringUtils.isBlank(js.dueDate)) item.setDueDate(TasksManager.parseYmdHmsWithZone(js.dueDate, DateTimeZone.UTC));
-		if(!StringUtils.isBlank(js.completedDate)) item.setCompletedDate(TasksManager.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
+		item.setStartDate(DateTimeUtils.parseYmdHmsWithZone(js.startDate, DateTimeZone.UTC));
+		item.setDueDate(DateTimeUtils.parseYmdHmsWithZone(js.dueDate, DateTimeZone.UTC));
+		item.setCompletedDate(DateTimeUtils.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
         item.setImportance(js.importance);
         item.setIsPrivate(js.isPrivate);
         item.setStatus(js.status);
         item.setCompletionPercentage(js.percentage);
-		if(!StringUtils.isBlank(js.reminderDate)) item.setReminderDate(TasksManager.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
+		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
 		return item;
 	}
 }

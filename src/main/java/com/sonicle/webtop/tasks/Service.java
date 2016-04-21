@@ -326,7 +326,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				item = manager.addCategory(JsCategory.buildFolder(pl.data));
+				item = manager.addCategory(JsCategory.createFolder(pl.data));
 				updateFoldersCache();
 				toggleCheckedFolder(item.getCategoryId(), true);
 				new JsonResult().printTo(out);
@@ -334,7 +334,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				manager.updateCategory(JsCategory.buildFolder(pl.data));
+				manager.updateCategory(JsCategory.createFolder(pl.data));
 				new JsonResult().printTo(out);
 				
 			} else if(crud.equals(Crud.DELETE)) {
@@ -407,7 +407,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.buildTask(pl.data, ptz);
+				Task task = JsTask.createTask(pl.data, ptz);
                 manager.addTask(task);
 				
 				new JsonResult().printTo(out);
@@ -415,7 +415,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.buildTask(pl.data, ptz);
+				Task task = JsTask.createTask(pl.data, ptz);
                 manager.updateTask(task);
 				
 				new JsonResult().printTo(out);

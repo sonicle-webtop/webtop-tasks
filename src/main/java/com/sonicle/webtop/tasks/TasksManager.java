@@ -103,16 +103,6 @@ public class TasksManager extends BaseManager {
 	public TasksManager(RunContext context, UserProfile.Id targetProfileId) {
 		super(context, targetProfileId);
 	}
-	
-    public static DateTime parseYmdHmsWithZone(String date, String time, DateTimeZone tz) {
-		return parseYmdHmsWithZone(date + " " + time, tz);
-	}
-	
-	public static DateTime parseYmdHmsWithZone(String dateTime, DateTimeZone tz) {
-		String dt = StringUtils.replace(dateTime, "T", " ");
-		DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").withZone(tz);
-		return formatter.parseDateTime(dt);
-	}
     
     private void writeLog(String action, String data) {
 		CoreManager core = WT.getCoreManager(getRunContext());

@@ -36,6 +36,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	requires: [
 		'Sonicle.form.Separator',
 		'Sonicle.form.field.IconComboBox',
+		'Sonicle.form.trigger.Clear',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.ValueModel',
 		'WT.ux.field.SuggestCombo',
@@ -239,6 +240,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{startDate}',
 						startDay: WT.getStartDay(),
+						triggers: {
+							clear: WTF.clearTrigger()
+						},
 						fieldLabel: me.mys.res('task.fld-startDate.lbl')
 					},
 						WTF.lookupCombo('id', 'desc', {
@@ -249,10 +253,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							fieldLabel: me.mys.res('task.fld-status.lbl'),
 							listeners: {
 								select: function(s, rec) {
-									if (rec.get('id') === 'notstarted') 
-										me.getModel().set('percentage',0);
-									if (rec.get('id') === 'completed') 
-										me.getModel().set('percentage',100);
+									if(rec.get('id') === 'notstarted') me.getModel().set('percentage', 0);
+									if(rec.get('id') === 'completed') me.getModel().set('percentage', 100);
 								}
 							}
 						})
@@ -276,10 +278,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						listeners: {
 							blur: function(s) {
 								var nv = s.getValue();
-								if (nv === 100) 
-									me.getModel().set('status','completed');
-								if (nv === 0) 
-									me.getModel().set('status','notstarted');
+								if (nv === 100) me.getModel().set('status','completed');
+								if (nv === 0) me.getModel().set('status','notstarted');
 							}
 						}
 					}]
@@ -299,7 +299,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					reference: 'fldhasreminder',
 					bind: '{hasReminder}',
 					hideEmptyLabel: true,
-					boxLabel: me.mys.res('task.fld-reminderDate.lbl'),
+					boxLabel: me.mys.res('task.fld-reminderDate.lbl')
 				},{
 					xtype: 'datefield',
 					bind: {
@@ -308,7 +308,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					},
 					startDay: WT.getStartDay(),
 					margin: '0 5 0 0',
-					width: 105
+					width: 120
 				}, {
 					xtype: 'timefield',
 					bind: {
@@ -317,7 +317,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					},
 					format: WT.getShortTimeFmt(),
 					margin: '0 5 0 0',
-					width: 80
+					width: 90
 				}]
 			}]
 		});
