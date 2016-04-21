@@ -590,8 +590,15 @@ public class TasksManager extends BaseManager {
 			con = WT.getConnection(SERVICE_ID);
 			con.setAutoCommit(false);
 			
-			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now);
+			DateTime now12 = now.plusHours(14);
+			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now12);
+			DateTime profileNow = null, profileReminderDate = null;
 			for(VTask task : tasks) {
+				UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
+				profileNow = now.withZone(ud.getTimeZone());
+				profileReminderDate = task.getReminderDate().withZone(DateTimeZone.UTC).withZoneRetainFields(ud.getTimeZone());
+				if(profileReminderDate.isAfter(profileNow)) continue;
+				
 				if(!byEmailCache.containsKey(task.getCategoryProfileId())) {
 					TasksUserSettings us = new TasksUserSettings(SERVICE_ID, task.getCategoryProfileId());
 					boolean bool = us.getTaskReminderDelivery().equals(TasksUserSettings.TASK_REMINDER_DELIVERY_EMAIL);
@@ -600,12 +607,12 @@ public class TasksManager extends BaseManager {
 
 				int ret = dao.updateRemindedOn(con, task.getTaskId(), now);
 				if(ret != 1) continue;
-
+				
 				if(byEmailCache.get(task.getCategoryProfileId())) {
-					UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
+					//UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
 					alerts.add(createTaskReminderAlertEmail(ud.getLocale(), task));
 				} else {
-					alerts.add(createTaskReminderAlertWeb(task));
+					alerts.add(createTaskReminderAlertWeb(task, profileReminderDate, ud.getTimeZone()));
 				}
 			}
 			DbUtils.commitQuietly(con);
@@ -618,11 +625,11 @@ public class TasksManager extends BaseManager {
 		return alerts;
 	}
 	
-	private ReminderInApp createTaskReminderAlertWeb(VTask task) {
+	private ReminderInApp createTaskReminderAlertWeb(VTask task, DateTime profileReminderDate, DateTimeZone profileTz) {
 		ReminderInApp alert = new ReminderInApp(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
 		alert.setTitle(task.getSubject());
-		alert.setDate(task.getReminderDate());
-		alert.setTimezone(DateTimeZone.UTC.getID());
+		alert.setDate(profileReminderDate);
+		alert.setTimezone(profileTz.getID());
 		return alert;
 	}
 	

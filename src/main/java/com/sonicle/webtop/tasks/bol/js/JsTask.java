@@ -87,21 +87,20 @@ public class JsTask {
         _profileId = ownerId.toString();
 	}
 	
-	public static Task buildTask(JsTask js) {
+	public static Task buildTask(JsTask js, DateTimeZone profileTz) {
         Task item = new Task();
         item.setTaskId(js.taskId);
         item.setCategoryId(js.categoryId);
         item.setSubject(js.subject);
         item.setDescription(js.description);
-		if(!StringUtils.isBlank(js.startDate)) item.setStartDate(TasksManager.parseYmdHmsWithZone(js.startDate,DateTimeZone.UTC));
-		if(!StringUtils.isBlank(js.dueDate)) item.setDueDate(TasksManager.parseYmdHmsWithZone(js.dueDate,DateTimeZone.UTC));
-		if(!StringUtils.isBlank(js.completedDate)) item.setCompletedDate(TasksManager.parseYmdHmsWithZone(js.completedDate,DateTimeZone.UTC));
+		if(!StringUtils.isBlank(js.startDate)) item.setStartDate(TasksManager.parseYmdHmsWithZone(js.startDate, DateTimeZone.UTC));
+		if(!StringUtils.isBlank(js.dueDate)) item.setDueDate(TasksManager.parseYmdHmsWithZone(js.dueDate, DateTimeZone.UTC));
+		if(!StringUtils.isBlank(js.completedDate)) item.setCompletedDate(TasksManager.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
         item.setImportance(js.importance);
         item.setIsPrivate(js.isPrivate);
         item.setStatus(js.status);
         item.setCompletionPercentage(js.percentage);
-		if(!StringUtils.isBlank(js.reminderDate)) item.setReminderDate(TasksManager.parseYmdHmsWithZone(js.reminderDate,DateTimeZone.UTC));
+		if(!StringUtils.isBlank(js.reminderDate)) item.setReminderDate(TasksManager.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
 		return item;
 	}
-
 }

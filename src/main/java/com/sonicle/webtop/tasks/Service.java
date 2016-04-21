@@ -391,6 +391,8 @@ public class Service extends BaseService {
 		JsTask item = null;
 		
 		try {
+			DateTimeZone ptz = getEnv().getProfile().getTimeZone();
+			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if(crud.equals(Crud.READ)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
@@ -405,7 +407,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.buildTask(pl.data);
+				Task task = JsTask.buildTask(pl.data, ptz);
                 manager.addTask(task);
 				
 				new JsonResult().printTo(out);
@@ -413,7 +415,7 @@ public class Service extends BaseService {
 			} else if(crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.buildTask(pl.data);
+				Task task = JsTask.buildTask(pl.data, ptz);
                 manager.updateTask(task);
 				
 				new JsonResult().printTo(out);
