@@ -126,16 +126,16 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						me.deleteTask();
 					}
 				}),
-				//'-',
-				//me.addAction('print', {
-				//	text: null,
-				//	tooltip: WT.res('act-print.lbl'),
-				//	iconCls: 'wt-icon-print-xs',
-				//	handler: function() {
-				//		//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
-				//		me.printTask(me.getModel().getId());
-				//	}
-				//}),
+				'-',
+				me.addAction('print', {
+					text: null,
+					tooltip: WT.res('act-print.lbl'),
+					iconCls: 'wt-icon-print-xs',
+					handler: function() {
+						//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
+						me.printTask(me.getModel().getId());
+					}
+				}),
 				'->',
 				WTF.localCombo('id', 'desc', {
 					reference: 'fldowner',

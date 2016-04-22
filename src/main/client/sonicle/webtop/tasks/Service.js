@@ -229,7 +229,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				listeners: {
 					selectionchange: function() {
 						me.updateDisabled('showTask');
-						//me.updateDisabled('printTask');
+						me.updateDisabled('printTask');
 						me.updateDisabled('copyTask');
 						me.updateDisabled('moveTask');
 						me.updateDisabled('deleteTask');
@@ -553,6 +553,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			ids.push(rec.getId());
 		});
 		return ids;
+	},
+	
+	printTasksDetail: function(ids) {
+		var me = this, url;
+		url = WTF.processBinUrl(me.ID, 'PrintTasksDetail', {ids: WTU.arrayAsParam(ids)});
+		Sonicle.URLMgr.openFile(url, {filename: 'tasks-detail', newWindow: true});
 	},
 	
 	deleteSelTasks: function(sel) {

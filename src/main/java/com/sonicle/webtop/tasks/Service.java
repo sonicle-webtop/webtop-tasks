@@ -42,6 +42,8 @@ import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.commons.web.json.Payload;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
+import com.sonicle.webtop.core.CoreManager;
+import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedFolders;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedRoots;
 import com.sonicle.webtop.tasks.bol.OCategory;
@@ -55,6 +57,8 @@ import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.bol.js.JsSimple;
 import com.sonicle.webtop.core.bol.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
+import com.sonicle.webtop.core.io.output.AbstractReport;
+import com.sonicle.webtop.core.io.output.ReportConfig;
 import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.WTException;
@@ -64,7 +68,10 @@ import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
+import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.bol.model.Task;
+import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
+import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,6 +79,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -441,6 +450,53 @@ public class Service extends BaseService {
 			logger.error("Error in action ManageTasks", ex);
 			new JsonResult(false, "Error").printTo(out);	
 		}
+	}
+	
+	public void processPrintTasksDetail(HttpServletRequest request, HttpServletResponse response) {
+		ArrayList<RBTaskDetail> items = new ArrayList<>();
+		ByteArrayOutputStream baos = null;
+		
+		try {
+			String filename = ServletUtils.getStringParameter(request, "filename", "print");
+			ServletUtils.IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.IntegerArray.class, true);
+			
+			Task task = null;
+			OCategory category = null;
+			for(Integer id : ids) {
+				task = manager.getTask(id);
+				category = manager.getCategory(task.getCategoryId());
+				items.add(new RBTaskDetail(category, task));
+			}
+			
+			ReportConfig.Builder builder = reportConfigBuilder();
+			RptTasksDetail rpt = new RptTasksDetail(builder.build());
+			rpt.setDataSource(new JRBeanCollectionDataSource(items));
+			
+			baos = new ByteArrayOutputStream();
+			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, baos);
+			ServletUtils.setContentDispositionHeader(response, "inline", filename + ".pdf");
+			ServletUtils.writeContent(response, baos, "application/pdf");
+			
+		} catch(Exception ex) {
+			logger.error("Error in action PrintTasksDetail", ex);
+			ServletUtils.writeErrorHandlingJs(response, ex.getMessage());
+		} finally {
+			IOUtils.closeQuietly(baos);
+		}
+	}
+	
+	private ReportConfig.Builder reportConfigBuilder() {
+		UserProfile.Data ud = getEnv().getProfile().getData();
+		CoreUserSettings cus = getEnv().getCoreUserSettings();
+		return new ReportConfig.Builder()
+				.useLocale(ud.getLocale())
+				.useTimeZone(ud.getTimeZone().toTimeZone())
+				.dateFormatShort(cus.getShortDateFormat())
+				.dateFormatLong(cus.getLongDateFormat())
+				.timeFormatShort(cus.getShortTimeFormat())
+				.timeFormatLong(cus.getLongTimeFormat())
+				.generatedBy(WT.getPlatformName() + " " + lookupResource(TasksLocale.SERVICE_NAME))
+				.printedBy(ud.getDisplayName());
 	}
 	
 	private String buildSharingPath(Sharing sharing) throws WTException {
