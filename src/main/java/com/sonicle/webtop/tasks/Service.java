@@ -470,7 +470,7 @@ public class Service extends BaseService {
 			
 			ReportConfig.Builder builder = reportConfigBuilder();
 			RptTasksDetail rpt = new RptTasksDetail(builder.build());
-			rpt.setDataSource(new JRBeanCollectionDataSource(items));
+			rpt.setDataSource(items);
 			
 			baos = new ByteArrayOutputStream();
 			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, baos);

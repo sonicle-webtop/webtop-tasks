@@ -40,22 +40,22 @@ import org.joda.time.DateTime;
  * @author rfullone
  */
 public class Task {
-	protected java.lang.Integer      taskId;
-	protected java.lang.Integer      categoryId;
-	protected java.lang.String       subject;
-	protected java.lang.String       description;
-	protected org.joda.time.DateTime startDate;
-	protected org.joda.time.DateTime dueDate;
-	protected org.joda.time.DateTime completedDate;
-	protected java.lang.Short        importance;
-	protected java.lang.Boolean      isPrivate;
-	protected java.lang.String       status;
-	protected java.lang.Short        completionPercentage;
-	protected org.joda.time.DateTime reminderDate;
-	protected java.lang.String       revisionStatus;
-	protected org.joda.time.DateTime revisionTimestamp;
-	protected java.lang.String       publicUid;
-	protected org.joda.time.DateTime remindedOn;
+	private Integer taskId;
+	private Integer categoryId;
+	private String subject;
+	private String description;
+	private DateTime startDate;
+	private DateTime dueDate;
+	private DateTime completedDate;
+	private Short importance;
+	private Boolean isPrivate;
+	private String status;
+	private Short completionPercentage;
+	private DateTime reminderDate;
+	private String revisionStatus;
+	private DateTime revisionTimestamp;
+	private String publicUid;
+	private DateTime remindedOn;
    
     public Task() {}
 

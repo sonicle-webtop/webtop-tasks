@@ -38,7 +38,7 @@ Ext.define('Sonicle.webtop.tasks.store.Status', {
 	model: 'WT.model.Simple',
 	data: [
 		['notstarted', ''],
-		['inprogeress', ''],
+		['inprogress', ''],
 		['completed', ''],
 		['waiting', ''],
 		['deferred', '']

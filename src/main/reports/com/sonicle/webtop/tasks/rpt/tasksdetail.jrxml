@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.2.1.final using JasperReports Library version 6.2.1  -->
-<!-- 2016-04-28T16:30:01 -->
+<!-- 2016-04-28T17:16:19 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tasksdetail" pageWidth="595" pageHeight="842" columnWidth="557" leftMargin="19" rightMargin="19" topMargin="19" bottomMargin="19" resourceBundle="tasksdetail" uuid="47fa44bf-1a8e-4a18-a0df-8b26982ff32e">
 	<property name="com.jaspersoft.studio.unit." value="cm"/>
 	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
@@ -180,7 +180,7 @@
 			</textField>
 			<textField>
 				<reportElement style="FieldValue" x="90" y="132" width="300" height="14" uuid="e426caa3-e4d6-490b-81db-da7b87dba9b4"/>
-				<textFieldExpression><![CDATA[T($F{completionPercentage})+"%"]]></textFieldExpression>
+				<textFieldExpression><![CDATA[String.valueOf($F{completionPercentage})+"%"]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement style="FieldValue" x="90" y="146" width="300" height="14" uuid="fec268cd-6324-4ff8-812d-1204c14a0a67"/>
