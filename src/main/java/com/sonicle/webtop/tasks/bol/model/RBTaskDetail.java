@@ -37,108 +37,105 @@ import com.sonicle.webtop.core.util.JRHelper;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import java.awt.Image;
 import java.util.Date;
-import org.joda.time.DateTime;
 
 /**
  *
  * @author rfullone
  */
 public class RBTaskDetail {
-	protected java.lang.Integer         taskId;
-	protected java.lang.Integer         categoryId;
-	protected java.lang.String          categoryName;
-	protected java.lang.String          categoryColor;
-	protected java.awt.Image            categoryColorImage;
-	protected java.lang.String          subject;
-	protected java.lang.String          description;
-	protected Date startDate;
-	protected Date dueDate;
-	protected Date completedDate;
-	protected java.lang.Short           importance;
-	protected java.lang.Boolean         isPrivate;
-	protected java.lang.String          status;
-	protected java.lang.Short           completionPercentage;
-	protected Date reminderDate;
+	public Integer taskId;
+	public Integer categoryId;
+	public String categoryName;
+	public String categoryColor;
+	public Image categoryColorImage;
+	public String subject;
+	public String description;
+	public Date startDate;
+	public Date dueDate;
+	public Date completedDate;
+	public Short importance;
+	public Boolean isPrivate;
+	public String status;
+	public Short completionPercentage;
+	public Date reminderDate;
    
-    public RBTaskDetail() {}
+	public RBTaskDetail() {}
 
-    public RBTaskDetail(OCategory category, Task task) {
-        this.taskId = task.getCategoryId();
-        this.categoryId = category.getCategoryId();
-        this.categoryName = category.getName();
-        this.categoryColor = category.getColor();
-        this.categoryColorImage = JRHelper.colorAsImage(category.getHexColor());
-        this.subject = task.getSubject();
-        this.description = task.getDescription();
-        this.startDate = (task.getStartDate() == null) ? null : task.getStartDate().toDate();
-        this.dueDate = (task.getDueDate() == null) ? null : task.getDueDate().toDate();
-        this.completedDate = (task.getCompletedDate() == null) ? null : task.getCompletedDate().toDate();
-        this.importance = task.getImportance();
-        this.isPrivate = task.getIsPrivate();
-        this.status = task.getStatus();
-        this.completionPercentage = task.getCompletionPercentage();
-        this.reminderDate = (task.getReminderDate() == null) ? null : task.getReminderDate().toDate();
-    }
+	public RBTaskDetail(OCategory category, Task task) {
+		this.taskId = task.getTaskId();
+		this.categoryId = category.getCategoryId();
+		this.categoryName = category.getName();
+		this.categoryColor = category.getColor();
+		this.categoryColorImage = JRHelper.colorAsImage(category.getHexColor());
+		this.subject = task.getSubject();
+		this.description = task.getDescription();
+		this.startDate = (task.getStartDate() == null) ? null : task.getStartDate().toDate();
+		this.dueDate = (task.getDueDate() == null) ? null : task.getDueDate().toDate();
+		this.completedDate = (task.getCompletedDate() == null) ? null : task.getCompletedDate().toDate();
+		this.importance = task.getImportance();
+		this.isPrivate = task.getIsPrivate();
+		this.status = task.getStatus();
+		this.completionPercentage = task.getCompletionPercentage();
+		this.reminderDate = (task.getReminderDate() == null) ? null : task.getReminderDate().toDate();
+	}
 
-    public Integer getTaskId() {
-        return taskId;
-    }
+	public Integer getTaskId() {
+		return taskId;
+	}
 
-    public Integer getCategoryId() {
-        return categoryId;
-    }
+	public Integer getCategoryId() {
+		return categoryId;
+	}
 
-    public String getCategoryName() {
-        return categoryName;
-    }
+	public String getCategoryName() {
+		return categoryName;
+	}
 
-    public String getCategoryColor() {
-        return categoryColor;
-    }
+	public String getCategoryColor() {
+		return categoryColor;
+	}
 
-    public Image getCategoryColorImage() {
-        return categoryColorImage;
-    }
+	public Image getCategoryColorImage() {
+		return categoryColorImage;
+	}
 
-    public String getSubject() {
-        return subject;
-    }
+	public String getSubject() {
+		return subject;
+	}
 
-    public String getDescription() {
-        return description;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    public Date getStartDate() {
-        return startDate;
-    }
+	public Date getStartDate() {
+		return startDate;
+	}
 
-    public Date getDueDate() {
-        return dueDate;
-    }
+	public Date getDueDate() {
+		return dueDate;
+	}
 
-    public Date getCompletedDate() {
-        return completedDate;
-    }
+	public Date getCompletedDate() {
+		return completedDate;
+	}
 
-    public Short getImportance() {
-        return importance;
-    }
+	public Short getImportance() {
+		return importance;
+	}
 
-    public Boolean getIsPrivate() {
-        return isPrivate;
-    }
+	public Boolean getIsPrivate() {
+		return isPrivate;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public Short getCompletionPercentage() {
-        return completionPercentage;
-    }
+	public Short getCompletionPercentage() {
+		return completionPercentage;
+	}
 
-    public Date getReminderDate() {
-        return reminderDate;
-    }
-    
-    
+	public Date getReminderDate() {
+		return reminderDate;
+	}
 }
