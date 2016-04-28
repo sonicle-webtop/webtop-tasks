@@ -65,6 +65,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			xtype: 'toolbar',
 			items: [
 				'-',
+				me.getAction('print'),
 				me.getAction('deleteTask2'),
 				'->',
 				me.addRef('txtsearch', Ext.create({
@@ -397,6 +398,22 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.moveTasksSel(false, me.getSelectedTasks());
 			}
 		});
+		me.addAction('printTask', {
+			text: WT.res('act-print.lbl'),
+			iconCls: 'wt-icon-print-xs',
+			handler: function() {
+				var sel = me.getSelectedTasks();
+				if(sel.length > 0) me.printSelTasks(sel);
+			}
+		});
+		me.addAction('print', {
+			text: null,
+			tooltip: WT.res('act-print.lbl'),
+			iconCls: 'wt-icon-print-xs',
+			handler: function() {
+				me.getAction('printTask').execute();
+			}
+		});
 		me.addAction('deleteTask2', {
 			text: null,
 			tooltip: WT.res('act-delete.tip'),
@@ -448,7 +465,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAction('viewAllFolders'),
 				me.getAction('viewNoneFolders'),
 				'-',
-				me.getAction('addTask'),
+				me.getAction('addTask')
 				//TODO: azioni altri servizi?
 			],
 			listeners: {
@@ -479,6 +496,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						]
 					}
 				},
+				me.getAction('printTask'),
+				'-',
 				me.getAction('deleteTask')
 			]
 		}));
@@ -494,6 +513,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}
 		
 		me.updateDisabled('showTask');
+		me.updateDisabled('printTask');
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
@@ -545,6 +565,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	getSelectedTasks: function() {
 		return this.gpTasks().getSelection();
+	},
+	
+	printSelTasks: function(sel) {
+		var me = this;
+		me.printTasksDetail(me.selectionIds(sel));
 	},
 	
 	selectionIds: function(sel) {
@@ -728,7 +753,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				dis = me.isDisabled(action);
 		
-		if (action === 'deleteTask') {
+		if(action === 'printTask') {
+			me.setActionDisabled('print', dis);
+			me.setActionDisabled(action, dis);
+		} else if (action === 'deleteTask') {
 			me.setActionDisabled(action, dis);
 			me.setActionDisabled('deleteTask2', dis);
 		} else {
@@ -772,6 +800,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 					return false;
 				}
+			case 'printTask':
+				sel = me.getSelectedTasks();
+				if(sel.length > 0) {
+					return false;
+				} else {
+					return true;
+				}
+				break;
 		}
 	},
 	
