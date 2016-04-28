@@ -61,7 +61,7 @@ public class UserOptionsService extends BaseUserOptionsService {
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			TasksUserSettings tus = new TasksUserSettings(getServiceId(), getTargetProfileId());
+			TasksUserSettings tus = new TasksUserSettings(SERVICE_ID, getTargetProfileId());
 			
 			if(crud.equals(Crud.READ)) {
 				JsUserOptions jso = new JsUserOptions(getTargetProfileId().toString());

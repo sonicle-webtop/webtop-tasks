@@ -760,7 +760,7 @@ public class TasksManager extends BaseManager {
 	}
 	
 	private void checkRightsOnCategoryRoot(UserProfile.Id ownerPid, String action) throws WTException {
-		if(WT.isWebTopAdmin(getRunProfileId())) return;
+		if(getRunContext().isWebTopAdmin()) return;
 		if(ownerPid.equals(getTargetProfileId())) return;
 		
 		String shareId = ownerToRootShareId(ownerPid);
@@ -772,7 +772,7 @@ public class TasksManager extends BaseManager {
 	}
 	
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
-		if(WT.isWebTopAdmin(getRunProfileId())) return;
+		if(getRunContext().isWebTopAdmin()) return;
 		
 		// Skip rights check if running user is resource's owner
 		UserProfile.Id ownerPid = categoryToOwner(categoryId);
@@ -794,7 +794,7 @@ public class TasksManager extends BaseManager {
 	}
 	
 	private void checkRightsOnCategoryElements(int categoryId, String action) throws WTException {
-		if(WT.isWebTopAdmin(getRunProfileId())) return;
+		if(getRunContext().isWebTopAdmin()) return;
 		
 		// Skip rights check if running user is resource's owner
 		UserProfile.Id ownerPid = categoryToOwner(categoryId);
