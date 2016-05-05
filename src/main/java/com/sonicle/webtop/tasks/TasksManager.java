@@ -36,6 +36,7 @@ package com.sonicle.webtop.tasks;
 import com.sonicle.commons.db.DbUtils;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
+import com.sonicle.webtop.core.app.ServiceContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.bol.OShare;
 import com.sonicle.webtop.core.bol.Owner;
@@ -73,13 +74,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.logging.Level;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 
 /**
@@ -96,28 +94,28 @@ public class TasksManager extends BaseManager {
 	private final HashMap<UserProfile.Id, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
 	private final HashMap<Integer, String> cacheCategoryToFolderShare = new HashMap<>();
 
-	public TasksManager(RunContext context) {
+	public TasksManager(ServiceContext context) {
 		super(context);
 	}
 	
-	public TasksManager(RunContext context, UserProfile.Id targetProfileId) {
+	public TasksManager(ServiceContext context, UserProfile.Id targetProfileId) {
 		super(context, targetProfileId);
 	}
     
     private void writeLog(String action, String data) {
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext());
 		core.setSoftwareName(getSoftwareName());
 		core.writeLog(action, data);
 	}
 	
 	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext());
 		ArrayList<CategoryRoot> roots = new ArrayList();
 		HashSet<String> hs = new HashSet<>();
 		
-		List<IncomingShareRoot> shares = core.listIncomingShareRoots(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY);
+		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, RESOURCE_CATEGORY);
 		for(IncomingShareRoot share : shares) {
-			SharePermsRoot perms = core.getShareRootPermissions(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY, share.getShareId());
+			SharePermsRoot perms = core.getShareRootPermissions(SERVICE_ID, RESOURCE_CATEGORY, share.getShareId());
 			CategoryRoot root = new CategoryRoot(share, perms);
 			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
 			hs.add(root.getShareId());
@@ -127,13 +125,12 @@ public class TasksManager extends BaseManager {
 	}
 	
 	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext(), getTargetProfileId());
 		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
-		UserProfile.Id pid = getTargetProfileId();
 		
 		// Retrieves incoming folders (from sharing). This lookup already 
 		// returns readable shares (we don't need to test READ permission)
-		List<OShare> shares = core.listIncomingShareFolders(pid, rootShareId, SERVICE_ID, RESOURCE_CATEGORY);
+		List<OShare> shares = core.listIncomingShareFolders(rootShareId, SERVICE_ID, RESOURCE_CATEGORY);
 		for(OShare share : shares) {
 			
 			List<OCategory> cats = null;
@@ -145,8 +142,8 @@ public class TasksManager extends BaseManager {
 			}
 			
 			for(OCategory cat : cats) {
-				SharePermsFolder fperms = core.getShareFolderPermissions(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY, share.getShareId().toString());
-				SharePermsElements eperms = core.getShareElementsPermissions(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY, share.getShareId().toString());
+				SharePermsFolder fperms = core.getShareFolderPermissions(SERVICE_ID, RESOURCE_CATEGORY, share.getShareId().toString());
+				SharePermsElements eperms = core.getShareElementsPermissions(SERVICE_ID, RESOURCE_CATEGORY, share.getShareId().toString());
 				
 				if(folders.containsKey(cat.getCategoryId())) {
 					CategoryFolder folder = folders.get(cat.getCategoryId());
@@ -161,12 +158,12 @@ public class TasksManager extends BaseManager {
 	}
 	
 	public Sharing getSharing(String shareId) throws WTException {
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext());
 		return core.getSharing(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY, shareId);
 	}
 	
 	public void updateSharing(Sharing sharing) throws WTException {
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext());
 		core.updateSharing(getTargetProfileId(), SERVICE_ID, RESOURCE_CATEGORY, sharing);
 	}
 	
@@ -683,15 +680,15 @@ public class TasksManager extends BaseManager {
 	}
 	
 	private void buildShareCache() {
-		CoreManager core = WT.getCoreManager(getRunContext());
-		UserProfile.Id pid = getTargetProfileId();
+		CoreManager core = WT.getCoreManager(getServiceContext());
+		
 		try {
 			cacheOwnerToRootShare.clear();
 			cacheOwnerToWildcardFolderShare.clear();
 			cacheCategoryToFolderShare.clear();
 			for(CategoryRoot root : listIncomingCategoryRoots()) {
 				cacheOwnerToRootShare.put(root.getOwnerProfileId(), root.getShareId());
-				for(OShare folder : core.listIncomingShareFolders(pid, root.getShareId(), SERVICE_ID, RESOURCE_CATEGORY)) {
+				for(OShare folder : core.listIncomingShareFolders(root.getShareId(), SERVICE_ID, RESOURCE_CATEGORY)) {
 					if(folder.hasWildcard()) {
 						UserProfile.Id ownerId = core.userUidToProfileId(folder.getUserUid());
 						cacheOwnerToWildcardFolderShare.put(ownerId, folder.getShareId().toString());
@@ -760,59 +757,63 @@ public class TasksManager extends BaseManager {
 	}
 	
 	private void checkRightsOnCategoryRoot(UserProfile.Id ownerPid, String action) throws WTException {
-		if(getRunContext().isWebTopAdmin()) return;
-		if(ownerPid.equals(getTargetProfileId())) return;
+		UserProfile.Id targetPid = getTargetProfileId();
+		
+		if(RunContext.isWebTopAdmin()) return;
+		if(ownerPid.equals(targetPid)) return;
 		
 		String shareId = ownerToRootShareId(ownerPid);
 		if(shareId == null) throw new WTException("ownerToRootShareId({0}) -> null", ownerPid);
-		CoreManager core = WT.getCoreManager(getRunContext());
-		if(core.isShareRootPermitted(getRunProfileId(), SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
+		CoreManager core = WT.getCoreManager(getServiceContext(), targetPid);
+		if(core.isShareRootPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on root share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, getRunProfileId().toString());
+		throw new AuthException("Action not allowed on root share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
 	}
 	
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
-		if(getRunContext().isWebTopAdmin()) return;
+		UserProfile.Id targetPid = getTargetProfileId();
 		
+		if(RunContext.isWebTopAdmin()) return;
 		// Skip rights check if running user is resource's owner
 		UserProfile.Id ownerPid = categoryToOwner(categoryId);
-		if(ownerPid.equals(getTargetProfileId())) return;
+		if(ownerPid.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext(), targetPid);
 		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
 		if(wildcardShareId != null) {
-			if(core.isShareFolderPermitted(getRunProfileId(), SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
+			if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on category instance
 		String shareId = categoryToFolderShareId(categoryId);
 		if(shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
-		if(core.isShareFolderPermitted(getRunProfileId(), SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
+		if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on folder share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, getRunProfileId().toString());
+		throw new AuthException("Action not allowed on folder share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
 	}
 	
 	private void checkRightsOnCategoryElements(int categoryId, String action) throws WTException {
-		if(getRunContext().isWebTopAdmin()) return;
+		UserProfile.Id targetPid = getTargetProfileId();
 		
+		if(RunContext.isWebTopAdmin()) return;
 		// Skip rights check if running user is resource's owner
 		UserProfile.Id ownerPid = categoryToOwner(categoryId);
 		if(ownerPid.equals(getTargetProfileId())) return;
 		
 		// Checks rights on the wildcard instance (if present)
-		CoreManager core = WT.getCoreManager(getRunContext());
+		CoreManager core = WT.getCoreManager(getServiceContext(), targetPid);
 		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
 		if(wildcardShareId != null) {
-			if(core.isShareElementsPermitted(getRunProfileId(), SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
+			if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on calendar instance
 		String shareId = categoryToFolderShareId(categoryId);
 		if(shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
-		if(core.isShareElementsPermitted(getRunProfileId(), SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
+		if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, getRunProfileId().toString());
+		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
 	}
     
 	private DateTime createRevisionTimestamp() {

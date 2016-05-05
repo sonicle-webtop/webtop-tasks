@@ -33,7 +33,6 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.sdk.BaseController;
 import com.sonicle.webtop.core.sdk.BaseReminder;
@@ -42,7 +41,6 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTOperationException;
 import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesProfiles;
 import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesReminders;
-import java.util.ArrayList;
 import java.util.List;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -54,13 +52,13 @@ import org.slf4j.Logger;
 public class TasksController extends BaseController implements IControllerHandlesProfiles, IControllerHandlesReminders {
     public static final Logger logger = WT.getLogger(TasksController.class);
 
-    public TasksController(RunContext context) {
-        super(context);
+    public TasksController() {
+        super();
     }
 
     @Override
-    public void initializeProfile(UserProfile.Id profileId) throws WTException {
-		TasksManager manager = new TasksManager(getRunContext(), profileId);
+    public void addProfile(UserProfile.Id profileId) throws WTException {
+		TasksManager manager = new TasksManager(getServiceContext(), profileId);
 		
 		// Adds built-in category
 		try {
@@ -73,14 +71,14 @@ public class TasksController extends BaseController implements IControllerHandle
     }
 
     @Override
-    public void cleanupProfile(UserProfile.Id profileId, boolean deep) throws WTException {
+    public void removeProfile(UserProfile.Id profileId, boolean deep) throws WTException {
 		//TODO: implementare cleanup utente
 		//ContactsManager manager = new ContactsManager(getRunContext(), profileId);
     }
 
     @Override
     public List<BaseReminder> returnReminders(DateTime now) {
-		TasksManager manager = new TasksManager(getRunContext());
+		TasksManager manager = new TasksManager(getServiceContext());
 		return manager.getRemindersToBeNotified(now);
     }
     

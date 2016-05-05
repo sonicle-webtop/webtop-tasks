@@ -42,7 +42,6 @@ import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.commons.web.json.Payload;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
-import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedFolders;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedRoots;
@@ -79,7 +78,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
@@ -107,7 +105,7 @@ public class Service extends BaseService {
 	@Override
 	public void initialize() throws Exception {
 		UserProfile up = getEnv().getProfile();
-		manager = new TasksManager(getRunContext());
+		manager = new TasksManager(getServiceContext());
 		us = new TasksUserSettings(SERVICE_ID, up.getId());
 		initFolders();
 	}
@@ -379,8 +377,7 @@ public class Service extends BaseService {
 					// Iterates over category->tasks
 					for (TasksManager.CategoryTasks foldTask : foldTasks) {
 						CategoryFolder fold = folders.get(foldTask.folder.getCategoryId());
-                        if (fold == null) 
-                            continue;
+                        if (fold == null) continue;
                         for (VTask vt : foldTask.tasks) {
                             items.add(new JsGridTask(fold,vt,DateTimeZone.UTC));
                         }
