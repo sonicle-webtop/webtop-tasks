@@ -67,7 +67,7 @@
 		<buildDate>24/03/2016</buildDate>
 		
 		<controllerClassName>TasksController</controllerClassName>
-		
+		<managerClassName>TasksManager</managerClassName>
 		<serviceClassName>Service</serviceClassName>
 		<clientOptionsModelJsClassName>model.ClientOptions</clientOptionsModelJsClassName>
 		<company>Sonicle S.r.l.</company>

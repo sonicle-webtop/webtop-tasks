@@ -105,7 +105,7 @@ public class Service extends BaseService {
 	@Override
 	public void initialize() throws Exception {
 		UserProfile up = getEnv().getProfile();
-		manager = new TasksManager(getServiceContext());
+		manager = (TasksManager)WT.getServiceManager(SERVICE_ID, up.getId());
 		us = new TasksUserSettings(SERVICE_ID, up.getId());
 		initFolders();
 	}

@@ -58,7 +58,7 @@ public class TasksController extends BaseController implements IControllerHandle
 
     @Override
     public void addProfile(UserProfile.Id profileId) throws WTException {
-		TasksManager manager = new TasksManager(getServiceContext(), profileId);
+		TasksManager manager = new TasksManager(profileId);
 		
 		// Adds built-in category
 		try {
@@ -78,7 +78,7 @@ public class TasksController extends BaseController implements IControllerHandle
 
     @Override
     public List<BaseReminder> returnReminders(DateTime now) {
-		TasksManager manager = new TasksManager(getServiceContext());
+		TasksManager manager = new TasksManager();
 		return manager.getRemindersToBeNotified(now);
     }
     
