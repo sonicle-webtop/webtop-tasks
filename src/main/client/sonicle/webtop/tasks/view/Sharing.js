@@ -38,6 +38,5 @@ Ext.define('Sonicle.webtop.tasks.view.Sharing', {
 	],
 	
 	modelName: 'Sonicle.webtop.tasks.model.Sharing',
-	fieldTitle: 'description',
-	rightsModelName: 'Sonicle.webtop.tasks.model.SharingRights'
+	fieldTitle: 'description'
 });
