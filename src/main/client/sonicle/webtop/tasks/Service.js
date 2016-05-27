@@ -165,6 +165,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				region: 'center',
 				xtype: 'grid',
 				reference: 'gptasks',
+				stateful: true,
+				stateId: me.buildStateId('gptasks'),
 				store: {
 					model: 'Sonicle.webtop.tasks.model.GridTask',
 					proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', 'tasks', {
@@ -249,6 +251,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}, {
 				region: 'east',
 				xtype: 'wtform',
+				stateful: true,
+				stateId: me.buildStateId('gptaskspreview'),
 				split: true,
 				collapsible: true,
 				title: WT.res('word.preview'),
