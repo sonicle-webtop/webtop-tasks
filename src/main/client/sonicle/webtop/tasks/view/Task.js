@@ -36,7 +36,6 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	requires: [
 		'Sonicle.form.Separator',
 		'Sonicle.form.field.ColorComboBox',
-		'Sonicle.form.field.IconComboBox',
 		'Sonicle.form.trigger.Clear',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.ValueModel',
@@ -153,7 +152,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							me.updateCategoryFilters();
 						}
 					}
-				}), 
+				}),
 				WTF.lookupCombo('categoryId', 'name', {
 					xtype: 'socolorcombo',
 					reference: 'fldcategory',
