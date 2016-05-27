@@ -34,7 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 	extend: 'WT.sdk.DockableView',
 	requires: [
-		'Sonicle.form.field.IconComboBox',
+		'Sonicle.form.field.ColorComboBox',
 		'Sonicle.webtop.tasks.model.CategoryLkp'
 	],
 	
