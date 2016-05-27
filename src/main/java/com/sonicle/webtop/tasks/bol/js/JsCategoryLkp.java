@@ -55,6 +55,6 @@ public class JsCategoryLkp {
 		name = item.getName();
 		isDefault = item.getIsDefault();
 		isPrivate = item.getIsPrivate();
-		color = item.getHexColor();
+		color = item.getColor();
 	}
 }

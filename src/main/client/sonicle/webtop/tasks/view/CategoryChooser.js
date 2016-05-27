@@ -110,7 +110,7 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 					allowBlank: false
 				}),
 				WTF.lookupCombo('categoryId', 'name', {
-					xtype: 'soiconcombo',
+					xtype: 'socolorcombo',
 					reference: 'fldcategory',
 					bind: '{categoryId}',
 					store: {
@@ -118,7 +118,7 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 						model: me.mys.preNs('model.CategoryLkp'),
 						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders')
 					},
-					iconClsField: 'colorCls',
+					colorField: 'color',
 					fieldLabel: me.mys.res('categoryChooser.fld-category.lbl'),
 					anchor: '100%',
 					allowBlank: false

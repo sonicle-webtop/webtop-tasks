@@ -35,6 +35,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WT.sdk.ModelView',
 	requires: [
 		'Sonicle.form.Separator',
+		'Sonicle.form.field.ColorComboBox',
 		'Sonicle.form.field.IconComboBox',
 		'Sonicle.form.trigger.Clear',
 		'WT.ux.data.EmptyModel',
@@ -154,7 +155,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}
 				}), 
 				WTF.lookupCombo('categoryId', 'name', {
-					xtype: 'soiconcombo',
+					xtype: 'socolorcombo',
 					reference: 'fldcategory',
 					bind: '{record.categoryId}',
 					store: {
@@ -162,7 +163,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						model: me.mys.preNs('model.CategoryLkp'),
 						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders')
 					},
-					iconClsField: 'colorCls',
+					colorField: 'color',
 					listeners: {
 						select: function(s, rec) {
 							me.onCategorySelect(rec);

@@ -51,5 +51,4 @@ public class OCategory extends Categories {
 		String color = getColor();
 		return (StringUtils.indexOf(color, "#") == 0) ? StringUtils.substring(color, 1) : color;
 	}
-	
 }
