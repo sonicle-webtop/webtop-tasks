@@ -31,22 +31,6 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.tasks.model.Sharing', {
-	extend: 'WT.sdk.model.Sharing',
-	requires: [
-		'Sonicle.webtop.tasks.model.SharingRights'
-	],
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageSharing', 'data', {
-		writer: {
-			type: 'sojson',
-			writeAssociations: true
-		}
-	}),
-	
-	field:[
-		WTF.roField('description', 'string')
-	],
-	hasMany: [
-		WTF.hasMany('rights', 'Sonicle.webtop.tasks.model.SharingRights')
-	]
+Ext.define('Sonicle.webtop.tasks.model.SharingRights', {
+	extend: 'WT.sdk.model.SharingRights'
 });

@@ -645,10 +645,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	editShare: function(id) {
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Sharing');
+				vct = WT.createView(me.ID, 'view.Sharing');
 		
-		vw.show(false, function() {
-			vw.getView().begin('edit', {
+		vct.show(false, function() {
+			vct.getView().begin('edit', {
 				data: {
 					id: id
 				}
@@ -658,11 +658,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	addCategory: function(domainId, userId) {
 		var me = this,
-				vwc = WT.createView(me.ID, 'view.Category');
+				vct = WT.createView(me.ID, 'view.Category');
 		
-		vwc.getView().on('viewsave', me.onCategoryViewSave, me);
-		vwc.show(false, function() {
-			vwc.getView().begin('new', {
+		vct.getView().on('viewsave', me.onCategoryViewSave, me);
+		vct.show(false, function() {
+			vct.getView().begin('new', {
 				data: {
 					domainId: domainId,
 					userId: userId
@@ -673,11 +673,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	editCategory: function(categoryId) {
 		var me = this,
-				vwc = WT.createView(me.ID, 'view.Category');
+				vct = WT.createView(me.ID, 'view.Category');
 		
-		vwc.getView().on('viewsave', me.onCategoryViewSave, me);
-		vwc.show(false, function() {
-			vwc.getView().begin('edit', {
+		vct.getView().on('viewsave', me.onCategoryViewSave, me);
+		vct.show(false, function() {
+			vct.getView().begin('edit', {
 				data: {
 					categoryId: categoryId
 				}
@@ -691,11 +691,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	addTask: function(ownerId, categoryId) {
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task');
+				vct = WT.createView(me.ID, 'view.Task');
 		
-		vw.getView().on('viewsave', me.onTaskViewSave, me);
-		vw.show(false, function() {
-			vw.getView().begin('new', {
+		vct.getView().on('viewsave', me.onTaskViewSave, me);
+		vct.show(false, function() {
+			vct.getView().begin('new', {
 				data: {
 					_profileId: ownerId,
 					categoryId: categoryId
@@ -706,12 +706,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	openTask: function(edit, id) {
 		var me = this,
-				vwc = WT.createView(me.ID, 'view.Task'),
+				vct = WT.createView(me.ID, 'view.Task'),
 				mode = edit ? 'edit' : 'view';
 		
-		if(edit) vwc.getView().on('viewsave', me.onTaskViewSave, me);
-		vwc.show(false, function() {
-			vwc.getView().begin(mode, {
+		if(edit) vct.getView().on('viewsave', me.onTaskViewSave, me);
+		vct.show(false, function() {
+			vct.getView().begin(mode, {
 				data: {
 					taskId: id
 				}
