@@ -42,6 +42,9 @@ import org.apache.commons.lang3.StringUtils;
  * @author malbinola
  */
 public class OCategory extends Categories {
+	public final static String SYNC_OFF = "O";
+	public final static String SYNC_READ_ONLY = "R";
+	public final static String SYNC_READ_WRITE = "W";
 	
 	public UserProfile.Id getProfileId() {
 		return new UserProfile.Id(getDomainId(), getUserId());

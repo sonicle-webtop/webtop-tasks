@@ -31,24 +31,21 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.tasks.model.Category', {
-	extend: 'WT.ux.data.BaseModel',
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageCategories'),
+Ext.define('Sonicle.webtop.tasks.store.Sync', {
+	extend: 'Ext.data.ArrayStore',
 	
-	identifier: 'negative',
-	idProperty: 'categoryId',
-	fields: [
-		WTF.field('categoryId', 'int', false),
-		WTF.field('domainId', 'string', false),
-		WTF.field('userId', 'string', false),
-		WTF.field('name', 'string', false),
-		WTF.field('description', 'string', true),
-		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
-		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
-		WTF.field('isDefault', 'boolean', false, {defaultValue: false}),
-		WTF.field('sync', 'string', false, {defaultValue: 'O'}),
-		WTF.calcField('_profileId', 'string', ['domainId', 'userId'], function(v, rec) {
-			return rec.get('userId') + '@' + rec.get('domainId');
-		})
-	]
+	model: 'WT.model.Simple',
+	data: [
+		['O',''],
+		['R',''],
+		['W','']
+	],
+	
+	constructor: function(cfg) {
+		var me = this;
+		Ext.each(me.config.data, function(row) {
+			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.sync.'+row[0]);
+		});
+		me.callParent([cfg]);
+	}
 });

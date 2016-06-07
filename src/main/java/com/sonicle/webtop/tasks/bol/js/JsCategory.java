@@ -47,7 +47,7 @@ public class JsCategory {
 	public String name;
 	public String description;
 	public String color;
-	public Boolean sync;
+	public String sync;
 	public Boolean isDefault;
 	public Boolean isPrivate;
 	

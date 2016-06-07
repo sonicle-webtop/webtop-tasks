@@ -278,7 +278,7 @@ public class TasksManager extends BaseManager {
 			item.setName(WT.getPlatformName());
 			item.setDescription("");
 			item.setColor("#FFFFFF");
-			item.setSync(true);
+			item.setSync(OCategory.SYNC_OFF);
 			item.setIsDefault(true);
 			item = doInsertCategory(con, item);
 			DbUtils.commitQuietly(con);
