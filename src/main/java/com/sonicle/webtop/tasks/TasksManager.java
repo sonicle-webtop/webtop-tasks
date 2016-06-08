@@ -100,12 +100,6 @@ public class TasksManager extends BaseManager {
 	public TasksManager(UserProfile.Id targetProfileId) {
 		super(targetProfileId);
 	}
-    
-    private void writeLog(String action, String data) {
-		CoreManager core = WT.getCoreManager();
-		core.setSoftwareName(getSoftwareName());
-		core.writeLog(action, data);
-	}
 	
 	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
 		CoreManager core = WT.getCoreManager(getTargetProfileId());
@@ -178,7 +172,7 @@ public class TasksManager extends BaseManager {
 		Connection con = null;
 		
 		try {
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			CategoryDAO dao = CategoryDAO.getInstance();
 			return dao.selectByDomainUser(con, pid.getDomainId(), pid.getUserId());
 			
@@ -194,7 +188,7 @@ public class TasksManager extends BaseManager {
 		
 		try {
 			checkRightsOnCategoryFolder(categoryId, "READ");
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			CategoryDAO dao = CategoryDAO.getInstance();
 			return dao.selectById(con, categoryId);
 			
@@ -228,7 +222,7 @@ public class TasksManager extends BaseManager {
 		
 		try {
 			checkRightsOnCategoryRoot(item.getProfileId(), "MANAGE");
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			con.setAutoCommit(false);
 			
 			item.setBuiltIn(false);
@@ -300,7 +294,7 @@ public class TasksManager extends BaseManager {
 		
 		try {
 			checkRightsOnCategoryFolder(item.getCategoryId(), "UPDATE");
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			con.setAutoCommit(false);
 			CategoryDAO dao = CategoryDAO.getInstance();
 			
@@ -325,7 +319,7 @@ public class TasksManager extends BaseManager {
 		
 		try {
 			checkRightsOnCategoryFolder(categoryId, "DELETE");
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			
 			CategoryDAO dao = CategoryDAO.getInstance();
 			dao.deleteById(con, categoryId);
@@ -354,7 +348,7 @@ public class TasksManager extends BaseManager {
 		
 		try {
             // TODO: implementare filtro task privati
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			
 			// Lists desired groups (tipically visibles) coming from passed list
 			// Passed ids should belong to referenced folder(group), 
@@ -375,7 +369,7 @@ public class TasksManager extends BaseManager {
 		}
 	}
 
-    private Task createTask (OTask otask) throws WTException {
+	private Task createTask(OTask otask) throws WTException {
 		try {
 			Task task = new Task();
 			BeanUtils.copyProperties(task, otask);
@@ -383,7 +377,7 @@ public class TasksManager extends BaseManager {
 		} catch (Exception ex) {
 			throw new WTException(ex, "Error creating bean");
 		}
-    }
+	}
     
 	public Task getTask(int taskId) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
@@ -631,7 +625,7 @@ public class TasksManager extends BaseManager {
 		try {
 			BeanUtils.copyProperties(item, task);
 		} catch (IllegalAccessException | InvocationTargetException ex) {
-			throw new WTException(ex,"Error creating bean");
+			throw new WTException(ex, "Error creating bean");
 		}
 		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(IdentifierUtils.getUUID());
         item.setTaskId(tdao.getSequence(con).intValue());
@@ -645,7 +639,7 @@ public class TasksManager extends BaseManager {
 		try {
 			BeanUtils.copyProperties(item, task);
 		} catch (IllegalAccessException | InvocationTargetException ex) {
-			throw new WTException(ex,"Error creating bean");
+			throw new WTException(ex, "Error creating bean");
 		}
         tdao.update(con, item, createRevisionTimestamp());
 	}
@@ -742,7 +736,7 @@ public class TasksManager extends BaseManager {
 		Connection con = null;
 		
 		try {
-			con = WT.getConnection(getManifest());
+			con = WT.getConnection(SERVICE_ID);
 			CategoryDAO dao = CategoryDAO.getInstance();
 			Owner owner = dao.selectOwnerById(con, categoryId);
 			if(owner == null) throw new WTException("Category not found [{0}]", categoryId);
