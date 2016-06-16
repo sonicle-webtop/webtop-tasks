@@ -578,7 +578,7 @@ public class Service extends BaseService {
 	
 	private ExtTreeNode createFolderNode(CategoryFolder folder, SharePermsRoot rootPerms) {
 		OCategory cat = folder.getCategory();
-		String id = new CompositeId(folder.getShareId(), cat.getCategoryId()).toString();
+		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);
 		node.put("_type", JsFolderNode.TYPE_FOLDER);
