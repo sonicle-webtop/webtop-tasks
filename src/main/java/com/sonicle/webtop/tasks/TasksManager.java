@@ -92,7 +92,7 @@ public class TasksManager extends BaseManager {
 	private final HashMap<UserProfile.Id, String> cacheOwnerToRootShare = new HashMap<>();
 	private final HashMap<UserProfile.Id, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
 	private final HashMap<Integer, String> cacheCategoryToFolderShare = new HashMap<>();
-
+	
 	public TasksManager() {
 		this(RunContext.getProfileId());
 	}
