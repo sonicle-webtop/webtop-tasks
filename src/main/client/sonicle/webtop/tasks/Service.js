@@ -184,7 +184,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return '';
 					}
 				},
-				selModel: WTF.multiRowSelection(false),
+				selModel: {
+					type: 'rowmodel',
+					mode : 'MULTI'
+				},
 				columns: [{
 					dataIndex: 'subject',
 					header: me.res('gptasks.subject.lbl'),
