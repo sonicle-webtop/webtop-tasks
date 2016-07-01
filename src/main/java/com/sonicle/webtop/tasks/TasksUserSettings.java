@@ -36,6 +36,7 @@ package com.sonicle.webtop.tasks;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.sdk.BaseUserSettings;
 import com.sonicle.webtop.core.sdk.UserProfile;
+import static com.sonicle.webtop.tasks.TasksSettings.*;
 import java.util.HashSet;
 
 /**
@@ -49,32 +50,6 @@ public class TasksUserSettings extends BaseUserSettings {
 		super(serviceId, profileId);
 		ss = new TasksServiceSettings(serviceId, profileId.getDomainId());
 	}
-	
-	/**
-	 * [string][default]
-	 * Set reminder delivery mode
-	 */
-	public static final String TASK_REMINDER_DELIVERY = "task.reminder.delivery";
-	public static final String TASK_REMINDER_DELIVERY_APP = "app";
-	public static final String TASK_REMINDER_DELIVERY_EMAIL = "email";
-	
-	/**
-	 * [string]
-	 * Selected folder root node.
-	 */
-	public static final String SELECTED_ROOT = "roots.selected";
-	
-	/**
-	 * [string[]]
-	 * List of checked (or visible) folder root nodes.
-	 */
-	public static final String CHECKED_CATEGORY_ROOTS = "category.roots.checked";
-	
-	/**
-	 * [int[]]
-	 * List of checked (or visible) folders (groups).
-	 */
-	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
 	
 	public String getTaskReminderDelivery() {
 		String value = getString(TASK_REMINDER_DELIVERY, null);

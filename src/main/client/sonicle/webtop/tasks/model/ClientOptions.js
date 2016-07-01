@@ -34,7 +34,5 @@
 Ext.define('Sonicle.webtop.tasks.model.ClientOptions', {
 	extend: 'WT.sdk.model.ClientOptions',
 	
-	fields: [
-		
-	]
+	fields: []
 });

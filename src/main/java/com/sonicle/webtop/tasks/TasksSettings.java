@@ -33,20 +33,39 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.webtop.core.sdk.BaseServiceSettings;
-import static com.sonicle.webtop.tasks.TasksSettings.*;
-
 /**
  *
- * @author rfullone
+ * @author malbinola
  */
-public class TasksServiceSettings extends BaseServiceSettings {
-
-	public TasksServiceSettings(String serviceId, String domainId) {
-		super(serviceId, domainId);
-	}
+public class TasksSettings {
 	
-	public String getDefaultTaskReminderDelivery() {
-		return getString(DEFAULT_PREFIX + TASK_REMINDER_DELIVERY, TASK_REMINDER_DELIVERY_APP);
-	}
+	/**
+	 * [user][default]
+	 * [string]
+	 * Set reminder delivery mode
+	 */
+	public static final String TASK_REMINDER_DELIVERY = "task.reminder.delivery";
+	public static final String TASK_REMINDER_DELIVERY_APP = "app";
+	public static final String TASK_REMINDER_DELIVERY_EMAIL = "email";
+	
+	/**
+	 * [user]
+	 * [string]
+	 * Selected folder root node.
+	 */
+	public static final String SELECTED_ROOT = "roots.selected";
+	
+	/**
+	 * [user]
+	 * [string[]]
+	 * List of checked (or visible) folder root nodes.
+	 */
+	public static final String CHECKED_CATEGORY_ROOTS = "category.roots.checked";
+	
+	/**
+	 * [user]
+	 * [int[]]
+	 * List of checked (or visible) folders (groups).
+	 */
+	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
 }

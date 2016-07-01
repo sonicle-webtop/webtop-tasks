@@ -85,7 +85,7 @@ import org.slf4j.Logger;
  */
 public class TasksManager extends BaseManager {
 	public static final Logger logger = WT.getLogger(TasksManager.class);
-	private static final String RESOURCE_CATEGORY = "CATEGORY";
+	private static final String GROUPNAME_CATEGORY = "CATEGORY";
 	
 	private final HashMap<Integer, UserProfile.Id> cacheCategoryToOwner = new HashMap<>();
 	private final Object shareCacheLock = new Object();
@@ -106,7 +106,7 @@ public class TasksManager extends BaseManager {
 		ArrayList<CategoryRoot> roots = new ArrayList();
 		HashSet<String> hs = new HashSet<>();
 		
-		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, RESOURCE_CATEGORY);
+		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
 		for(IncomingShareRoot share : shares) {
 			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
 			CategoryRoot root = new CategoryRoot(share, perms);
@@ -123,7 +123,7 @@ public class TasksManager extends BaseManager {
 		
 		// Retrieves incoming folders (from sharing). This lookup already 
 		// returns readable shares (we don't need to test READ permission)
-		List<OShare> shares = core.listIncomingShareFolders(rootShareId, RESOURCE_CATEGORY);
+		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
 		for(OShare share : shares) {
 			
 			List<OCategory> cats = null;
@@ -152,12 +152,12 @@ public class TasksManager extends BaseManager {
 	
 	public Sharing getSharing(String shareId) throws WTException {
 		CoreManager core = WT.getCoreManager();
-		return core.getSharing(SERVICE_ID, RESOURCE_CATEGORY, shareId);
+		return core.getSharing(SERVICE_ID, GROUPNAME_CATEGORY, shareId);
 	}
 	
 	public void updateSharing(Sharing sharing) throws WTException {
 		CoreManager core = WT.getCoreManager();
-		core.updateSharing(SERVICE_ID, RESOURCE_CATEGORY, sharing);
+		core.updateSharing(SERVICE_ID, GROUPNAME_CATEGORY, sharing);
 	}
 	
 	public UserProfile.Id getCategoryOwner(int categoryId) throws WTException {
@@ -581,7 +581,7 @@ public class TasksManager extends BaseManager {
 				
 				if(!byEmailCache.containsKey(task.getCategoryProfileId())) {
 					TasksUserSettings us = new TasksUserSettings(SERVICE_ID, task.getCategoryProfileId());
-					boolean bool = us.getTaskReminderDelivery().equals(TasksUserSettings.TASK_REMINDER_DELIVERY_EMAIL);
+					boolean bool = us.getTaskReminderDelivery().equals(TasksSettings.TASK_REMINDER_DELIVERY_EMAIL);
 					byEmailCache.put(task.getCategoryProfileId(), bool);
 				}
 
@@ -681,7 +681,7 @@ public class TasksManager extends BaseManager {
 			cacheCategoryToFolderShare.clear();
 			for(CategoryRoot root : listIncomingCategoryRoots()) {
 				cacheOwnerToRootShare.put(root.getOwnerProfileId(), root.getShareId());
-				for(OShare folder : core.listIncomingShareFolders(root.getShareId(), RESOURCE_CATEGORY)) {
+				for(OShare folder : core.listIncomingShareFolders(root.getShareId(), GROUPNAME_CATEGORY)) {
 					if(folder.hasWildcard()) {
 						UserProfile.Id ownerId = core.userUidToProfileId(folder.getUserUid());
 						cacheOwnerToWildcardFolderShare.put(ownerId, folder.getShareId().toString());
@@ -761,7 +761,7 @@ public class TasksManager extends BaseManager {
 		if(core.isShareRootPermitted(shareId, action)) return;
 		//if(core.isShareRootPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on root share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
+		throw new AuthException("Action not allowed on root share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
 	
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
@@ -786,7 +786,7 @@ public class TasksManager extends BaseManager {
 		if(core.isShareFolderPermitted(shareId, action)) return;
 		//if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on folder share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
+		throw new AuthException("Action not allowed on folder share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
 	
 	private void checkRightsOnCategoryElements(int categoryId, String action) throws WTException {
@@ -811,7 +811,7 @@ public class TasksManager extends BaseManager {
 		if(core.isShareElementsPermitted(shareId, action)) return;
 		//if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
-		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, RESOURCE_CATEGORY, targetPid.toString());
+		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
     
 	private DateTime createRevisionTimestamp() {
