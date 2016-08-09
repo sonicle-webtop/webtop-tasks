@@ -34,9 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WT.sdk.ModelView',
 	requires: [
-		'Sonicle.form.Separator',
 		'Sonicle.form.field.ColorComboBox',
-		'Sonicle.form.trigger.Clear',
 		'WT.ux.data.EmptyModel',
 		'WT.ux.data.ValueModel',
 		'WT.ux.field.SuggestCombo',
