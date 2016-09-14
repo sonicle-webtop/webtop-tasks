@@ -26,15 +26,18 @@
 			
 		<serviceJsClassName> -> Service client class name (do not specify base package name).
 			If empty, above serviceClassName value will be used.
+		
+		<serviceVarsModelJsClassName> Variables model class name transfered during startup.
+			Defaults to "model.ServiceVars"
 			
 		<publicServiceClassName> -> Public service class name (do not specify base package name).
 			If empty, default "PublicService" value will be used.
+		
+		<publicServiceVarsModelJsClassName> Variables model class name transfered during startup.
+			Defaults to "model.PublicServiceVars"
 			
 		<jobServiceClassName> -> Job service class name (do not specify base package name).
 			If empty, default "JobService" value will be used.
-			
-		<clientOptionsModelJsClassName> Client options model class name.
-			Defaults to "model.ClientOptions"
 			
 		<userOptions> -> User options section.
 			If empty, default keys values will be used. See below!
@@ -69,7 +72,6 @@
 		<controllerClassName>TasksController</controllerClassName>
 		<managerClassName>TasksManager</managerClassName>
 		<serviceClassName>Service</serviceClassName>
-		<clientOptionsModelJsClassName>model.ClientOptions</clientOptionsModelJsClassName>
 		<company>Sonicle S.r.l.</company>
 		<companyEmail>sonicle@sonicle.com</companyEmail>
 		<companyWebSite>http://www.sonicle.com</companyWebSite>

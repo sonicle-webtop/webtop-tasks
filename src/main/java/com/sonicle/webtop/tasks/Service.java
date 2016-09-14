@@ -124,8 +124,8 @@ public class Service extends BaseService {
 	}
 	
 	@Override
-	public ClientOptions returnClientOptions() {
-		ClientOptions co = new ClientOptions();
+	public ServiceVars returnServiceVars() {
+		ServiceVars co = new ServiceVars();
 		return co;
 	}
 	
