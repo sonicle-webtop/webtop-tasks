@@ -93,12 +93,12 @@ public class TasksManager extends BaseManager {
 	private final HashMap<UserProfile.Id, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
 	private final HashMap<Integer, String> cacheCategoryToFolderShare = new HashMap<>();
 	
-	public TasksManager() {
-		this(RunContext.getProfileId());
+	public TasksManager(boolean fastInit) {
+		this(fastInit, RunContext.getProfileId());
 	}
 	
-	public TasksManager(UserProfile.Id targetProfileId) {
-		super(targetProfileId);
+	public TasksManager(boolean fastInit, UserProfile.Id targetProfileId) {
+		super(fastInit, targetProfileId);
 	}
 	
 	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
