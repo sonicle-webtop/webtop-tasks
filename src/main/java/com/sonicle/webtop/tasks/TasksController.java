@@ -33,6 +33,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.sdk.BaseController;
 import com.sonicle.webtop.core.sdk.BaseReminder;
@@ -78,7 +79,7 @@ public class TasksController extends BaseController implements IControllerHandle
 
     @Override
     public List<BaseReminder> returnReminders(DateTime now) {
-		TasksManager manager = new TasksManager(true);
+		TasksManager manager = new TasksManager(true, RunContext.getRunProfileId());
 		return manager.getRemindersToBeNotified(now);
     }
     

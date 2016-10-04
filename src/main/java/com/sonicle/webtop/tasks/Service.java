@@ -53,6 +53,7 @@ import com.sonicle.webtop.tasks.bol.model.CategoryRoot;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryFolder;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.bol.js.JsSimple;
 import com.sonicle.webtop.core.bol.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
@@ -104,9 +105,8 @@ public class Service extends BaseService {
 	
 	@Override
 	public void initialize() throws Exception {
-		UserProfile up = getEnv().getProfile();
-		manager = (TasksManager)WT.getServiceManager(SERVICE_ID, up.getId());
-		us = new TasksUserSettings(SERVICE_ID, up.getId());
+		manager = (TasksManager)WT.getServiceManager(SERVICE_ID);
+		us = new TasksUserSettings(SERVICE_ID, getEnv().getProfileId());
 		initFolders();
 	}
 	
@@ -127,6 +127,10 @@ public class Service extends BaseService {
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
 		return co;
+	}
+	
+	private WebTopSession getWts() {
+		return getEnv().getWebTopSession();
 	}
 	
 	private void initFolders() throws WTException {
