@@ -55,8 +55,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	fieldTitle: 'subject',
 	modelName: 'Sonicle.webtop.tasks.model.Task',
 	
-	viewModel: {
-		formulas: {
+	constructor: function(cfg) {
+		var me = this;
+		me.callParent([cfg]);
+		
+		WTU.applyFormulas(me.getVM(), {
 			startDate: {
 				bind: {bindTo: '{record.startDate}'},
 				get: function(val) {
@@ -100,7 +103,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					return !Ext.isEmpty(val);
 				}
 			}
-		}
+		});
 	},
 	
 	initComponent: function() {

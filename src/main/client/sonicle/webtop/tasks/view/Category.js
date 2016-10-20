@@ -48,16 +48,14 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 	fieldTitle: 'name',
 	modelName: 'Sonicle.webtop.tasks.model.Category',
 	
-	constructor: function(config) {
+	constructor: function(cfg) {
 		var me = this;
+		me.callParent([cfg]);
 		
-		me.config.viewModel = {
-			formulas: {
-				isPrivate: WTF.checkboxBind('record', 'isPrivate'),
-				isDefault: WTF.checkboxBind('record', 'isDefault')
-			}
-		};
-		me.callParent([config]);
+		WTU.applyFormulas(me.getVM(), {
+			isPrivate: WTF.checkboxBind('record', 'isPrivate'),
+			isDefault: WTF.checkboxBind('record', 'isDefault')
+		});
 	},
 	
 	initComponent: function() {
