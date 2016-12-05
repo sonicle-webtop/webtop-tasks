@@ -32,12 +32,12 @@
  * the words "Powered by Sonicle WebTop".
  */
 Ext.define('Sonicle.webtop.tasks.view.Task', {
-	extend: 'WT.sdk.ModelView',
+	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.form.field.ColorComboBox',
-		'WT.ux.data.EmptyModel',
-		'WT.ux.data.ValueModel',
-		'WT.ux.field.SuggestCombo',
+		'WTA.ux.data.EmptyModel',
+		'WTA.ux.data.ValueModel',
+		'WTA.ux.field.SuggestCombo',
 		'Sonicle.webtop.tasks.store.Importance',
 		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.Task',
@@ -143,7 +143,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					bind: '{record._profileId}',
 					store: {
 						autoLoad: true,
-						model: 'WT.model.Simple',
+						model: 'WTA.model.Simple',
 						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryRoots', 'roots')
 					},
 					fieldLabel: me.mys.res('task.fld-owner.lbl'),

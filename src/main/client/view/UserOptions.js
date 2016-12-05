@@ -25,40 +25,41 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
  * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.UserProfile;
-
-/**
- *
- * @author rfullone
- */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
-	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
+Ext.define('Sonicle.webtop.tasks.view.UserOptions', {
+	extend: 'WTA.sdk.UserOptionsView',
+	requires: [
+		'Sonicle.webtop.tasks.store.ReminderDelivery'
+	],
+		
+	initComponent: function() {
+		var me = this;
+		me.callParent(arguments);
+		
+		me.add({
+			xtype: 'wtopttabsection',
+			title: WT.res(me.ID, 'opts.main.tit'),
+			items: [
+				WTF.lookupCombo('id', 'desc', {
+					bind: '{record.taskReminderDelivery}',
+					store: Ext.create('Sonicle.webtop.tasks.store.ReminderDelivery', {
+						autoLoad: true
+					}),
+					fieldLabel: WT.res(me.ID, 'opts.main.fld-taskReminderDelivery.lbl'),
+					width: 280,
+					listeners: {
+						blur: {
+							fn: me.onBlurAutoSave,
+							scope: me
+						}
+					}
+				})
+			]
+		});
 	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
-	
-	public String getCategoryUserId() {
-		return categoryUserId;
-	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}	
-}
+});

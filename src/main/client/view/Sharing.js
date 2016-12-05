@@ -25,40 +25,18 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
- * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
- * feasible for technical reasons, the Appropriate Legal Notices must display
- * the words "Powered by Sonicle WebTop".
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
+ * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.UserProfile;
-
-/**
- *
- * @author rfullone
- */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
+Ext.define('Sonicle.webtop.tasks.view.Sharing', {
+	extend: 'WTA.sdk.Sharing',
+	requires: [
+		'Sonicle.webtop.tasks.model.Sharing'
+	],
 	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
-	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
-	
-	public String getCategoryUserId() {
-		return categoryUserId;
-	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}	
-}
+	modelName: 'Sonicle.webtop.tasks.model.Sharing',
+	fieldTitle: 'description'
+});

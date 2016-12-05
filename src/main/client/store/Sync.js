@@ -25,40 +25,27 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
  * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.UserProfile;
-
-/**
- *
- * @author rfullone
- */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
+Ext.define('Sonicle.webtop.tasks.store.Sync', {
+	extend: 'Ext.data.ArrayStore',
 	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
-	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
+	model: 'WTA.model.Simple',
+	data: [
+		['O',''],
+		['R',''],
+		['W','']
+	],
 	
-	public String getCategoryUserId() {
-		return categoryUserId;
+	constructor: function(cfg) {
+		var me = this;
+		Ext.each(me.config.data, function(row) {
+			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.sync.'+row[0]);
+		});
+		me.callParent([cfg]);
 	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}	
-}
+});

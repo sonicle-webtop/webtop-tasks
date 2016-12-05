@@ -33,9 +33,7 @@
  */
 package com.sonicle.webtop.tasks.bol;
 
-import com.sonicle.webtop.tasks.bol.model.Task;
 import com.sonicle.webtop.tasks.jooq.tables.pojos.Tasks;
-import org.springframework.beans.BeanUtils;
 
 /**
  *

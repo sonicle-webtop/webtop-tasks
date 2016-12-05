@@ -25,40 +25,36 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
  * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.UserProfile;
-
-/**
- *
- * @author rfullone
- */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
+Ext.define('Sonicle.webtop.tasks.model.GridTask', {
+	extend: 'WTA.ux.data.BaseModel',
 	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
-	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
-	
-	public String getCategoryUserId() {
-		return categoryUserId;
-	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}	
-}
+	idProperty: 'taskId',
+	fields: [
+		WTF.roField('taskId', 'int'),
+		WTF.roField('subject', 'string'),
+		WTF.roField('description', 'string'),
+		WTF.roField('startDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('importance', 'string'),
+		WTF.roField('isPrivate', 'boolean'),
+		WTF.roField('status', 'string'),
+		WTF.roField('percentage', 'int'),
+		WTF.calcField('progress', 'number','percentage', function (v, rec) {
+			return Ext.isEmpty(rec.get('percentage'))?0:rec.get('percentage')/100;
+		}),
+		WTF.roField('reminderDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.calcField('hasReminder', 'boolean', 'reminderDate', function (v, rec) {
+			return Ext.isEmpty(rec.get('reminderDate'));
+		}),
+		//WTF.roField('publicUid', 'string'),
+		WTF.roField('categoryId', 'int'),
+		WTF.roField('categoryName', 'string'),
+		WTF.roField('categoryColor', 'string')
+	]
+});

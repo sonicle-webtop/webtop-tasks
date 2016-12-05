@@ -31,20 +31,20 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
-	extend: 'WT.ux.data.BaseModel',
+Ext.define('Sonicle.webtop.tasks.store.ReminderDelivery', {
+	extend: 'Ext.data.ArrayStore',
 	
-	idProperty: 'categoryId',
-	fields: [
-		WTF.field('categoryId', 'int', false),
-		WTF.field('domainId', 'string', false),
-		WTF.field('userId', 'string', false),
-		WTF.field('name', 'string', false),
-		WTF.field('isDefault', 'boolean', false, {defaultValue: false}),
-		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
-		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
-		WTF.calcField('_profileId', 'string', ['domainId', 'userId'], function(v, rec) {
-			return rec.get('userId') + '@' + rec.get('domainId');
-		})
-	]
+	model: 'WTA.model.Simple',
+	data: [
+		['app',''],
+		['email','']
+	],
+	
+	constructor: function(cfg) {
+		var me = this;
+		Ext.each(me.config.data, function(row) {
+			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.reminderDelivery.'+row[0]);
+		});
+		me.callParent([cfg]);
+	}
 });

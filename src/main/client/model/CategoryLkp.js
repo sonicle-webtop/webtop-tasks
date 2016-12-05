@@ -25,40 +25,26 @@
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU Affero General Public License version 3.
  *
- * In accordance with Section 7(b) of the GNU Affero General Public License * version 3, these Appropriate Legal Notices must retain the display of the
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
  * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.UserProfile;
-
-/**
- *
- * @author rfullone
- */
-public class VTask extends OTask {
-	private String categoryDomainId;
-	private String categoryUserId;
+Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
+	extend: 'WTA.ux.data.BaseModel',
 	
-	public String getCategoryDomainId() {
-		return categoryDomainId;
-	}
-
-	public void setCategoryDomainId(String value) {
-		categoryDomainId = value;
-	}
-	
-	public String getCategoryUserId() {
-		return categoryUserId;
-	}
-
-	public void setCategoryUserId(String value) {
-		categoryUserId = value;
-	}
-	
-	public UserProfile.Id getCategoryProfileId() {
-		return new UserProfile.Id(categoryDomainId, categoryUserId);
-	}	
-}
+	idProperty: 'categoryId',
+	fields: [
+		WTF.field('categoryId', 'int', false),
+		WTF.field('domainId', 'string', false),
+		WTF.field('userId', 'string', false),
+		WTF.field('name', 'string', false),
+		WTF.field('isDefault', 'boolean', false, {defaultValue: false}),
+		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
+		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
+		WTF.calcField('_profileId', 'string', ['domainId', 'userId'], function(v, rec) {
+			return rec.get('userId') + '@' + rec.get('domainId');
+		})
+	]
+});

@@ -31,8 +31,22 @@
  * feasible for technical reasons, the Appropriate Legal Notices must display
  * the words "Powered by Sonicle WebTop".
  */
-Ext.define('Sonicle.webtop.tasks.model.ServiceVars', {
-	extend: 'WT.sdk.model.ServiceVars',
+
+Ext.define('Sonicle.webtop.tasks.store.Importance', {
+	extend: 'Ext.data.ArrayStore',
 	
-	fields: []
+	model: 'WTA.model.Simple',
+	data: [
+		[0, ''],
+		[1, ''],
+		[2, '']
+	],
+	
+	constructor: function(cfg) {
+		var me = this;
+		Ext.each(me.config.data, function(row) {
+			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.importance.'+row[0]);
+		});
+		me.callParent([cfg]);
+	}
 });

@@ -32,7 +32,7 @@
  * the words "Powered by Sonicle WebTop".
  */
 Ext.define('Sonicle.webtop.tasks.view.Category', {
-	extend: 'WT.sdk.ModelView',
+	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.form.field.Palette',
 		'Sonicle.form.RadioGroup',
