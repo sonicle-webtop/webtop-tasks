@@ -74,6 +74,7 @@ public class TaskDAO extends BaseDAO {
 			.select(
 				TASKS.TASK_ID,
 				TASKS.CATEGORY_ID,
+				TASKS.PUBLIC_UID,
 				TASKS.SUBJECT,
 				TASKS.DESCRIPTION,
 				TASKS.START_DATE,
@@ -82,8 +83,7 @@ public class TaskDAO extends BaseDAO {
 				TASKS.IS_PRIVATE,
 				TASKS.STATUS,
 				TASKS.COMPLETION_PERCENTAGE,
-				TASKS.REMINDER_DATE,
-				TASKS.PUBLIC_UID
+				TASKS.REMINDER_DATE
 			)
 			.select(
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
@@ -178,6 +178,8 @@ public class TaskDAO extends BaseDAO {
 		return dsl
 			.update(TASKS)
 			.set(TASKS.CATEGORY_ID,item.getCategoryId())
+			.set(TASKS.REVISION_STATUS,item.getRevisionStatus())
+			.set(TASKS.REVISION_TIMESTAMP,item.getRevisionTimestamp())
 			.set(TASKS.SUBJECT,item.getSubject())
 			.set(TASKS.DESCRIPTION,item.getDescription())
 			.set(TASKS.START_DATE,item.getStartDate())
@@ -188,8 +190,6 @@ public class TaskDAO extends BaseDAO {
 			.set(TASKS.STATUS,item.getStatus())
 			.set(TASKS.COMPLETION_PERCENTAGE,item.getCompletionPercentage())
 			.set(TASKS.REMINDER_DATE,item.getReminderDate())
-			.set(TASKS.REVISION_STATUS,item.getRevisionStatus())
-			.set(TASKS.REVISION_TIMESTAMP,item.getRevisionTimestamp())
 			.where(
 					TASKS.TASK_ID.equal(item.getTaskId())
 			)
@@ -257,5 +257,4 @@ public class TaskDAO extends BaseDAO {
 			)
 			.execute();
 	}
-	
 }

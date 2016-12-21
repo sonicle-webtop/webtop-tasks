@@ -44,7 +44,8 @@ import org.joda.time.DateTimeZone;
  */
 public class JsTask {
 	public Integer taskId;
-    public Integer categoryId;
+	public Integer categoryId;
+	//public String publicUid;
 	public String subject;
 	public String description;
 	public String startDate;
@@ -55,42 +56,41 @@ public class JsTask {
 	public String status;
 	public Short percentage;
 	public String reminderDate;
-	//public String publicUid;
 	public String _profileId;
 
-	
-	public JsTask() {}
-	
+	public JsTask() {
+	}
+
 	public JsTask(UserProfile.Id ownerId, Task task, DateTimeZone profileTz) {
 		taskId = task.getTaskId();
-        categoryId = task.getCategoryId();
-        subject = task.getSubject();
-        description = task.getDescription();
+		categoryId = task.getCategoryId();
+		//publicUid;
+		subject = task.getSubject();
+		description = task.getDescription();
 		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), profileTz);
 		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
 		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
-        importance = task.getImportance();
-        isPrivate = task.getIsPrivate();
-        status = task.getStatus();
-        percentage = task.getCompletionPercentage();
+		importance = task.getImportance();
+		isPrivate = task.getIsPrivate();
+		status = task.getStatus();
+		percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
-        //publicUid;
-        _profileId = ownerId.toString();
+		_profileId = ownerId.toString();
 	}
-	
+
 	public static Task createTask(JsTask js, DateTimeZone profileTz) {
-        Task item = new Task();
-        item.setTaskId(js.taskId);
-        item.setCategoryId(js.categoryId);
-        item.setSubject(js.subject);
-        item.setDescription(js.description);
+		Task item = new Task();
+		item.setTaskId(js.taskId);
+		item.setCategoryId(js.categoryId);
+		item.setSubject(js.subject);
+		item.setDescription(js.description);
 		item.setStartDate(DateTimeUtils.parseYmdHmsWithZone(js.startDate, DateTimeZone.UTC));
 		item.setDueDate(DateTimeUtils.parseYmdHmsWithZone(js.dueDate, DateTimeZone.UTC));
 		item.setCompletedDate(DateTimeUtils.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
-        item.setImportance(js.importance);
-        item.setIsPrivate(js.isPrivate);
-        item.setStatus(js.status);
-        item.setCompletionPercentage(js.percentage);
+		item.setImportance(js.importance);
+		item.setIsPrivate(js.isPrivate);
+		item.setStatus(js.status);
+		item.setCompletionPercentage(js.percentage);
 		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
 		return item;
 	}

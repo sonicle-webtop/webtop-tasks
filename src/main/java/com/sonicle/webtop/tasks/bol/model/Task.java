@@ -56,135 +56,134 @@ public class Task {
 	private DateTime revisionTimestamp;
 	private String publicUid;
 	private DateTime remindedOn;
-   
-    public Task() {}
 
-    public Integer getTaskId() {
-        return taskId;
-    }
+	public Task() {}
 
-    public void setTaskId(Integer taskId) {
-        this.taskId = taskId;
-    }
-    
-    public Integer getCategoryId() {
-        return categoryId;
-    }
+	public Integer getTaskId() {
+		return taskId;
+	}
 
-    public void setCategoryId(Integer categoryId) {
-        this.categoryId = categoryId;
-    }
+	public void setTaskId(Integer taskId) {
+		this.taskId = taskId;
+	}
 
-    public String getSubject() {
-        return subject;
-    }
+	public Integer getCategoryId() {
+		return categoryId;
+	}
 
-    public void setSubject(String subject) {
-        this.subject = subject;
-    }
+	public void setCategoryId(Integer categoryId) {
+		this.categoryId = categoryId;
+	}
 
-    public String getDescription() {
-        return description;
-    }
+	public String getRevisionStatus() {
+		return revisionStatus;
+	}
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+	public void setRevisionStatus(String revisionStatus) {
+		this.revisionStatus = revisionStatus;
+	}
 
-    public DateTime getStartDate() {
-        return startDate;
-    }
+	public DateTime getRevisionTimestamp() {
+		return revisionTimestamp;
+	}
 
-    public void setStartDate(DateTime startDate) {
-        this.startDate = startDate;
-    }
+	public void setRevisionTimestamp(DateTime revisionTimestamp) {
+		this.revisionTimestamp = revisionTimestamp;
+	}
 
-    public DateTime getDueDate() {
-        return dueDate;
-    }
+	public String getPublicUid() {
+		return publicUid;
+	}
 
-    public void setDueDate(DateTime dueDate) {
-        this.dueDate = dueDate;
-    }
+	public void setPublicUid(String publicUid) {
+		this.publicUid = publicUid;
+	}
 
-    public DateTime getCompletedDate() {
-        return completedDate;
-    }
+	public String getSubject() {
+		return subject;
+	}
 
-    public void setCompletedDate(DateTime completedDate) {
-        this.completedDate = completedDate;
-    }
+	public void setSubject(String subject) {
+		this.subject = subject;
+	}
 
-    public Short getImportance() {
-        return importance;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    public void setImportance(Short importance) {
-        this.importance = importance;
-    }
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
-    public Boolean getIsPrivate() {
-        return isPrivate;
-    }
+	public DateTime getStartDate() {
+		return startDate;
+	}
 
-    public void setIsPrivate(Boolean isPrivate) {
-        this.isPrivate = isPrivate;
-    }
+	public void setStartDate(DateTime startDate) {
+		this.startDate = startDate;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public DateTime getDueDate() {
+		return dueDate;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setDueDate(DateTime dueDate) {
+		this.dueDate = dueDate;
+	}
 
-    public Short getCompletionPercentage() {
-        return completionPercentage;
-    }
+	public DateTime getCompletedDate() {
+		return completedDate;
+	}
 
-    public void setCompletionPercentage(Short completionPercentage) {
-        this.completionPercentage = completionPercentage;
-    }
+	public void setCompletedDate(DateTime completedDate) {
+		this.completedDate = completedDate;
+	}
 
-    public DateTime getReminderDate() {
-        return reminderDate;
-    }
+	public Short getImportance() {
+		return importance;
+	}
 
-    public void setReminderDate(DateTime reminderDate) {
-        this.reminderDate = reminderDate;
-    }
+	public void setImportance(Short importance) {
+		this.importance = importance;
+	}
 
-    public String getRevisionStatus() {
-        return revisionStatus;
-    }
+	public Boolean getIsPrivate() {
+		return isPrivate;
+	}
 
-    public void setRevisionStatus(String revisionStatus) {
-        this.revisionStatus = revisionStatus;
-    }
+	public void setIsPrivate(Boolean isPrivate) {
+		this.isPrivate = isPrivate;
+	}
 
-    public DateTime getRevisionTimestamp() {
-        return revisionTimestamp;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setRevisionTimestamp(DateTime revisionTimestamp) {
-        this.revisionTimestamp = revisionTimestamp;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public String getPublicUid() {
-        return publicUid;
-    }
+	public Short getCompletionPercentage() {
+		return completionPercentage;
+	}
 
-    public void setPublicUid(String publicUid) {
-        this.publicUid = publicUid;
-    }
+	public void setCompletionPercentage(Short completionPercentage) {
+		this.completionPercentage = completionPercentage;
+	}
 
-    public DateTime getRemindedOn() {
-        return remindedOn;
-    }
+	public DateTime getReminderDate() {
+		return reminderDate;
+	}
 
-    public void setRemindedOn(DateTime remindedOn) {
-        this.remindedOn = remindedOn;
-    }
-    
+	public void setReminderDate(DateTime reminderDate) {
+		this.reminderDate = reminderDate;
+	}
+
+	public DateTime getRemindedOn() {
+		return remindedOn;
+	}
+
+	public void setRemindedOn(DateTime remindedOn) {
+		this.remindedOn = remindedOn;
+	}
 }
