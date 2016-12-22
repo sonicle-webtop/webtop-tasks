@@ -1,10 +1,19 @@
 
 -- ----------------------------
--- Structures for categories
+-- Sequence structure for seq_categories
 -- ----------------------------
-DROP SEQUENCE IF EXISTS "tasks"."seq_categories" CASCADE;
+DROP SEQUENCE IF EXISTS "tasks"."seq_categories";
 CREATE SEQUENCE "tasks"."seq_categories";
 
+-- ----------------------------
+-- Sequence structure for seq_tasks
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "tasks"."seq_tasks";
+CREATE SEQUENCE "tasks"."seq_tasks";
+
+-- ----------------------------
+-- Table structure for categories
+-- ----------------------------
 DROP TABLE IF EXISTS "tasks"."categories";
 CREATE TABLE "tasks"."categories" (
 "category_id" int4 DEFAULT nextval('"tasks".seq_categories'::regclass) NOT NULL,
@@ -18,18 +27,13 @@ CREATE TABLE "tasks"."categories" (
 "is_private" bool NOT NULL,
 "is_default" bool NOT NULL
 )
-WITH (OIDS=FALSE);
+WITH (OIDS=FALSE)
 
-ALTER TABLE "tasks"."categories" ADD PRIMARY KEY ("category_id");
-CREATE INDEX "categories_ak1" ON "tasks"."categories" USING btree ("domain_id", "user_id", "built_in");
-CREATE UNIQUE INDEX "categories_ak2" ON "tasks"."categories" USING btree ("domain_id", "user_id", "name");
+;
 
 -- ----------------------------
 -- Table structure for tasks
 -- ----------------------------
-DROP SEQUENCE IF EXISTS "tasks"."seq_tasks" CASCADE;
-CREATE SEQUENCE "tasks"."seq_tasks";
-
 DROP TABLE IF EXISTS "tasks"."tasks";
 CREATE TABLE "tasks"."tasks" (
 "task_id" int4 NOT NULL,
@@ -49,7 +53,31 @@ CREATE TABLE "tasks"."tasks" (
 "reminder_date" timestamptz(6),
 "reminded_on" timestamptz(6)
 )
-WITH (OIDS=FALSE);
+WITH (OIDS=FALSE)
 
-ALTER TABLE "tasks"."tasks" ADD PRIMARY KEY ("task_id");
+;
+
+-- ----------------------------
+-- Alter Sequences Owned By 
+-- ----------------------------
+
+-- ----------------------------
+-- Indexes structure for table categories
+-- ----------------------------
+CREATE INDEX "categories_ak1" ON "tasks"."categories" USING btree ("domain_id", "user_id", "built_in");
+CREATE UNIQUE INDEX "categories_ak2" ON "tasks"."categories" USING btree ("domain_id", "user_id", "name");
+
+-- ----------------------------
+-- Primary Key structure for table categories
+-- ----------------------------
+ALTER TABLE "tasks"."categories" ADD PRIMARY KEY ("category_id");
+
+-- ----------------------------
+-- Indexes structure for table tasks
+-- ----------------------------
 CREATE INDEX "tasks_ak1" ON "tasks"."tasks" USING btree ("category_id", "revision_status", "revision_timestamp");
+
+-- ----------------------------
+-- Primary Key structure for table tasks
+-- ----------------------------
+ALTER TABLE "tasks"."tasks" ADD PRIMARY KEY ("task_id");
