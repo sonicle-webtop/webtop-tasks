@@ -36,7 +36,7 @@ WITH (OIDS=FALSE)
 -- ----------------------------
 DROP TABLE IF EXISTS "tasks"."tasks";
 CREATE TABLE "tasks"."tasks" (
-"task_id" int4 NOT NULL,
+"task_id" int4 DEFAULT nextval('"tasks".seq_tasks'::regclass) NOT NULL,
 "category_id" int4 NOT NULL,
 "revision_status" varchar(1) NOT NULL,
 "revision_timestamp" timestamptz(6) NOT NULL,

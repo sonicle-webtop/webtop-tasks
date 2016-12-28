@@ -65,7 +65,7 @@ public class TasksController extends BaseController implements IControllerHandle
 		try {
 			manager.addBuiltInCategory();
 		} catch(WTOperationException ex) {
-			// Do nothing...
+			logger.debug(ex.getMessage());
 		} catch(WTException ex) {
 			throw ex;
 		}
