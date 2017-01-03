@@ -1,4 +1,6 @@
 
+CREATE SCHEMA "tasks";
+
 -- ----------------------------
 -- Sequence structure for seq_categories
 -- ----------------------------
