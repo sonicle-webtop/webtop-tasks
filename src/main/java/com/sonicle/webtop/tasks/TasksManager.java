@@ -52,7 +52,6 @@ import com.sonicle.webtop.core.sdk.ReminderEmail;
 import com.sonicle.webtop.core.sdk.ReminderInApp;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.core.sdk.WTOperationException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
@@ -259,7 +258,10 @@ public class TasksManager extends BaseManager {
 			CategoryDAO dao = CategoryDAO.getInstance();
 			
 			item = dao.selectBuiltInByDomainUser(con, getTargetProfileId().getDomainId(), getTargetProfileId().getUserId());
-			if(item != null) throw new WTOperationException("Built-in category already present");
+			if (item != null) {
+				logger.debug("Built-in category already present");
+				return null;
+			}
 			
 			item = new OCategory();
 			item.setDomainId(getTargetProfileId().getDomainId());
@@ -268,6 +270,7 @@ public class TasksManager extends BaseManager {
 			item.setName(WT.getPlatformName());
 			item.setDescription("");
 			item.setColor("#FFFFFF");
+			item.setIsPrivate(false);
 			item.setSync(OCategory.SYNC_OFF);
 			item.setIsDefault(true);
 			item = doInsertCategory(con, item);

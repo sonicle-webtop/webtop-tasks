@@ -51,36 +51,35 @@ import org.slf4j.Logger;
  * @author rfullone
  */
 public class TasksController extends BaseController implements IControllerHandlesProfiles, IControllerHandlesReminders {
-    public static final Logger logger = WT.getLogger(TasksController.class);
+	public static final Logger logger = WT.getLogger(TasksController.class);
 
-    public TasksController() {
-        super();
-    }
+	public TasksController() {
+		super();
+	}
 
-    @Override
-    public void addProfile(UserProfile.Id profileId) throws WTException {
+	@Override
+	public void addProfile(UserProfile.Id profileId) throws WTException {
 		TasksManager manager = new TasksManager(true, profileId);
-		
+
 		// Adds built-in category
 		try {
 			manager.addBuiltInCategory();
-		} catch(WTOperationException ex) {
+		} catch (WTOperationException ex) {
 			logger.debug(ex.getMessage());
-		} catch(WTException ex) {
+		} catch (WTException ex) {
 			throw ex;
 		}
-    }
+	}
 
-    @Override
-    public void removeProfile(UserProfile.Id profileId, boolean deep) throws WTException {
+	@Override
+	public void removeProfile(UserProfile.Id profileId, boolean deep) throws WTException {
 		//TODO: implementare cleanup utente
 		//ContactsManager manager = new ContactsManager(getRunContext(), profileId);
-    }
+	}
 
-    @Override
-    public List<BaseReminder> returnReminders(DateTime now) {
+	@Override
+	public List<BaseReminder> returnReminders(DateTime now) {
 		TasksManager manager = new TasksManager(true, RunContext.getRunProfileId());
 		return manager.getRemindersToBeNotified(now);
-    }
-    
+	}
 }
