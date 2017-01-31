@@ -71,7 +71,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				'->',
 				{
 					xtype: 'textfield',
-					reference: 'txtsearch',
 					width: 200,
 					triggers: {
 						search: {
@@ -318,10 +317,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}]
 			}]
 		}));
-	},
-	
-	txtSearch: function() {
-		return this.getToolbar().lookupReference('txtsearch');
 	},
 	
 	trFolders: function() {
