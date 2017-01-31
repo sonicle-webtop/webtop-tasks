@@ -183,7 +183,6 @@ public class Service extends BaseService {
 	
 	public void processManageFoldersTree(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		ArrayList<ExtTreeNode> children = new ArrayList<>();
-		ExtTreeNode child = null;
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
@@ -346,6 +345,7 @@ public class Service extends BaseService {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
 				manager.updateCategory(JsCategory.createFolder(pl.data));
+				updateFoldersCache();
 				new JsonResult().printTo(out);
 				
 			} else if(crud.equals(Crud.DELETE)) {
@@ -382,8 +382,9 @@ public class Service extends BaseService {
 					for (TasksManager.CategoryTasks foldTask : foldTasks) {
 						CategoryFolder fold = folders.get(foldTask.folder.getCategoryId());
                         if (fold == null) continue;
+						
                         for (VTask vt : foldTask.tasks) {
-                            items.add(new JsGridTask(fold,vt,DateTimeZone.UTC));
+                            items.add(new JsGridTask(fold, vt, DateTimeZone.UTC));
                         }
 					}
 				}
@@ -393,7 +394,6 @@ public class Service extends BaseService {
 		} catch(Exception ex) {
 			logger.error("Error in action ManageGridTasks", ex);
 			new JsonResult(false, "Error").printTo(out);
-			
 		}
 	}
 	    
@@ -434,6 +434,7 @@ public class Service extends BaseService {
 				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
 				
 				manager.deleteTask(ids);
+				
 				new JsonResult().printTo(out);
 				
 			} else if(crud.equals(Crud.MOVE)) {

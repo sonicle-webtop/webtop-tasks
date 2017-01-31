@@ -54,7 +54,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	needsReload: true,
 	
 	init: function() {
-		var me = this, ies, iitems = [];
+		var me = this;
 		
 		me.initActions();
 		me.initCxm();
@@ -63,13 +63,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		me.setToolbar(Ext.create({
 			xtype: 'toolbar',
+			referenceHolder: true,
 			items: [
 				'-',
 				me.getAction('print'),
 				me.getAction('deleteTask2'),
 				'->',
-				me.addRef('txtsearch', Ext.create({
+				{
 					xtype: 'textfield',
+					reference: 'txtsearch',
 					width: 200,
 					triggers: {
 						search: {
@@ -84,55 +86,55 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							if(e.getKey() === e.ENTER) me.queryTasks(s.getValue());
 						}
 					}
-				}))
+				}
 			]
 		}));
 		
 		me.setToolComponent(Ext.create({
 			xtype: 'panel',
 			layout: 'border',
+			referenceHolder: true,
 			title: me.getName(),
-			items: [
-				me.addRef('folderstree', Ext.create({
-					region: 'center',
-					xtype: 'treepanel',
-					border: false,
-					useArrows: true,
-					rootVisible: false,
-					store: {
-						autoLoad: true,
-						autoSync: true,
-						model: 'Sonicle.webtop.tasks.model.FolderNode',
-						proxy: WTF.apiProxy(me.ID, 'ManageFoldersTree', 'children', {
-							writer: {
-								allowSingle: false // Always wraps records into an array
-							}
-						}),
-						root: {
-							id: 'root',
-							expanded: true
-						},
-						listeners: {
-							write: function(s,op) {
-								me.reloadTasks();
-							}
+			items: [{
+				region: 'center',
+				xtype: 'treepanel',
+				reference: 'trfolders',
+				border: false,
+				useArrows: true,
+				rootVisible: false,
+				store: {
+					autoLoad: true,
+					autoSync: true,
+					model: 'Sonicle.webtop.tasks.model.FolderNode',
+					proxy: WTF.apiProxy(me.ID, 'ManageFoldersTree', 'children', {
+						writer: {
+							allowSingle: false // Always wraps records into an array
 						}
+					}),
+					root: {
+						id: 'root',
+						expanded: true
 					},
-					hideHeaders: true,
 					listeners: {
-						checkchange: function(n, ck) {
-							me.showHideFolder(n, ck);
-						},
-						itemcontextmenu: function(vw, rec, itm, i, e) {
-							if(rec.get('_type') === 'root') {
-								WT.showContextMenu(e, me.getRef('cxmRootFolder'), {folder: rec});
-							} else {
-								WT.showContextMenu(e, me.getRef('cxmFolder'), {folder: rec});
-							}
+						write: function(s,op) {
+							me.reloadTasks();
 						}
 					}
-				}))
-			]
+				},
+				hideHeaders: true,
+				listeners: {
+					checkchange: function(n, ck) {
+						me.showHideFolder(n, ck);
+					},
+					itemcontextmenu: function(vw, rec, itm, i, e) {
+						if(rec.get('_type') === 'root') {
+							WT.showContextMenu(e, me.getRef('cxmRootFolder'), {folder: rec});
+						} else {
+							WT.showContextMenu(e, me.getRef('cxmFolder'), {folder: rec});
+						}
+					}
+				}
+			}]
 		}));
 		
 		me.setMainComponent(Ext.create({
@@ -242,7 +244,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					},
 					rowdblclick: function(s, rec) {
 						var er = me.toRightsObj(rec.get('_erights'));
-						me.showTask(er.UPDATE, rec.get('taskId'));
+						me.openTaskUI(er.UPDATE, rec.get('taskId'));
 					},
 					rowcontextmenu: function(s, rec, itm, i, e) {
 						WT.showContextMenu(e, me.getRef('cxmGrid'), {
@@ -253,7 +255,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}, {
 				region: 'east',
-				xtype: 'wtform',
+				xtype: 'wtfieldspanel',
 				stateful: true,
 				stateId: me.buildStateId('gptaskspreview'),
 				split: true,
@@ -300,25 +302,30 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'displayfield',
 					bind: '{selectedTaskPercentage}',
 					labelAlign: 'left',
-					labelWidth: 90,
+					labelWidth: 100,
 					fieldLabel: me.res('gptasks.percentage.lbl')
 				}, {
 					xtype: 'displayfield',
 					bind: '{selectedTaskReminder}',
 					labelAlign: 'left',
-					labelWidth: 90,
+					labelWidth: 100,
 					fieldLabel: me.res('task.fld-reminderDate.lbl')
 				}, {
 					xtype: 'textareafield',
 					bind: '{selectedTask.description}',
-					fieldLabel: me.res('task.fld-description.lbl')
+					fieldLabel: me.res('task.fld-description.lbl'),
+					height: 250
 				}]
 			}]
 		}));
 	},
 	
 	txtSearch: function() {
-		return this.getRef('txtsearch');
+		return this.getToolbar().lookupReference('txtsearch');
+	},
+	
+	trFolders: function() {
+		return this.getToolComponent().lookupReference('trfolders');
 	},
 	
 	gpTasks: function() {
@@ -337,38 +344,38 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			text: WT.res('sharing.tit'),
 			iconCls: WTF.cssIconCls(WT.XID, 'sharing', 'xs'),
 			handler: function() {
-				var node = me.getSelectedNode(me.getRef('folderstree'));
+				var node = me.getSelectedNode(me.trFolders());
 				if(node) me.editShare(node.getId());
 			}
 		});
 		me.addAction('addCategory', {
 			handler: function() {
-				var node = me.getSelectedFolder(me.getRef('folderstree'));
-				if(node) me.addCategory(node.get('_domainId'), node.get('_userId'));
+				var node = me.getSelectedFolder(me.trFolders());
+				if(node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
 			}
 		});
 		me.addAction('editCategory', {
 			handler: function() {
-				var node = me.getSelectedFolder(me.getRef('folderstree'));
-				if(node) me.editCategory(node.get('_catId'));
+				var node = me.getSelectedFolder(me.trFolders());
+				if(node) me.editCategoryUI(node.get('_catId'));
 			}
 		});
 		me.addAction('deleteCategory', {
 			handler: function() {
-				var node = me.getSelectedFolder(me.getRef('folderstree'));
-				if(node) me.confirmDeleteCategory(node);
+				var node = me.getSelectedFolder(me.trFolders());
+				if(node) me.deleteCategoryUI(node);
 			}
 		});
 		me.addAction('viewAllFolders', {
 			iconCls: 'wt-icon-select-all-xs',
 			handler: function() {
-				me.showHideAllFolders(me.getSelectedRootFolder(me.getRef('folderstree')), true);
+				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), true);
 			}
 		});
 		me.addAction('viewNoneFolders', {
 			iconCls: 'wt-icon-select-none-xs',
 			handler: function() {
-				me.showHideAllFolders(me.getSelectedRootFolder(me.getRef('folderstree')), false);
+				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), false);
 			}
 		});
 		me.addAction('showTask', {
@@ -377,14 +384,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				var rec = me.getSelectedTask(), er;
 				if(rec) {
 					er = me.toRightsObj(rec.get('_erights'));
-					me.showTask(er.UPDATE, rec.get('taskId'));
+					me.openTaskUI(er.UPDATE, rec.get('taskId'));
 				}
 			}
 		});
 		me.addAction('addTask', {
 			handler: function() {
-				var node = me.getSelectedFolder(me.getRef('folderstree'));
-				if(node) me.addTask(node.get('_pid'), node.get('_catId'));
+				var node = me.getSelectedFolder(me.trFolders());
+				if(node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
 			}
 		});
 		me.addAction('deleteTask', {
@@ -392,7 +399,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-delete-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
-				if(sel.length > 0) me.deleteSelTasks(sel);
+				if(sel.length > 0) me.deleteTaskSel(sel);
 			}
 		});
 		me.addAction('copyTask', {
@@ -410,7 +417,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-print-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
-				if(sel.length > 0) me.printSelTasks(sel);
+				if(sel.length > 0) me.printTaskSel(sel);
 			}
 		});
 		me.addAction('print', {
@@ -526,25 +533,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('deleteTask');
 	},
 	
-	onCategoryViewSave: function(s, success, model) {
-		if(!success) return;
+	loadFolderNode: function(pid) {
 		var me = this,
-				store = me.getRef('folderstree').getStore(),
+				sto = me.trFolders().getStore(),
 				node;
 		
-		// Look for root folder and reload it!
-		node = store.findNode('_pid', model.get('_profileId'), false);
-		if(node) {
-			store.load({node: node});
+		node = sto.findNode('_pid', pid, false);
+		if (node) {
+			sto.load({node: node});
 			if(node.get('checked'))	me.reloadTasks();
 		}
 	},
-	
-	onTaskViewSave: function(s, success, model) {
-		if(!success) return;
-		this.reloadTasks();
-	},
-	
 	
 	queryTasks: function(txt) {
 		this.reloadTasks(txt);
@@ -574,26 +573,60 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		return this.gpTasks().getSelection();
 	},
 	
-	printSelTasks: function(sel) {
+	addCategoryUI: function(domainId, userId) {
+		var me = this;
+		me.addCategory(domainId, userId, {
+			callback: function(success, model) {
+				if(success) me.loadFolderNode(model.get('_profileId'));
+			}
+		});
+	},
+	
+	editCategoryUI: function(categoryId) {
+		var me = this;
+		me.editCategory(categoryId, {
+			callback: function(success, model) {
+				if(success) me.loadFolderNode(model.get('_profileId'));
+			}
+		});
+	},
+	
+	deleteCategoryUI: function(node) {
+		WT.confirm(this.res('category.confirm.delete', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
+			if(bid === 'yes') node.drop();
+		}, this);
+	},
+	
+	addTaskUI: function(ownerId, categoryId) {
+		var me = this;
+		me.addTask(ownerId, categoryId, {
+			callback: function(success) {
+				if(success) me.reloadTasks();
+			}
+		});
+	},
+	
+	openTaskUI: function(edit, taskId) {
+		var me = this;
+		me.openTask(edit, taskId, {
+			callback: function(success) {
+				if(success && edit) me.reloadTasks();
+			}
+		});
+	},
+	
+	printTasksDetail: function(taskIds) {
+		var me = this, url;
+		url = WTF.processBinUrl(me.ID, 'PrintTasksDetail', {ids: WTU.arrayAsParam(taskIds)});
+		Sonicle.URLMgr.openFile(url, {filename: 'tasks-detail', newWindow: true});
+	},
+	
+	printTaskSel: function(sel) {
 		var me = this;
 		me.printTasksDetail(me.selectionIds(sel));
 	},
 	
-	selectionIds: function(sel) {
-		var ids = [];
-		Ext.iterate(sel, function(rec) {
-			ids.push(rec.getId());
-		});
-		return ids;
-	},
-	
-	printTasksDetail: function(ids) {
-		var me = this, url;
-		url = WTF.processBinUrl(me.ID, 'PrintTasksDetail', {ids: WTU.arrayAsParam(ids)});
-		Sonicle.URLMgr.openFile(url, {filename: 'tasks-detail', newWindow: true});
-	},
-	
-	deleteSelTasks: function(sel) {
+	deleteTaskSel: function(sel) {
 		var me = this,
 			sto = me.gpTasks().getStore(),
 			ids = me.selectionIds(sel),
@@ -630,12 +663,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	confirmDeleteCategory: function(rec) {
-		WT.confirm(this.res('category.confirm.delete', Ext.String.ellipsis(rec.get('text'), 40)), function(bid) {
-			if(bid === 'yes') rec.drop();
-		}, this);
-	},
-	
 	confirmMoveTask: function(copy, id, ownerId, catId, opts) {
 		var me = this,
 				vw = me.createCategoryChooser(copy, ownerId, catId);
@@ -659,11 +686,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	addCategory: function(domainId, userId) {
+	addCategory: function(domainId, userId, opts) {
+		opts = opts || {};
 		var me = this,
 				vct = WT.createView(me.ID, 'view.Category');
 		
-		vct.getView().on('viewsave', me.onCategoryViewSave, me);
+		vct.getView().on('viewsave', function(s, success, model) {
+			Ext.callback(opts.callback, opts.scope || me, [success, model]);
+		});
 		vct.show(false, function() {
 			vct.getView().begin('new', {
 				data: {
@@ -674,11 +704,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	editCategory: function(categoryId) {
+	editCategory: function(categoryId, opts) {
+		opts = opts || {};
 		var me = this,
 				vct = WT.createView(me.ID, 'view.Category');
 		
-		vct.getView().on('viewsave', me.onCategoryViewSave, me);
+		vct.getView().on('viewsave', function(s, success, model) {
+			Ext.callback(opts.callback, opts.scope || me, [success, model]);
+		});
 		vct.show(false, function() {
 			vct.getView().begin('edit', {
 				data: {
@@ -688,15 +721,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	showTask: function(edit, id) {
-		this.openTask(edit, id);
+	showTask: function(edit, taskId, opts) {
+		this.openTask(edit, taskId, opts);
 	},
 	
-	addTask: function(ownerId, categoryId) {
+	addTask: function(ownerId, categoryId, opts) {
+		opts = opts || {};
 		var me = this,
 				vct = WT.createView(me.ID, 'view.Task');
 		
-		vct.getView().on('viewsave', me.onTaskViewSave, me);
+		vct.getView().on('viewsave', function(s, success, model) {
+			Ext.callback(opts.callback, opts.scope || me, [success, model]);
+		});
 		vct.show(false, function() {
 			vct.getView().begin('new', {
 				data: {
@@ -707,28 +743,35 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	openTask: function(edit, id) {
+	editTask: function(taskId, opts) {
+		this.openTask(true, taskId, opts);
+	},
+	
+	openTask: function(edit, taskId, opts) {
+		opts = opts || {};
 		var me = this,
 				vct = WT.createView(me.ID, 'view.Task'),
 				mode = edit ? 'edit' : 'view';
 		
-		if(edit) vct.getView().on('viewsave', me.onTaskViewSave, me);
+		vct.getView().on('viewsave', function(s, success, model) {
+			Ext.callback(opts.callback, opts.scope || me, [success, model]);
+		});
 		vct.show(false, function() {
 			vct.getView().begin(mode, {
 				data: {
-					taskId: id
+					taskId: taskId
 				}
 			});
 		});
 	},
 	
-	deleteTasks: function(ids, opts) {
+	deleteTasks: function(taskIds, opts) {
 		opts = opts || {};
 		var me = this;
 		WT.ajaxReq(me.ID, 'ManageTasks', {
 			params: {
 				crud: 'delete',
-				ids: WTU.arrayAsParam(ids)
+				ids: WTU.arrayAsParam(taskIds)
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);
@@ -736,7 +779,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	moveTask: function(copy, id, targetCategoryId, opts) {
+	moveTask: function(copy, taskId, targetCategoryId, opts) {
 		opts = opts || {};
 		var me = this;
 		
@@ -744,13 +787,21 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			params: {
 				crud: 'move',
 				copy: copy,
-				id: id,
+				id: taskId,
 				targetCategoryId: targetCategoryId
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);
 			}
 		});
+	},
+	
+	selectionIds: function(sel) {
+		var ids = [];
+		Ext.iterate(sel, function(rec) {
+			ids.push(rec.getId());
+		});
+		return ids;
 	},
 	
 	/**
