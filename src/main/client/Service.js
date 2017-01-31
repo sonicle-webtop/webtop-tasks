@@ -500,8 +500,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					text: me.res('copyormove.lbl'),
 					menu: {
 						items: [
-							me.getAction('copyTask'),
-							me.getAction('moveTask')
+							me.getAction('moveTask'),
+							me.getAction('copyTask')
 						]
 					}
 				},
