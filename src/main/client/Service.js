@@ -66,6 +66,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			referenceHolder: true,
 			items: [
 				'-',
+				me.getAction('refresh'),
 				me.getAction('print'),
 				me.getAction('deleteTask2'),
 				'->',
@@ -333,6 +334,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAction('new', 'newTask', {
 			handler: function() {
 				me.getAction('addTask').execute();
+			}
+		});
+		me.addAction('refresh', {
+			text: '',
+			tooltip: WT.res('act-refresh.lbl'),
+			iconCls: 'wt-icon-refresh-xs',
+			handler: function() {
+				me.reloadTasks();
 			}
 		});
 		me.addAction('editSharing', {
