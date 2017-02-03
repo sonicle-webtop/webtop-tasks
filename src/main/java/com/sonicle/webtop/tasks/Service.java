@@ -466,6 +466,8 @@ public class Service extends BaseService {
 			OCategory category = null;
 			for(Integer id : ids) {
 				task = manager.getTask(id);
+				if (task == null) continue;
+				
 				category = manager.getCategory(task.getCategoryId());
 				items.add(new RBTaskDetail(category, task));
 			}

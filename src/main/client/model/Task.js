@@ -48,7 +48,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
 		WTF.field('percentage', 'int', true, {defaultValue: 0}),
 		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'})
-	],
+	]
 	
 	/*
 	setStartDate: function(date) {
@@ -81,10 +81,13 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 	},
 	*/
 	
+	
+	
+	/*
 	setDatePart: function(field, date) {
 		var me = this,
 				v = me.get(field) || new Date(), dt;
-		dt = (!Ext.isDate(date)) ? null : Sonicle.Date.copyDate(date, v);
+		dt = !Ext.isDate(date) ? null : Sonicle.Date.copyDate(date, v);
 		me.set(field, dt);
 		return dt;
 	},
@@ -97,4 +100,6 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		me.set(field, dt);
 		return dt;
 	}
+	
+	*/
 });

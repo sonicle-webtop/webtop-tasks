@@ -84,7 +84,8 @@ import org.slf4j.Logger;
  */
 public class TasksManager extends BaseManager {
 	public static final Logger logger = WT.getLogger(TasksManager.class);
-	private static final String GROUPNAME_CATEGORY = "CATEGORY";
+	public static final String GROUPNAME_CATEGORY = "CATEGORY";
+	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
 	
 	private final HashMap<Integer, UserProfile.Id> cacheCategoryToOwner = new HashMap<>();
 	private final Object shareCacheLock = new Object();
@@ -224,17 +225,6 @@ public class TasksManager extends BaseManager {
 			item = doInsertCategory(con, item);
 			DbUtils.commitQuietly(con);
 			return item;
-			
-			/*
-			CategoryDAO dao = CategoryDAO.getInstance();
-			
-			item.setCategoryId(dao.getSequence(con).intValue());
-			item.setBuiltIn(false);
-			if(item.getIsDefault()) dao.resetIsDefaultByDomainUser(con, item.getDomainId(), item.getUserId());
-			dao.insert(con, item, createUpdateInfo());
-			DbUtils.commitQuietly(con);
-			return item;
-			*/
 			
 		} catch(SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -386,7 +376,7 @@ public class TasksManager extends BaseManager {
 			con = WT.getConnection(SERVICE_ID);
 			
 			OTask otask = tdao.selectById(con, taskId);
-			if(otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			if (otask == null) return null;
 			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ"); // Rights check!
 			
 			return createTask(otask);
@@ -401,6 +391,7 @@ public class TasksManager extends BaseManager {
 	}
 	
 	public void addTask(Task task) throws WTException {
+		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
 		Connection con = null;
 		
 		try {
@@ -411,6 +402,8 @@ public class TasksManager extends BaseManager {
 			OTask result = doInsertTask(con, task);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_INSERT", String.valueOf(result.getTaskId()));
+			
+			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, task.getSubject());
 			
 		} catch(SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -426,19 +419,21 @@ public class TasksManager extends BaseManager {
 	public void updateTask(Task task) throws WTException {
 		Connection con = null;
 		
+		//TODO: gestire i suggerimenti (soggetto)
+
 		try {
 			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE"); // Rights check!
-			
+
 			con = WT.getConnection(SERVICE_ID);
 			con.setAutoCommit(false);
 			doUpdateTask(con, task);
 			DbUtils.commitQuietly(con);
-			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));			
-            
-		} catch(SQLException | DAOException ex) {
+			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
+
+		} catch (SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
 			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
 			throw ex;
 		} finally {
@@ -448,20 +443,20 @@ public class TasksManager extends BaseManager {
     
 	public void deleteTasksByCategory(int categoryId) throws WTException {
 		Connection con = null;
-		
+
 		try {
 			checkRightsOnCategoryElements(categoryId, "DELETE"); // Rights check!
-			
+
 			con = WT.getConnection(SERVICE_ID);
 			con.setAutoCommit(false);
 			doDeleteTasksByCategory(con, categoryId);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_DELETE", "*");
-			
-		} catch(SQLException | DAOException ex) {
+
+		} catch (SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
 			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
 			throw ex;
 		} finally {
@@ -472,23 +467,23 @@ public class TasksManager extends BaseManager {
 	public void deleteTask(int taskId) throws WTException {
 		TaskDAO tdao = TaskDAO.getInstance();
 		Connection con = null;
-		
+
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			
+
 			OTask cont = tdao.selectById(con, taskId);
-			if(cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			if (cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
 			checkRightsOnCategoryElements(cont.getCategoryId(), "DELETE"); // Rights check!
-			
+
 			con.setAutoCommit(false);
 			doDeleteTask(con, taskId);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_DELETE", String.valueOf(taskId));
-			
-		} catch(SQLException | DAOException ex) {
+
+		} catch (SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
 			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
 			throw ex;
 		} finally {
@@ -811,6 +806,11 @@ public class TasksManager extends BaseManager {
 		//if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
+	}
+	
+	private void storeAsSuggestion(CoreManager coreMgr, String context, String value) {
+		if (StringUtils.isBlank(value)) return;
+		coreMgr.addServiceStoreEntry(SERVICE_ID, context, value.toUpperCase(), value);
 	}
     
 	private DateTime createRevisionTimestamp() {
