@@ -164,6 +164,7 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		item.setRevisionStatus(OTask.REV_STATUS_NEW);
 		item.setRevisionTimestamp(revisionTimestamp);
+		item.setRevisionSequence(0);
 		TasksRecord record = dsl.newRecord(TASKS, item);
 		return dsl
 			.insertInto(TASKS)
