@@ -72,7 +72,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				'->',
 				{
 					xtype: 'textfield',
-					width: 200,
+					tooltip: me.res('textfield.tip'),
+					plugins: ['sofieldtooltip'],
 					triggers: {
 						search: {
 							cls: Ext.baseCSSPrefix + 'form-search-trigger',
@@ -85,7 +86,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						specialkey: function(s, e) {
 							if(e.getKey() === e.ENTER) me.queryTasks(s.getValue());
 						}
-					}
+					},
+					width: 200
 				}
 			]
 		}));
@@ -550,7 +552,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	queryTasks: function(txt) {
-		this.reloadTasks(txt);
+		if (!Ext.isEmpty(txt)) {
+			this.reloadTasks(txt);
+		}
 	},
 	
 	reloadTasks: function(query) {
