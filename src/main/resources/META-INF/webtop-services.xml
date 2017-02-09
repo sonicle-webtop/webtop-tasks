@@ -66,8 +66,8 @@
 		<package>com.sonicle.webtop.tasks</package>
 		<jsPackage>Sonicle.webtop.tasks</jsPackage>
 		<shortName>wttasks</shortName>
-		<version>1.0.0</version>
-		<buildDate>24/06/2016</buildDate>
+		<version>@@webtop.service.version@@</version>
+		<buildDate>@@webtop.service.buildDate@@</buildDate>
 		
 		<controllerClassName>TasksController</controllerClassName>
 		<managerClassName>TasksManager</managerClassName>
