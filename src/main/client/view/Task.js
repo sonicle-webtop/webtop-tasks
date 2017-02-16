@@ -384,7 +384,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				WT.ajaxReq(me.mys.ID, 'ManageTasks', {
 					params: {
 						crud: 'delete',
-						id: rec.get('taskId')
+						ids: WTU.arrayAsParam([rec.get('taskId')])
 					},
 					callback: function(success) {
 						me.unwait();

@@ -623,17 +623,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	printTasksDetail: function(taskIds) {
-		var me = this, url;
-		url = WTF.processBinUrl(me.ID, 'PrintTasksDetail', {ids: WTU.arrayAsParam(taskIds)});
-		Sonicle.URLMgr.openFile(url, {filename: 'tasks-detail', newWindow: true});
-	},
-	
-	printTaskSel: function(sel) {
-		var me = this;
-		me.printTasksDetail(me.selectionIds(sel));
-	},
-	
 	deleteTaskSel: function(sel) {
 		var me = this,
 			sto = me.gpTasks().getStore(),
@@ -679,6 +668,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			me.moveTask(copy, id, s.getVMData().categoryId, opts);
 		});
 		vw.show();
+	},
+	
+	printTasksDetail: function(taskIds) {
+		var me = this, url;
+		url = WTF.processBinUrl(me.ID, 'PrintTasksDetail', {ids: WTU.arrayAsParam(taskIds)});
+		Sonicle.URLMgr.openFile(url, {filename: 'tasks-detail', newWindow: true});
+	},
+	
+	printTaskSel: function(sel) {
+		var me = this;
+		me.printTasksDetail(me.selectionIds(sel));
 	},
 	
 	editShare: function(id) {
@@ -727,10 +727,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
-	},
-	
-	showTask: function(edit, taskId, opts) {
-		this.openTask(edit, taskId, opts);
 	},
 	
 	addTask: function(ownerId, categoryId, opts) {
