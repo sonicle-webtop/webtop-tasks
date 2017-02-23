@@ -1,5 +1,4 @@
-/*
- * webtop-tasks is a WebTop Service developed by Sonicle S.r.l.
+/* 
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -11,7 +10,7 @@
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +18,7 @@
  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA.
  *
- * You can contact Sonicle S.r.l. at email address sonicle@sonicle.com
+ * You can contact Sonicle S.r.l. at email address sonicle[at]sonicle[dot]com
  *
  * The interactive user interfaces in modified source and object code versions
  * of this program must display Appropriate Legal Notices, as required under
@@ -27,9 +26,9 @@
  *
  * In accordance with Section 7(b) of the GNU Affero General Public License
  * version 3, these Appropriate Legal Notices must retain the display of the
- * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
- * feasible for technical reasons, the Appropriate Legal Notices must display
- * the words "Powered by Sonicle WebTop".
+ * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
 package com.sonicle.webtop.tasks;
 
@@ -48,8 +47,8 @@ import com.sonicle.webtop.tasks.TasksUserSettings.CheckedRoots;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
-import com.sonicle.webtop.tasks.bol.model.CategoryFolder;
-import com.sonicle.webtop.tasks.bol.model.CategoryRoot;
+import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.CategoryRoot;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryFolder;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
 import com.sonicle.webtop.core.app.WT;
@@ -69,7 +68,8 @@ import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
-import com.sonicle.webtop.tasks.bol.model.Task;
+import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
@@ -166,7 +166,7 @@ public class Service extends BaseService {
 			for(CategoryRoot root : roots.values()) {
 				foldersByRoot.put(root.getShareId(), new ArrayList<CategoryFolder>());
 				if(root instanceof MyCategoryRoot) {
-					for(OCategory cat : manager.listCategories()) {
+					for(Category cat : manager.listCategories()) {
 						MyCategoryFolder fold = new MyCategoryFolder(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
@@ -197,7 +197,7 @@ public class Service extends BaseService {
 					CategoryRoot root = roots.get(node);
 					
 					if(root instanceof MyCategoryRoot) {
-						for(OCategory cal : manager.listCategories()) {
+						for(Category cal : manager.listCategories()) {
 							MyCategoryFolder folder = new MyCategoryFolder(node, cal);
 							children.add(createFolderNode(folder, root.getPerms()));
 						}
@@ -278,7 +278,7 @@ public class Service extends BaseService {
 		try {
 			for(CategoryRoot root : roots.values()) {
 				if(root instanceof MyCategoryRoot) {
-					for(OCategory cal : manager.listCategories()) {
+					for(Category cal : manager.listCategories()) {
 						items.add(new JsCategoryLkp(cal));
 					}
 				} else {
@@ -323,7 +323,7 @@ public class Service extends BaseService {
 	}
 	
 	public void processManageCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
-		OCategory item = null;
+		Category item = null;
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
@@ -463,7 +463,7 @@ public class Service extends BaseService {
 			ServletUtils.IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.IntegerArray.class, true);
 			
 			Task task = null;
-			OCategory category = null;
+			Category category = null;
 			for(Integer id : ids) {
 				task = manager.getTask(id);
 				if (task == null) continue;
@@ -520,7 +520,7 @@ public class Service extends BaseService {
 		// Folder description part
 		if(sharing.getLevel() == 1) {
 			int catId = Integer.valueOf(cid.getToken(1));
-			OCategory category = manager.getCategory(catId);
+			Category category = manager.getCategory(catId);
 			sb.append("/");
 			sb.append((category != null) ? category.getName() : cid.getToken(1));
 		}
@@ -584,7 +584,7 @@ public class Service extends BaseService {
 	}
 	
 	private ExtTreeNode createFolderNode(CategoryFolder folder, SharePermsRoot rootPerms) {
-		OCategory cat = folder.getCategory();
+		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);

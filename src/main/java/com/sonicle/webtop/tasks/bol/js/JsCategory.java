@@ -1,5 +1,4 @@
-/*
- * webtop-tasks is a WebTop Service developed by Sonicle S.r.l.
+/* 
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -11,7 +10,7 @@
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +18,7 @@
  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA.
  *
- * You can contact Sonicle S.r.l. at email address sonicle@sonicle.com
+ * You can contact Sonicle S.r.l. at email address sonicle[at]sonicle[dot]com
  *
  * The interactive user interfaces in modified source and object code versions
  * of this program must display Appropriate Legal Notices, as required under
@@ -27,13 +26,13 @@
  *
  * In accordance with Section 7(b) of the GNU Affero General Public License
  * version 3, these Appropriate Legal Notices must retain the display of the
- * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
- * feasible for technical reasons, the Appropriate Legal Notices must display
- * the words "Powered by Sonicle WebTop".
+ * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
 package com.sonicle.webtop.tasks.bol.js;
 
-import com.sonicle.webtop.tasks.bol.OCategory;
+import com.sonicle.webtop.tasks.model.Category;
 
 /**
  *
@@ -51,31 +50,31 @@ public class JsCategory {
 	public Boolean isDefault;
 	public Boolean isPrivate;
 	
-	public JsCategory(OCategory bean) {
-		categoryId = bean.getCategoryId();
-		domainId = bean.getDomainId();
-		userId = bean.getUserId();
-		builtIn = bean.getBuiltIn();
-		name = bean.getName();
-		description = bean.getDescription();
-		color = bean.getColor();
-		sync = bean.getSync();
-		isDefault = bean.getIsDefault();
-		isPrivate = bean.getIsPrivate();
+	public JsCategory(Category cat) {
+		categoryId = cat.getCategoryId();
+		domainId = cat.getDomainId();
+		userId = cat.getUserId();
+		builtIn = cat.getBuiltIn();
+		name = cat.getName();
+		description = cat.getDescription();
+		color = cat.getColor();
+		sync = cat.getSync();
+		isDefault = cat.getIsDefault();
+		isPrivate = cat.getIsPrivate();
 	}
 	
-	public static OCategory createFolder(JsCategory js) {
-		OCategory bean = new OCategory();
-		bean.setCategoryId(js.categoryId);
-		bean.setDomainId(js.domainId);
-		bean.setUserId(js.userId);
-		bean.setBuiltIn(js.builtIn);
-		bean.setName(js.name);
-		bean.setDescription(js.description);
-		bean.setColor(js.color);
-		bean.setSync(js.sync);
-		bean.setIsDefault(js.isDefault);
-		bean.setIsPrivate(js.isPrivate);
-		return bean;
+	public static Category createFolder(JsCategory js) {
+		Category cat = new Category();
+		cat.setCategoryId(js.categoryId);
+		cat.setDomainId(js.domainId);
+		cat.setUserId(js.userId);
+		cat.setBuiltIn(js.builtIn);
+		cat.setName(js.name);
+		cat.setDescription(js.description);
+		cat.setColor(js.color);
+		cat.setSync(js.sync);
+		cat.setIsDefault(js.isDefault);
+		cat.setIsPrivate(js.isPrivate);
+		return cat;
 	}
 }

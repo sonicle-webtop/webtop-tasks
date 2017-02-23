@@ -1,5 +1,4 @@
-/*
- * webtop-tasks is a WebTop Service developed by Sonicle S.r.l.
+/* 
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -11,7 +10,7 @@
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +18,7 @@
  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA.
  *
- * You can contact Sonicle S.r.l. at email address sonicle@sonicle.com
+ * You can contact Sonicle S.r.l. at email address sonicle[at]sonicle[dot]com
  *
  * The interactive user interfaces in modified source and object code versions
  * of this program must display Appropriate Legal Notices, as required under
@@ -27,9 +26,9 @@
  *
  * In accordance with Section 7(b) of the GNU Affero General Public License
  * version 3, these Appropriate Legal Notices must retain the display of the
- * "Powered by Sonicle WebTop" logo. If the display of the logo is not reasonably
- * feasible for technical reasons, the Appropriate Legal Notices must display
- * the words "Powered by Sonicle WebTop".
+ * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
 package com.sonicle.webtop.tasks.dal;
 
@@ -77,7 +76,7 @@ public class CategoryDAO extends BaseDAO {
 			.select()
 			.from(CATEGORIES)
 			.where(
-					CATEGORIES.CATEGORY_ID.equal(categoryId)
+				CATEGORIES.CATEGORY_ID.equal(categoryId)
 			)
 			.fetchOneInto(OCategory.class);
 	}
@@ -85,73 +84,73 @@ public class CategoryDAO extends BaseDAO {
 	public List<OCategory> selectByDomain(Connection con, String domainId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-				.select()
-				.from(CATEGORIES)
-				.where(
-						CATEGORIES.DOMAIN_ID.equal(domainId)
-				)
-				.orderBy(
-						CATEGORIES.BUILT_IN.desc(),
-						CATEGORIES.NAME.asc()
-				)
-				.fetchInto(OCategory.class);
+			.select()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+			)
+			.orderBy(
+				CATEGORIES.BUILT_IN.desc(),
+				CATEGORIES.NAME.asc()
+			)
+			.fetchInto(OCategory.class);
 	}
 	
-	public List<OCategory> selectByDomainUser(Connection con, String domainId, String userId) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		return dsl
-				.select()
-				.from(CATEGORIES)
-				.where(
-						CATEGORIES.DOMAIN_ID.equal(domainId)
-						.and(CATEGORIES.USER_ID.equal(userId))
-				)
-				.orderBy(
-						CATEGORIES.BUILT_IN.desc(),
-						CATEGORIES.NAME.asc()
-				)
-				.fetchInto(OCategory.class);
-	}
-	
-	public List<OCategory> selectByDomainUserIn(Connection con, String domainId, String userId, Integer[] categories) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		return dsl
-				.select()
-				.from(CATEGORIES)
-				.where(
-						CATEGORIES.DOMAIN_ID.equal(domainId)
-						.and(CATEGORIES.USER_ID.equal(userId))
-						.and(CATEGORIES.CATEGORY_ID.in(categories))
-				)
-				.orderBy(
-						CATEGORIES.BUILT_IN.desc(),
-						CATEGORIES.NAME.asc()
-				)
-				.fetchInto(OCategory.class);
-	}
-	
-	public OCategory selectBuiltInByDomainUser(Connection con, String domainId, String userId) throws DAOException {
+	public List<OCategory> selectByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
 			.from(CATEGORIES)
 			.where(
-					CATEGORIES.DOMAIN_ID.equal(domainId)
-					.and(CATEGORIES.USER_ID.equal(userId))
-					.and(CATEGORIES.BUILT_IN.equal(true))
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+			)
+			.orderBy(
+				CATEGORIES.BUILT_IN.desc(),
+				CATEGORIES.NAME.asc()
+			)
+			.fetchInto(OCategory.class);
+	}
+	
+	public List<OCategory> selectByProfileIn(Connection con, String domainId, String userId, Integer[] categories) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+				.and(CATEGORIES.CATEGORY_ID.in(categories))
+			)
+			.orderBy(
+				CATEGORIES.BUILT_IN.desc(),
+				CATEGORIES.NAME.asc()
+			)
+			.fetchInto(OCategory.class);
+	}
+	
+	public OCategory selectBuiltInByProfile(Connection con, String domainId, String userId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+				.and(CATEGORIES.BUILT_IN.equal(true))
 			)
 			.fetchOneInto(OCategory.class);
 	}
 
-	public List<OCategory> selectNoBuiltInByDomainUser(Connection con, String domainId, String userId) throws DAOException {
+	public List<OCategory> selectNoBuiltInByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 				.select()
 				.from(CATEGORIES)
 				.where(
-						CATEGORIES.DOMAIN_ID.equal(domainId)
-						.and(CATEGORIES.USER_ID.equal(userId))
-						.and(CATEGORIES.BUILT_IN.equal(false))
+					CATEGORIES.DOMAIN_ID.equal(domainId)
+					.and(CATEGORIES.USER_ID.equal(userId))
+					.and(CATEGORIES.BUILT_IN.equal(false))
 				)
 				.orderBy(CATEGORIES.NAME)
 				.fetchInto(OCategory.class);
@@ -193,7 +192,7 @@ public class CategoryDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int resetIsDefaultByDomainUser(Connection con, String domainId, String userId) throws DAOException {
+	public int resetIsDefaultByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(CATEGORIES)
@@ -208,8 +207,21 @@ public class CategoryDAO extends BaseDAO {
 	public int deleteById(Connection con, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-				.delete(CATEGORIES)
-				.where(CATEGORIES.CATEGORY_ID.equal(categoryId))
-				.execute();
+			.delete(CATEGORIES)
+			.where(
+				CATEGORIES.CATEGORY_ID.equal(categoryId)
+			)
+			.execute();
+	}
+	
+	public int deleteByProfile(Connection con, String domainId, String userId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.delete(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+			)
+			.execute();
 	}
 }
