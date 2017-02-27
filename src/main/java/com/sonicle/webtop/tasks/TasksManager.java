@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.db.DbUtils;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
@@ -62,6 +63,7 @@ import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.Sync;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -326,6 +328,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				return null;
 			}
 			
+			TasksServiceSettings ss = new TasksServiceSettings(SERVICE_ID, getTargetProfileId().getDomainId());
+			
 			Category cat = new Category();
 			cat.setDomainId(getTargetProfileId().getDomainId());
 			cat.setUserId(getTargetProfileId().getUserId());
@@ -333,7 +337,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			cat.setName(WT.getPlatformName());
 			cat.setDescription("");
 			cat.setColor("#FFFFFF");
-			cat.setSync(Category.SYNC_OFF);
+			cat.setSync(ss.getDefaultCategorySync());
 			cat.setIsPrivate(false);
 			cat.setIsDefault(true);
 			cat = doCategoryUpdate(true, con, cat);
@@ -874,7 +878,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		cat.setName(ocat.getName());
 		cat.setDescription(ocat.getDescription());
 		cat.setColor(ocat.getColor());
-		cat.setSync(ocat.getSync());
+		cat.setSync(EnumUtils.forValue(Sync.class, ocat.getSync()));
 		cat.setIsPrivate(ocat.getIsPrivate());
 		cat.setIsDefault(ocat.getIsDefault());
 		return cat;
@@ -890,7 +894,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		ocat.setName(cat.getName());
 		ocat.setDescription(cat.getDescription());
 		ocat.setColor(cat.getColor());
-		ocat.setSync(cat.getSync());
+		ocat.setSync(EnumUtils.getValue(cat.getSync()));
 		ocat.setIsPrivate(cat.getIsPrivate());
 		ocat.setIsDefault(cat.getIsDefault());
 		return ocat;

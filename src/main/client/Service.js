@@ -706,7 +706,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			vct.getView().begin('new', {
 				data: {
 					domainId: domainId,
-					userId: userId
+					userId: userId,
+					sync: me.getVar('defaultCategorySync')
 				}
 			});
 		});

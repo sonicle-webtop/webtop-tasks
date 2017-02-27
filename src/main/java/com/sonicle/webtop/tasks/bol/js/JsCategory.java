@@ -32,7 +32,9 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.Sync;
 
 /**
  *
@@ -58,7 +60,7 @@ public class JsCategory {
 		name = cat.getName();
 		description = cat.getDescription();
 		color = cat.getColor();
-		sync = cat.getSync();
+		sync = EnumUtils.getValue(cat.getSync());
 		isDefault = cat.getIsDefault();
 		isPrivate = cat.getIsPrivate();
 	}
@@ -72,7 +74,7 @@ public class JsCategory {
 		cat.setName(js.name);
 		cat.setDescription(js.description);
 		cat.setColor(js.color);
-		cat.setSync(js.sync);
+		cat.setSync(EnumUtils.forValue(Sync.class, js.sync));
 		cat.setIsDefault(js.isDefault);
 		cat.setIsPrivate(js.isPrivate);
 		return cat;

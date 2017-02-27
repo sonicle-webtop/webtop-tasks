@@ -44,7 +44,6 @@ import com.sonicle.commons.web.json.extjs.ExtTreeNode;
 import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedFolders;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedRoots;
-import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
@@ -94,6 +93,7 @@ public class Service extends BaseService {
 	public static final String HOME_VIEW = "h";
 	
 	private TasksManager manager;
+	private TasksServiceSettings ss;
 	private TasksUserSettings us;
 	
 	private final LinkedHashMap<String, CategoryRoot> roots = new LinkedHashMap<>();
@@ -105,8 +105,10 @@ public class Service extends BaseService {
 	
 	@Override
 	public void initialize() throws Exception {
+		UserProfile up = getEnv().getProfile();
 		manager = (TasksManager)WT.getServiceManager(SERVICE_ID);
-		us = new TasksUserSettings(SERVICE_ID, getEnv().getProfileId());
+		ss = new TasksServiceSettings(SERVICE_ID, up.getDomainId());
+		us = new TasksUserSettings(SERVICE_ID, up.getId());
 		initFolders();
 	}
 	
@@ -120,12 +122,14 @@ public class Service extends BaseService {
 		foldersByRoot.clear();
 		roots.clear();
 		us = null;
+		ss = null;
 		manager = null;
 	}
 	
 	@Override
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
+		co.put("defaultCategorySync", ss.getDefaultCategorySync().toString());
 		return co;
 	}
 	
