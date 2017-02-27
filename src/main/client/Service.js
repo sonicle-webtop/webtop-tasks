@@ -348,6 +348,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAction('editSharing', {
 			text: WT.res('sharing.tit'),
+			tooltip: null,
 			iconCls: WTF.cssIconCls(WT.XID, 'sharing', 'xs'),
 			handler: function() {
 				var node = me.getSelectedNode(me.trFolders());
@@ -355,30 +356,36 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAction('addCategory', {
+			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
 			}
 		});
 		me.addAction('editCategory', {
+			tooltip: null,
+			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.editCategoryUI(node.get('_catId'));
 			}
 		});
 		me.addAction('deleteCategory', {
+			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.deleteCategoryUI(node);
 			}
 		});
 		me.addAction('viewAllFolders', {
+			tooltip: null,
 			iconCls: 'wt-icon-select-all-xs',
 			handler: function() {
 				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), true);
 			}
 		});
 		me.addAction('viewNoneFolders', {
+			tooltip: null,
 			iconCls: 'wt-icon-select-none-xs',
 			handler: function() {
 				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), false);
@@ -386,6 +393,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAction('showTask', {
 			text: WT.res('act-open.lbl'),
+			tooltip: null,
 			handler: function() {
 				var rec = me.getSelectedTask(), er;
 				if(rec) {
@@ -395,6 +403,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAction('addTask', {
+			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
@@ -402,6 +411,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAction('deleteTask', {
 			text: WT.res('act-delete.lbl'),
+			tooltip: null,
 			iconCls: 'wt-icon-delete-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
@@ -409,17 +419,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAction('copyTask', {
+			tooltip: null,
 			handler: function() {
 				me.moveTasksSel(true, me.getSelectedTasks());
 			}
 		});
 		me.addAction('moveTask', {
+			tooltip: null,
 			handler: function() {
 				me.moveTasksSel(false, me.getSelectedTasks());
 			}
 		});
 		me.addAction('printTask', {
 			text: WT.res('act-print.lbl'),
+			tooltip: null,
 			iconCls: 'wt-icon-print-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
@@ -436,7 +449,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAction('deleteTask2', {
 			text: null,
-			tooltip: WT.res('act-delete.tip'),
+			tooltip: WT.res('act-delete.lbl'),
 			iconCls: 'wt-icon-delete-xs',
 			handler: function() {
 				me.getAction('deleteTask').execute();

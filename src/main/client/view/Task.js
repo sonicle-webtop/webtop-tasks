@@ -113,6 +113,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			tbar: [
 				me.addAction('saveClose', {
 					text: WT.res('act-saveClose.lbl'),
+					tooltip: null,
 					iconCls: 'wt-icon-saveClose-xs',
 					handler: function() {
 						me.saveTask();
