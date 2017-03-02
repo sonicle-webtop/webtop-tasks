@@ -33,7 +33,7 @@
 package com.sonicle.webtop.tasks.bol.model;
 
 import com.sonicle.webtop.tasks.model.CategoryRoot;
-import com.sonicle.webtop.core.bol.model.SharePermsRoot;
+import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 
 /**

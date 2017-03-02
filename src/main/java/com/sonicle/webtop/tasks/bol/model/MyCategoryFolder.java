@@ -33,8 +33,8 @@
 package com.sonicle.webtop.tasks.bol.model;
 
 import com.sonicle.webtop.tasks.model.CategoryFolder;
-import com.sonicle.webtop.core.bol.model.SharePermsFolder;
-import com.sonicle.webtop.core.bol.model.SharePermsElements;
+import com.sonicle.webtop.core.model.SharePermsFolder;
+import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.tasks.model.Category;
 
 /**

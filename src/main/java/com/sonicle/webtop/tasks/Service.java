@@ -53,7 +53,7 @@ import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.bol.js.JsSimple;
-import com.sonicle.webtop.core.bol.model.SharePermsRoot;
+import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
