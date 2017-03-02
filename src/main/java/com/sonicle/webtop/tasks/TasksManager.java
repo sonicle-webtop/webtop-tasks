@@ -51,6 +51,7 @@ import com.sonicle.webtop.core.sdk.BaseReminder;
 import com.sonicle.webtop.core.sdk.ReminderEmail;
 import com.sonicle.webtop.core.sdk.ReminderInApp;
 import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.core.util.IdentifierUtils;
@@ -89,13 +90,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	public static final String GROUPNAME_CATEGORY = "CATEGORY";
 	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
 	
-	private final HashMap<Integer, UserProfile.Id> cacheCategoryToOwner = new HashMap<>();
+	private final HashMap<Integer, UserProfileId> cacheCategoryToOwner = new HashMap<>();
 	private final Object shareCacheLock = new Object();
-	private final HashMap<UserProfile.Id, String> cacheOwnerToRootShare = new HashMap<>();
-	private final HashMap<UserProfile.Id, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
+	private final HashMap<UserProfileId, String> cacheOwnerToRootShare = new HashMap<>();
+	private final HashMap<UserProfileId, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
 	private final HashMap<Integer, String> cacheCategoryToFolderShare = new HashMap<>();
 	
-	public TasksManager(boolean fastInit, UserProfile.Id targetProfileId) {
+	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
 	}
 	
@@ -110,7 +111,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				cacheOwnerToRootShare.put(root.getOwnerProfileId(), root.getShareId());
 				for(OShare folder : core.listIncomingShareFolders(root.getShareId(), GROUPNAME_CATEGORY)) {
 					if(folder.hasWildcard()) {
-						UserProfile.Id ownerId = core.userUidToProfileId(folder.getUserUid());
+						UserProfileId ownerId = core.userUidToProfileId(folder.getUserUid());
 						cacheOwnerToWildcardFolderShare.put(ownerId, folder.getShareId().toString());
 					} else {
 						cacheCategoryToFolderShare.put(Integer.valueOf(folder.getInstance()), folder.getShareId().toString());
@@ -122,14 +123,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private String ownerToRootShareId(UserProfile.Id owner) {
+	private String ownerToRootShareId(UserProfileId owner) {
 		synchronized(shareCacheLock) {
 			if(!cacheOwnerToRootShare.containsKey(owner)) buildShareCache();
 			return cacheOwnerToRootShare.get(owner);
 		}
 	}
 	
-	private String ownerToWildcardFolderShareId(UserProfile.Id ownerPid) {
+	private String ownerToWildcardFolderShareId(UserProfileId ownerPid) {
 		synchronized(shareCacheLock) {
 			if(!cacheOwnerToWildcardFolderShare.containsKey(ownerPid) && cacheOwnerToRootShare.isEmpty()) buildShareCache();
 			return cacheOwnerToWildcardFolderShare.get(ownerPid);
@@ -143,13 +144,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private UserProfile.Id categoryToOwner(int categoryId) {
+	private UserProfileId categoryToOwner(int categoryId) {
 		synchronized(cacheCategoryToOwner) {
 			if(cacheCategoryToOwner.containsKey(categoryId)) {
 				return cacheCategoryToOwner.get(categoryId);
 			} else {
 				try {
-					UserProfile.Id owner = findCategoryOwner(categoryId);
+					UserProfileId owner = findCategoryOwner(categoryId);
 					cacheCategoryToOwner.put(categoryId, owner);
 					return owner;
 				} catch(WTException ex) {
@@ -186,7 +187,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			List<Category> cats = null;
 			if(share.hasWildcard()) {
-				UserProfile.Id ownerId = core.userUidToProfileId(share.getUserUid());
+				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
 				cats = listCategories(ownerId);
 			} else {
 				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
@@ -218,7 +219,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		core.updateSharing(SERVICE_ID, GROUPNAME_CATEGORY, sharing);
 	}
 	
-	public UserProfile.Id getCategoryOwner(int categoryId) throws WTException {
+	public UserProfileId getCategoryOwner(int categoryId) throws WTException {
 		return categoryToOwner(categoryId);
 	}
 	
@@ -227,7 +228,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return listCategories(getTargetProfileId());
 	}
 	
-	private List<Category> listCategories(UserProfile.Id pid) throws WTException {
+	private List<Category> listCategories(UserProfileId pid) throws WTException {
 		CategoryDAO catdao = CategoryDAO.getInstance();
 		ArrayList<Category> items = new ArrayList<>();
 		Connection con = null;
@@ -414,7 +415,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return listTasks(root.getOwnerProfileId(), categoryFolders, pattern);
 	}
 	
-	public List<CategoryTasks> listTasks(UserProfile.Id pid, Integer[] categoryFolders, String pattern) throws WTException {
+	public List<CategoryTasks> listTasks(UserProfileId pid, Integer[] categoryFolders, String pattern) throws WTException {
 		CategoryDAO catdao = CategoryDAO.getInstance();
 		TaskDAO tasdao = TaskDAO.getInstance();
 		ArrayList<CategoryTasks> catTasks = new ArrayList<>();
@@ -646,7 +647,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			con = WT.getConnection(SERVICE_ID, false);
-			UserProfile.Id pid = getTargetProfileId();
+			UserProfileId pid = getTargetProfileId();
 			
 			// Erase tasks
 			if (deep) {
@@ -678,7 +679,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 	public List<BaseReminder> getRemindersToBeNotified(DateTime now) {
 		ArrayList<BaseReminder> alerts = new ArrayList<>();
-		HashMap<UserProfile.Id, Boolean> byEmailCache = new HashMap<>();
+		HashMap<UserProfileId, Boolean> byEmailCache = new HashMap<>();
 		TaskDAO dao = TaskDAO.getInstance();
 		Connection con = null;
 		
@@ -786,7 +787,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private UserProfile.Id findCategoryOwner(int categoryId) throws WTException {
+	private UserProfileId findCategoryOwner(int categoryId) throws WTException {
 		Connection con = null;
 		
 		try {
@@ -794,7 +795,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			CategoryDAO dao = CategoryDAO.getInstance();
 			Owner owner = dao.selectOwnerById(con, categoryId);
 			if(owner == null) throw new WTException("Category not found [{0}]", categoryId);
-			return new UserProfile.Id(owner.getDomainId(), owner.getUserId());
+			return new UserProfileId(owner.getDomainId(), owner.getUserId());
 			
 		} catch(SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
@@ -803,8 +804,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private void checkRightsOnCategoryRoot(UserProfile.Id ownerPid, String action) throws WTException {
-		UserProfile.Id targetPid = getTargetProfileId();
+	private void checkRightsOnCategoryRoot(UserProfileId ownerPid, String action) throws WTException {
+		UserProfileId targetPid = getTargetProfileId();
 		
 		if(RunContext.isWebTopAdmin()) return;
 		if(ownerPid.equals(targetPid)) return;
@@ -819,11 +820,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
-		UserProfile.Id targetPid = getTargetProfileId();
+		UserProfileId targetPid = getTargetProfileId();
 		
 		if(RunContext.isWebTopAdmin()) return;
 		// Skip rights check if running user is resource's owner
-		UserProfile.Id ownerPid = categoryToOwner(categoryId);
+		UserProfileId ownerPid = categoryToOwner(categoryId);
 		if(ownerPid.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
@@ -844,11 +845,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private void checkRightsOnCategoryElements(int categoryId, String action) throws WTException {
-		UserProfile.Id targetPid = getTargetProfileId();
+		UserProfileId targetPid = getTargetProfileId();
 		
 		if(RunContext.isWebTopAdmin()) return;
 		// Skip rights check if running user is resource's owner
-		UserProfile.Id ownerPid = categoryToOwner(categoryId);
+		UserProfileId ownerPid = categoryToOwner(categoryId);
 		if(ownerPid.equals(getTargetProfileId())) return;
 		
 		// Checks rights on the wildcard instance (if present)

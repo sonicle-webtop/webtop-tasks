@@ -59,6 +59,7 @@ import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
 import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
@@ -153,7 +154,7 @@ public class Service extends BaseService {
 	}
 	
 	private void updateRootFoldersCache() throws WTException {
-		UserProfile.Id pid = getEnv().getProfile().getId();
+		UserProfileId pid = getEnv().getProfile().getId();
 		synchronized(roots) {
 			roots.clear();
 			roots.put(MyCategoryRoot.SHARE_ID, new MyCategoryRoot(pid));
@@ -413,7 +414,7 @@ public class Service extends BaseService {
 				
 				int taskId = Integer.parseInt(id);
 				Task task = manager.getTask(taskId);
-				UserProfile.Id ownerId = manager.getCategoryOwner(task.getCategoryId());
+				UserProfileId ownerId = manager.getCategoryOwner(task.getCategoryId());
 				item = new JsTask(ownerId, task, DateTimeZone.UTC);
 				
 				new JsonResult(item).printTo(out);

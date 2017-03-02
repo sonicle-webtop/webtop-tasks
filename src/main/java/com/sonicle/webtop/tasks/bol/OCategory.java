@@ -33,7 +33,7 @@
 package com.sonicle.webtop.tasks.bol;
 
 import com.sonicle.webtop.tasks.jooq.tables.pojos.Categories;
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -42,8 +42,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class OCategory extends Categories {
 	
-	public UserProfile.Id getProfileId() {
-		return new UserProfile.Id(getDomainId(), getUserId());
+	public UserProfileId getProfileId() {
+		return new UserProfileId(getDomainId(), getUserId());
 	}
 	
 	public String getHexColor() {

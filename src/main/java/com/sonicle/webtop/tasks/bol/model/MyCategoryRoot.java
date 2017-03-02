@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.bol.model;
 
 import com.sonicle.webtop.tasks.model.CategoryRoot;
 import com.sonicle.webtop.core.bol.model.SharePermsRoot;
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 
 /**
  *
@@ -43,7 +43,7 @@ import com.sonicle.webtop.core.sdk.UserProfile;
 public class MyCategoryRoot extends CategoryRoot {
 	public static final String SHARE_ID = "0";
 	
-	public MyCategoryRoot(UserProfile.Id ownerId) {
+	public MyCategoryRoot(UserProfileId ownerId) {
 		super(SHARE_ID, SharePermsRoot.full(), ownerId, null);
 	}
 }

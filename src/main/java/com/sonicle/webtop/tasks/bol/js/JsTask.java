@@ -33,7 +33,7 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
 import org.joda.time.DateTimeZone;
 
@@ -60,7 +60,7 @@ public class JsTask {
 	public JsTask() {
 	}
 
-	public JsTask(UserProfile.Id ownerId, Task task, DateTimeZone profileTz) {
+	public JsTask(UserProfileId ownerId, Task task, DateTimeZone profileTz) {
 		taskId = task.getTaskId();
 		categoryId = task.getCategoryId();
 		//publicUid;

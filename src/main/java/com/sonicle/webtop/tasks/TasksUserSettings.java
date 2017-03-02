@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.sdk.BaseUserSettings;
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
 import java.util.HashSet;
 
@@ -45,7 +45,7 @@ import java.util.HashSet;
 public class TasksUserSettings extends BaseUserSettings {
 	private TasksServiceSettings ss;
 	
-	public TasksUserSettings(String serviceId, UserProfile.Id profileId) {
+	public TasksUserSettings(String serviceId, UserProfileId profileId) {
 		super(serviceId, profileId);
 		ss = new TasksServiceSettings(serviceId, profileId.getDomainId());
 	}

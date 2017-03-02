@@ -36,7 +36,7 @@ import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.sdk.BaseController;
 import com.sonicle.webtop.core.sdk.BaseReminder;
-import com.sonicle.webtop.core.sdk.UserProfile;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesProfiles;
 import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesReminders;
@@ -57,7 +57,7 @@ public class TasksController extends BaseController implements IControllerHandle
 	}
 
 	@Override
-	public void addProfile(UserProfile.Id profileId) throws WTException {
+	public void addProfile(UserProfileId profileId) throws WTException {
 		TasksManager manager = new TasksManager(true, profileId);
 
 		// Adds built-in category
@@ -70,7 +70,7 @@ public class TasksController extends BaseController implements IControllerHandle
 	}
 
 	@Override
-	public void removeProfile(UserProfile.Id profileId, boolean deep) throws WTException {
+	public void removeProfile(UserProfileId profileId, boolean deep) throws WTException {
 		TasksManager manager = new TasksManager(false, profileId);
 		manager.eraseData(deep);
 	}
@@ -81,7 +81,7 @@ public class TasksController extends BaseController implements IControllerHandle
 		return manager.getRemindersToBeNotified(now);
 	}
 	
-	private void setCategoryCheckedState(UserProfile.Id profileId, int categoryId, boolean checked) {
+	private void setCategoryCheckedState(UserProfileId profileId, int categoryId, boolean checked) {
 		TasksUserSettings tus = new TasksUserSettings(SERVICE_ID, profileId);
 		TasksUserSettings.CheckedFolders cf = tus.getCheckedCategoryFolders();
 		if (checked) {
