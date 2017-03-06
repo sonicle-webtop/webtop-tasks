@@ -111,7 +111,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		
 		Ext.apply(me, {
 			tbar: [
-				me.addAction('saveClose', {
+				me.addAct('saveClose', {
 					text: WT.res('act-saveClose.lbl'),
 					tooltip: null,
 					iconCls: 'wt-icon-saveClose-xs',
@@ -120,7 +120,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}
 				}),
 				'-',
-				me.addAction('delete', {
+				me.addAct('delete', {
 					text: null,
 					tooltip: WT.res('act-delete.lbl'),
 					iconCls: 'wt-icon-delete-xs',
@@ -129,7 +129,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}
 				}),
 				'-',
-				me.addAction('print', {
+				me.addAct('print', {
 					text: null,
 					tooltip: WT.res('act-print.lbl'),
 					iconCls: 'wt-icon-print-xs',
@@ -192,7 +192,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				anchor: '100%',
 				listeners: {
 					enterkey: function() {
-						me.getAction('saveClose').execute();
+						me.getAct('saveClose').execute();
 					}
 				}
 			}, {
@@ -337,10 +337,10 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		me.updateCategoryFilters();
 		if (me.isMode(me.MODE_NEW)) {
 			owner.setDisabled(false);
-			me.getAction('delete').setDisabled(true);
+			me.getAct('delete').setDisabled(true);
 		} else if(me.isMode(me.MODE_VIEW)) {
-			me.getAction('saveClose').setDisabled(true);
-			me.getAction('delete').setDisabled(true);
+			me.getAct('saveClose').setDisabled(true);
+			me.getAct('delete').setDisabled(true);
 			owner.setDisabled(true);
 		} else if(me.isMode(me.MODE_EDIT)) {
 			owner.setDisabled(true);

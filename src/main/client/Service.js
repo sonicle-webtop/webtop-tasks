@@ -66,9 +66,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			referenceHolder: true,
 			items: [
 				'-',
-				me.getAction('refresh'),
-				me.getAction('print'),
-				me.getAction('deleteTask2'),
+				me.getAct('refresh'),
+				me.getAct('print'),
+				me.getAct('deleteTask2'),
 				'->',
 				{
 					xtype: 'textfield',
@@ -333,12 +333,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	initActions: function() {
 		var me = this;
 		
-		me.addAction('new', 'newTask', {
+		me.addAct('new', 'newTask', {
 			handler: function() {
-				me.getAction('addTask').execute();
+				me.getAct('addTask').execute();
 			}
 		});
-		me.addAction('refresh', {
+		me.addAct('refresh', {
 			text: '',
 			tooltip: WT.res('act-refresh.lbl'),
 			iconCls: 'wt-icon-refresh-xs',
@@ -346,7 +346,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.reloadTasks();
 			}
 		});
-		me.addAction('editSharing', {
+		me.addAct('editSharing', {
 			text: WT.res('sharing.tit'),
 			tooltip: null,
 			iconCls: WTF.cssIconCls(WT.XID, 'sharing', 'xs'),
@@ -355,14 +355,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if(node) me.editShare(node.getId());
 			}
 		});
-		me.addAction('addCategory', {
+		me.addAct('addCategory', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
 			}
 		});
-		me.addAction('editCategory', {
+		me.addAct('editCategory', {
 			tooltip: null,
 			tooltip: null,
 			handler: function() {
@@ -370,28 +370,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if(node) me.editCategoryUI(node.get('_catId'));
 			}
 		});
-		me.addAction('deleteCategory', {
+		me.addAct('deleteCategory', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.deleteCategoryUI(node);
 			}
 		});
-		me.addAction('viewAllFolders', {
+		me.addAct('viewAllFolders', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-all-xs',
 			handler: function() {
 				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), true);
 			}
 		});
-		me.addAction('viewNoneFolders', {
+		me.addAct('viewNoneFolders', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-none-xs',
 			handler: function() {
 				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), false);
 			}
 		});
-		me.addAction('showTask', {
+		me.addAct('showTask', {
 			text: WT.res('act-open.lbl'),
 			tooltip: null,
 			handler: function() {
@@ -402,14 +402,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		});
-		me.addAction('addTask', {
+		me.addAct('addTask', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
 			}
 		});
-		me.addAction('deleteTask', {
+		me.addAct('deleteTask', {
 			text: WT.res('act-delete.lbl'),
 			tooltip: null,
 			iconCls: 'wt-icon-delete-xs',
@@ -418,19 +418,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if(sel.length > 0) me.deleteTaskSel(sel);
 			}
 		});
-		me.addAction('copyTask', {
+		me.addAct('copyTask', {
 			tooltip: null,
 			handler: function() {
 				me.moveTasksSel(true, me.getSelectedTasks());
 			}
 		});
-		me.addAction('moveTask', {
+		me.addAct('moveTask', {
 			tooltip: null,
 			handler: function() {
 				me.moveTasksSel(false, me.getSelectedTasks());
 			}
 		});
-		me.addAction('printTask', {
+		me.addAct('printTask', {
 			text: WT.res('act-print.lbl'),
 			tooltip: null,
 			iconCls: 'wt-icon-print-xs',
@@ -439,28 +439,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if(sel.length > 0) me.printTaskSel(sel);
 			}
 		});
-		me.addAction('print', {
+		me.addAct('print', {
 			text: null,
 			tooltip: WT.res('act-print.lbl'),
 			iconCls: 'wt-icon-print-xs',
 			handler: function() {
-				me.getAction('printTask').execute();
+				me.getAct('printTask').execute();
 			}
 		});
-		me.addAction('deleteTask2', {
+		me.addAct('deleteTask2', {
 			text: null,
 			tooltip: WT.res('act-delete.lbl'),
 			iconCls: 'wt-icon-delete-xs',
 			handler: function() {
-				me.getAction('deleteTask').execute();
+				me.getAct('deleteTask').execute();
 			}
 		});
-		me.addAction('addTask2', {
+		me.addAct('addTask2', {
 			text: null,
 			tooltip: me.res('act-addTask.lbl'),
 			iconCls: me.cssIconCls('addTask', 'xs'),
 			handler: function() {
-				me.getAction('addTask').execute();
+				me.getAct('addTask').execute();
 			}
 		});
 	},
@@ -471,17 +471,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addRef('cxmRootFolder', Ext.create({
 			xtype: 'menu',
 			items: [
-				me.getAction('addCategory'),
+				me.getAct('addCategory'),
 				'-',
-				me.getAction('editSharing')
+				me.getAct('editSharing')
 				//TODO: azioni altri servizi?
 			],
 			listeners: {
 				beforeshow: function(s) {
 					var rec = s.menuData.folder,
 							rr = me.toRightsObj(rec.get('_rrights'));
-					me.getAction('addCategory').setDisabled(!rr.MANAGE);
-					me.getAction('editSharing').setDisabled(!rr.MANAGE);
+					me.getAct('addCategory').setDisabled(!rr.MANAGE);
+					me.getAct('editSharing').setDisabled(!rr.MANAGE);
 				}
 			}
 		}));
@@ -489,16 +489,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addRef('cxmFolder', Ext.create({
 			xtype: 'menu',
 			items: [
-				me.getAction('editCategory'),
-				me.getAction('deleteCategory'),
-				me.getAction('addCategory'),
+				me.getAct('editCategory'),
+				me.getAct('deleteCategory'),
+				me.getAct('addCategory'),
 				'-',
-				me.getAction('editSharing'),
+				me.getAct('editSharing'),
 				'-',
-				me.getAction('viewAllFolders'),
-				me.getAction('viewNoneFolders'),
+				me.getAct('viewAllFolders'),
+				me.getAct('viewNoneFolders'),
 				'-',
-				me.getAction('addTask')
+				me.getAct('addTask')
 				//TODO: azioni altri servizi?
 			],
 			listeners: {
@@ -507,11 +507,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							rr = me.toRightsObj(rec.get('_rrights')),
 							fr = me.toRightsObj(rec.get('_frights')),
 							er = me.toRightsObj(rec.get('_erights'));
-					me.getAction('editCategory').setDisabled(!fr.UPDATE);
-					me.getAction('deleteCategory').setDisabled(!fr.DELETE || rec.get('_builtIn'));
-					me.getAction('addCategory').setDisabled(!rr.MANAGE);
-					me.getAction('editSharing').setDisabled(!rr.MANAGE);
-					me.getAction('addTask').setDisabled(!er.CREATE);
+					me.getAct('editCategory').setDisabled(!fr.UPDATE);
+					me.getAct('deleteCategory').setDisabled(!fr.DELETE || rec.get('_builtIn'));
+					me.getAct('addCategory').setDisabled(!rr.MANAGE);
+					me.getAct('editSharing').setDisabled(!rr.MANAGE);
+					me.getAct('addTask').setDisabled(!er.CREATE);
 				}
 			}
 		}));
@@ -519,19 +519,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addRef('cxmGrid', Ext.create({
 			xtype: 'menu',
 			items: [
-				me.getAction('showTask'),
+				me.getAct('showTask'),
 				{
 					text: me.res('copyormove.lbl'),
 					menu: {
 						items: [
-							me.getAction('moveTask'),
-							me.getAction('copyTask')
+							me.getAct('moveTask'),
+							me.getAct('copyTask')
 						]
 					}
 				},
-				me.getAction('printTask'),
+				me.getAct('printTask'),
 				'-',
-				me.getAction('deleteTask')
+				me.getAct('deleteTask')
 			]
 		}));
 	},
@@ -830,13 +830,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				dis = me.isDisabled(action);
 		
 		if(action === 'printTask') {
-			me.setActionDisabled('print', dis);
-			me.setActionDisabled(action, dis);
+			me.setActDisabled('print', dis);
+			me.setActDisabled(action, dis);
 		} else if (action === 'deleteTask') {
-			me.setActionDisabled(action, dis);
-			me.setActionDisabled('deleteTask2', dis);
+			me.setActDisabled(action, dis);
+			me.setActDisabled('deleteTask2', dis);
 		} else {
-			me.setActionDisabled(action, dis);
+			me.setActDisabled(action, dis);
 		}
 	},
 	
