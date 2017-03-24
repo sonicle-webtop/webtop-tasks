@@ -282,6 +282,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}), {
 					xtype: 'datefield',
 					bind: '{selectedTask.startDate}',
+					startDay: WT.getStartDay(),
 					format: WT.getShortDateFmt(),
 					fieldLabel: me.res('task.fld-startDate.lbl')
 				},{
@@ -292,6 +293,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}, {
 					xtype: 'datefield',
 					bind: '{selectedTask.dueDate}',
+					startDay: WT.getStartDay(),
 					format: WT.getShortDateFmt(),
 					fieldLabel: me.res('task.fld-dueDate.lbl')
 				}, WTF.lookupCombo('id', 'desc', {

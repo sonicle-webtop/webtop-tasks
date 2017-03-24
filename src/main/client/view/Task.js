@@ -242,6 +242,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{startDate}',
 						startDay: WT.getStartDay(),
+						format: WT.getShortDateFmt(),
 						triggers: {
 							clear: WTF.clearTrigger()
 						},
@@ -266,6 +267,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'datefield',
 						bind: '{dueDate}',
 						startDay: WT.getStartDay(),
+						format: WT.getShortDateFmt(),
 						triggers: {
 							clear: WTF.clearTrigger()
 						},
@@ -312,6 +314,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						disabled: '{!fldhasreminder.checked}'
 					},
 					startDay: WT.getStartDay(),
+					format: WT.getShortDateFmt(),
 					margin: '0 5 0 0',
 					width: 120
 				}, {
