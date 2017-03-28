@@ -12,14 +12,14 @@
 	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
 	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
-	<style name="PageTitle" fontName="Verdana" fontSize="12"/>
-	<style name="PageFooter" forecolor="#666666" fontName="Arial" fontSize="8"/>
-	<style name="MemoTitle" fontName="Verdana" fontSize="12" isBold="true">
+	<style name="PageTitle" fontName="DejaVu Sans" fontSize="12"/>
+	<style name="PageFooter" forecolor="#666666" fontName="Arimo" fontSize="8"/>
+	<style name="MemoTitle" fontName="DejaVu Sans" fontSize="12" isBold="true">
 		<box>
 			<bottomPen lineWidth="1.5"/>
 		</box>
 	</style>
-	<style name="ColumnCaption" mode="Opaque" backcolor="#BFBFBF" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arial" fontSize="10" isBold="true">
+	<style name="ColumnCaption" mode="Opaque" backcolor="#BFBFBF" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="10" isBold="true">
 		<box>
 			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -27,8 +27,8 @@
 			<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 		</box>
 	</style>
-	<style name="ColumnValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arial" fontSize="9"/>
-	<style name="FieldCaption" mode="Transparent" backcolor="rgba(171, 205, 239, 0.0)" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arial" fontSize="9" isBold="true">
+	<style name="ColumnValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9"/>
+	<style name="FieldCaption" mode="Transparent" backcolor="rgba(171, 205, 239, 0.0)" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9" isBold="true">
 		<box>
 			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -36,8 +36,8 @@
 			<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 		</box>
 	</style>
-	<style name="FieldValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arial" fontSize="9"/>
-	<style name="Section" mode="Opaque" backcolor="#F2F0F0" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arial" fontSize="10" isBold="true">
+	<style name="FieldValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9"/>
+	<style name="Section" mode="Opaque" backcolor="#F2F0F0" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="10" isBold="true">
 		<box>
 			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
