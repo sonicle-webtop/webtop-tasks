@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks.bol.model;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.core.util.JRHelper;
 import com.sonicle.webtop.tasks.bol.OCategory;
@@ -75,7 +76,7 @@ public class RBTaskDetail {
 		this.completedDate = (task.getCompletedDate() == null) ? null : task.getCompletedDate().toDate();
 		this.importance = task.getImportance();
 		this.isPrivate = task.getIsPrivate();
-		this.status = task.getStatus();
+		this.status = EnumUtils.getValue(task.getStatus());
 		this.completionPercentage = task.getCompletionPercentage();
 		this.reminderDate = (task.getReminderDate() == null) ? null : task.getReminderDate().toDate();
 	}
