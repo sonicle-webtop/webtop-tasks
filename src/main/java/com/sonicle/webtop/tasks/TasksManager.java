@@ -65,6 +65,7 @@ import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.Sync;
+import com.sonicle.webtop.tasks.model.TaskStatus;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -916,7 +917,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		task.setCompletedDate(otask.getCompletedDate());
 		task.setImportance(otask.getImportance());
 		task.setIsPrivate(otask.getIsPrivate());
-		task.setStatus(otask.getStatus());
+		task.setStatus(EnumUtils.forValue(TaskStatus.class, otask.getStatus()));
 		task.setCompletionPercentage(otask.getCompletionPercentage());
 		task.setReminderDate(otask.getReminderDate());
 		task.setRemindedOn(otask.getRemindedOn());
