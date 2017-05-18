@@ -366,7 +366,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('editCategory', {
 			tooltip: null,
-			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.editCategoryUI(node.get('_catId'));
