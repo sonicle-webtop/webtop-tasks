@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -30,41 +30,32 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks.bol.js;
+package com.sonicle.webtop.tasks.bol.model;
 
-import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
-import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
-import org.apache.commons.lang3.StringUtils;
+import com.sonicle.commons.web.json.JsonResult;
 
 /**
  *
  * @author malbinola
  */
-public class JsCategoryLkp {
-	public Integer categoryId;
-	public String domainId;
-	public String userId;
-	public String name;
-	public Boolean isDefault;
-	public Boolean isPrivate;
+public class CategoryFolderData {
+	public Boolean hidden;
 	public String color;
 	
-	public JsCategoryLkp(Category cat) {
-		categoryId = cat.getCategoryId();
-		domainId = cat.getDomainId();
-		userId = cat.getUserId();
-		name = cat.getName();
-		isDefault = cat.getIsDefault();
-		isPrivate = cat.getIsPrivate();
-		color = cat.getColor();
+	public void update(CategoryFolderData data) {
+		hidden = data.hidden;
+		color = data.color;
 	}
 	
-	public JsCategoryLkp(CategoryFolder folder) {
-		this(folder.getCategory());
-		if (folder.getData() != null) {
-			CategoryFolderData data = (CategoryFolderData)folder.getData();
-			if (!StringUtils.isBlank(data.color)) color = data.color;
-		}
+	public boolean isNull() {
+		return (hidden == null) && (color == null);
+	}
+
+	public static CategoryFolderData fromJson(String value) {
+		return JsonResult.gson.fromJson(value, CategoryFolderData.class);
+	}
+
+	public static String toJson(CategoryFolderData value) {
+		return JsonResult.gson.toJson(value, CategoryFolderData.class);
 	}
 }

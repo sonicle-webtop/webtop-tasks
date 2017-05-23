@@ -35,7 +35,6 @@ package com.sonicle.webtop.tasks.bol.model;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.core.util.JRHelper;
-import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.model.Category;
 import java.awt.Image;
 import java.util.Date;
@@ -68,7 +67,7 @@ public class RBTaskDetail {
 		this.categoryId = category.getCategoryId();
 		this.categoryName = category.getName();
 		this.categoryColor = category.getColor();
-		this.categoryColorImage = JRHelper.colorAsImage(category.getHexColor());
+		this.categoryColorImage = JRHelper.colorAsImage(Category.getHexColor(category.getColor()));
 		this.subject = task.getSubject();
 		this.description = task.getDescription();
 		this.startDate = (task.getStartDate() == null) ? null : task.getStartDate().toDate();
