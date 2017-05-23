@@ -414,7 +414,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						tooltip: null,
 						handler: function() {
 							var node = me.getSelectedFolder(me.trFolders());
-							if (node) me.restoreCategoryColorUI(node);
+							if (node) me.updateCategoryColorUI(node, null);
 						}
 					})
 				]
@@ -432,14 +432,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-all-xs',
 			handler: function() {
-				me.showHideAllF3Folders(me.getSelectedRootFolder(me.trFolders()), true);
+				var node = me.getSelectedRootFolder(me.trFolders());
+				if (node) {
+					if (node.isLoaded()) {
+						me.showHideAllF3Folders(node, true);
+					} else {
+						me.updateCheckedFoldersUI(node, true);
+					}
+				}
 			}
 		});
 		me.addAct('viewNoneFolders', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-none-xs',
 			handler: function() {
-				me.showHideAllF3Folders(me.getSelectedRootFolder(me.trFolders()), false);
+				var node = me.getSelectedRootFolder(me.trFolders());
+				if (node) {
+					if (node.isLoaded()) {
+						me.showHideAllF3Folders(node, false);
+					} else {
+						me.updateCheckedFoldersUI(node, false);
+					}
+				}
 			}
 		});
 		me.addAct('showTask', {
@@ -523,6 +537,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			xtype: 'menu',
 			items: [
 				me.getAct('addCategory'),
+				'-',
+				{
+					text: me.res('mni-viewFolders.lbl'),
+					menu: {
+						items: [
+							me.getAct('viewAllFolders'),
+							me.getAct('viewNoneFolders')
+						]
+					}
+				},
 				'-',
 				me.getAct('editSharing'),
 				me.getAct('manageHiddenCategories')
@@ -708,7 +732,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					callback: function(success) {
 						if(success) {
 							me.loadFolderNode(node.get('_pid'));
-							me.showHideF3Folder(node, false);
+							me.showHideF3Node(node, false);
 						}
 					}
 				});
@@ -728,13 +752,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	restoreCategoryColorUI: function(node) {
+	updateCheckedFoldersUI: function(node, checked) {
 		var me = this;
-		me.updateCategoryColor(node.get('_catId'), null, {
+		me.updateCheckedFolders(node.getId(), checked, {
 			callback: function(success) {
 				if(success) {
-					me.loadFolderNode(node.get('_pid'));
-					if (node.get('_visible')) me.reloadTasks();
+					if (node.get('_visible')) {
+						me.reloadTasks();
+					} else {
+						if (checked) me.showHideF3Node(node, checked);
+					}
 				}
 			}
 		});
@@ -887,6 +914,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			params: {
 				id: categoryId,
 				color: color
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
+			}
+		});
+	},
+	
+	updateCheckedFolders: function(rootId, checked, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'UpdateCheckedFolders', {
+			params: {
+				rootId: rootId,
+				checked: checked
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);

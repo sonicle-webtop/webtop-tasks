@@ -258,6 +258,27 @@ public class Service extends BaseService {
 		}
 	}
 	
+	public void processUpdateCheckedFolders(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			String rootId = ServletUtils.getStringParameter(request, "rootId", true);
+			Boolean checked = ServletUtils.getBooleanParameter(request, "checked", true);
+			
+			synchronized(roots) {
+				ArrayList<Integer> catIds = new ArrayList<>();
+				for(CategoryFolder fold : foldersByRoot.get(rootId)) {
+					catIds.add(fold.getCategory().getCategoryId());
+				}
+				toggleCheckedFolders(catIds.toArray(new Integer[catIds.size()]), checked);
+			}
+			
+			new JsonResult().printTo(out);
+			
+		} catch(Exception ex) {
+			logger.error("Error in UpdateCheckedFolders", ex);
+			new JsonResult(ex).printTo(out);
+		}
+	}
+	
 	public void processLookupCategoryRoots(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		List<JsSimple> items = new ArrayList<>();
 		
@@ -615,22 +636,34 @@ public class Service extends BaseService {
 	}
 	
 	private void toggleCheckedRoot(String shareId, boolean checked) {
+		toggleCheckedRoots(new String[]{shareId}, checked);
+	}
+	
+	private void toggleCheckedRoots(String[] shareIds, boolean checked) {
 		synchronized(roots) {
-			if(checked) {
-				checkedRoots.add(shareId);
-			} else {
-				checkedRoots.remove(shareId);
-			}
+			for(String shareId : shareIds) {
+				if(checked) {
+					checkedRoots.add(shareId);
+				} else {
+					checkedRoots.remove(shareId);
+				}
+			}	
 			us.setCheckedCategoryRoots(checkedRoots);
 		}
 	}
 	
-	private void toggleCheckedFolder(int folderId, boolean checked) {
+	private void toggleCheckedFolder(Integer folderId, boolean checked) {
+		toggleCheckedFolders(new Integer[]{folderId}, checked);
+	}
+	
+	private void toggleCheckedFolders(Integer[] folderIds, boolean checked) {
 		synchronized(roots) {
-			if(checked) {
-				checkedFolders.add(folderId);
-			} else {
-				checkedFolders.remove(folderId);
+			for(int folderId : folderIds) {
+				if(checked) {
+					checkedFolders.add(folderId);
+				} else {
+					checkedFolders.remove(folderId);
+				}
 			}
 			us.setCheckedCategoryFolders(checkedFolders);
 		}
