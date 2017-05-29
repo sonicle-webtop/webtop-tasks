@@ -659,6 +659,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			if (copy || (targetCategoryId != otask.getCategoryId())) {
 				checkRightsOnCategoryElements(targetCategoryId, "CREATE");
+				if (!copy) checkRightsOnCategoryElements(otask.getCategoryId(), "DELETE");
 				
 				Task task = createTask(otask);
 

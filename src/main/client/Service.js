@@ -663,11 +663,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	reloadTasks: function(query) {
-		var me = this, sto, pars;
+		var me = this,
+				pars = {},
+				sto;
 		
 		if(me.isActive()) {
 			sto = me.gpTasks().getStore();
-			pars = {};
 			if(query !== undefined) Ext.apply(pars, {query: query});
 			WTU.loadWithExtraParams(sto, pars);
 		} else {
@@ -1051,7 +1052,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				sel = me.getSelectedTasks();
 				if(sel.length === 1) {
 					er = me.toRightsObj(sel[0].get('_erights'));
-					return !er.UPDATE;
+					return !er.DELETE;
 				} else {
 					return true;
 				}
