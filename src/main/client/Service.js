@@ -45,7 +45,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.view.Sharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
-		'Sonicle.webtop.tasks.view.CategoryChooser'
+		'Sonicle.webtop.tasks.view.CategoryChooser',
+		'Sonicle.webtop.tasks.view.HiddenCategories'
 	],
 	mixins: [
 		'WTA.mixin.FoldersTree'
@@ -354,43 +355,105 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: WTF.cssIconCls(WT.XID, 'sharing', 'xs'),
 			handler: function() {
 				var node = me.getSelectedNode(me.trFolders());
-				if(node) me.editShare(node.getId());
+				if (node) me.editShare(node.getId());
+			}
+		});
+		me.addAct('manageHiddenCategories', {
+			tooltip: null,
+			handler: function() {
+				var node = me.getSelectedRootFolder(me.trFolders());
+				if (node) me.manageHiddenCategoriesUI(node);
+			}
+		});
+		me.addAct('hideCategory', {
+			tooltip: null,
+			handler: function() {
+				var node = me.getSelectedNode(me.trFolders());
+				if (node) me.hideCategoryUI(node);
 			}
 		});
 		me.addAct('addCategory', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
-				if(node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
+				if (node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
 			}
 		});
 		me.addAct('editCategory', {
 			tooltip: null,
-			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
-				if(node) me.editCategoryUI(node.get('_catId'));
+				if (node) me.editCategoryUI(node.get('_catId'));
 			}
 		});
 		me.addAct('deleteCategory', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
-				if(node) me.deleteCategoryUI(node);
+				if (node) me.deleteCategoryUI(node);
+			}
+		});
+		me.addAct('categoryColor', {
+			text: me.res('mni-categoryColor.lbl'),
+			tooltip: null,
+			menu: {
+				showSeparator: false,
+				items: [{
+						xtype: 'colorpicker',
+						colors: WT.getColorPalette(),
+						listeners: {
+							select: function(s, color) {
+								var node = me.getSelectedFolder(me.trFolders());
+								me.getRef('cxmFolder').hide();
+								if (node) me.updateCategoryColorUI(node, '#'+color);
+							}
+						}
+					},
+					'-',
+					me.addAct('restoreCategoryColor', {
+						tooltip: null,
+						handler: function() {
+							var node = me.getSelectedFolder(me.trFolders());
+							if (node) me.updateCategoryColorUI(node, null);
+						}
+					})
+				]
+			}
+		});
+		me.addAct('viewThisFolderOnly', {
+			tooltip: null,
+			iconCls: 'wt-icon-select-one-xs',
+			handler: function() {
+				var node = me.getSelectedFolder(me.trFolders());
+				if(node) me.showOneF3FolderOnly(me.getSelectedRootFolder(me.trFolders()), node.getId());
 			}
 		});
 		me.addAct('viewAllFolders', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-all-xs',
 			handler: function() {
-				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), true);
+				var node = me.getSelectedRootFolder(me.trFolders());
+				if (node) {
+					if (node.isLoaded()) {
+						me.showHideAllF3Folders(node, true);
+					} else {
+						me.updateCheckedFoldersUI(node, true);
+					}
+				}
 			}
 		});
 		me.addAct('viewNoneFolders', {
 			tooltip: null,
 			iconCls: 'wt-icon-select-none-xs',
 			handler: function() {
-				me.showHideAllFolders(me.getSelectedRootFolder(me.trFolders()), false);
+				var node = me.getSelectedRootFolder(me.trFolders());
+				if (node) {
+					if (node.isLoaded()) {
+						me.showHideAllF3Folders(node, false);
+					} else {
+						me.updateCheckedFoldersUI(node, false);
+					}
+				}
 			}
 		});
 		me.addAct('showTask', {
@@ -398,7 +461,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			handler: function() {
 				var rec = me.getSelectedTask(), er;
-				if(rec) {
+				if (rec) {
 					er = me.toRightsObj(rec.get('_erights'));
 					me.openTaskUI(er.UPDATE, rec.get('taskId'));
 				}
@@ -408,7 +471,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
-				if(node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
+				if (node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
 			}
 		});
 		me.addAct('deleteTask', {
@@ -417,7 +480,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-delete-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
-				if(sel.length > 0) me.deleteTaskSel(sel);
+				if (sel.length > 0) me.deleteTaskSel(sel);
 			}
 		});
 		me.addAct('copyTask', {
@@ -438,7 +501,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-print-xs',
 			handler: function() {
 				var sel = me.getSelectedTasks();
-				if(sel.length > 0) me.printTaskSel(sel);
+				if (sel.length > 0) me.printTaskSel(sel);
 			}
 		});
 		me.addAct('print', {
@@ -475,15 +538,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			items: [
 				me.getAct('addCategory'),
 				'-',
-				me.getAct('editSharing')
+				{
+					text: me.res('mni-viewFolders.lbl'),
+					menu: {
+						items: [
+							me.getAct('viewAllFolders'),
+							me.getAct('viewNoneFolders')
+						]
+					}
+				},
+				'-',
+				me.getAct('editSharing'),
+				me.getAct('manageHiddenCategories')
 				//TODO: azioni altri servizi?
 			],
 			listeners: {
 				beforeshow: function(s) {
 					var rec = s.menuData.folder,
+							mine = rec.getId().startsWith('0'),
 							rr = me.toRightsObj(rec.get('_rrights'));
 					me.getAct('addCategory').setDisabled(!rr.MANAGE);
 					me.getAct('editSharing').setDisabled(!rr.MANAGE);
+					me.getAct('manageHiddenCategories').setDisabled(mine);
 				}
 			}
 		}));
@@ -495,10 +571,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('deleteCategory'),
 				me.getAct('addCategory'),
 				'-',
-				me.getAct('editSharing'),
+				{
+					text: me.res('mni-viewFolder.lbl'),
+					menu: {
+						items: [
+							me.getAct('viewThisFolderOnly'),
+							me.getAct('viewAllFolders'),
+							me.getAct('viewNoneFolders')
+						]
+					}
+				},
 				'-',
-				me.getAct('viewAllFolders'),
-				me.getAct('viewNoneFolders'),
+				me.getAct('editSharing'),
+				me.getAct('hideCategory'),
+				me.getAct('categoryColor'),
 				'-',
 				me.getAct('addTask')
 				//TODO: azioni altri servizi?
@@ -506,6 +592,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			listeners: {
 				beforeshow: function(s) {
 					var rec = s.menuData.folder,
+							mine = rec.getId().startsWith('0'),
 							rr = me.toRightsObj(rec.get('_rrights')),
 							fr = me.toRightsObj(rec.get('_frights')),
 							er = me.toRightsObj(rec.get('_erights'));
@@ -514,6 +601,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					me.getAct('addCategory').setDisabled(!rr.MANAGE);
 					me.getAct('editSharing').setDisabled(!rr.MANAGE);
 					me.getAct('addTask').setDisabled(!er.CREATE);
+					me.getAct('hideCategory').setDisabled(mine);
+					me.getAct('categoryColor').setDisabled(mine);
+					if (!mine) s.down('colorpicker').select(rec.get('_color'), true);
 				}
 			}
 		}));
@@ -523,7 +613,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			items: [
 				me.getAct('showTask'),
 				{
-					text: me.res('copyormove.lbl'),
+					text: me.res('mni-copyormove.lbl'),
 					menu: {
 						items: [
 							me.getAct('moveTask'),
@@ -573,11 +663,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	reloadTasks: function(query) {
-		var me = this, sto, pars;
+		var me = this,
+				pars = {},
+				sto;
 		
 		if(me.isActive()) {
 			sto = me.gpTasks().getStore();
-			pars = {};
 			if(query !== undefined) Ext.apply(pars, {query: query});
 			WTU.loadWithExtraParams(sto, pars);
 		} else {
@@ -618,6 +709,63 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.confirm(this.res('category.confirm.delete', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
 			if(bid === 'yes') node.drop();
 		}, this);
+	},
+	
+	manageHiddenCategoriesUI: function(node) {
+		var me = this,
+				vct = me.createHiddenCategories(node.getId());
+		
+		vct.getView().on('viewcallback', function(s, success, json) {
+			if (success) {
+				Ext.iterate(json.data, function(pid) {
+					me.loadFolderNode(pid);
+				});
+			}
+		});
+		vct.show();
+	},
+	
+	hideCategoryUI: function(node) {
+		var me = this;
+		WT.confirm(this.res('category.confirm.hide', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
+			if(bid === 'yes') {
+				me.updateCategoryVisibility(node.get('_catId'), true, {
+					callback: function(success) {
+						if(success) {
+							me.loadFolderNode(node.get('_pid'));
+							me.showHideF3Node(node, false);
+						}
+					}
+				});
+			}
+		}, this);
+	},
+	
+	updateCategoryColorUI: function(node, color) {
+		var me = this;
+		me.updateCategoryColor(node.get('_catId'), color, {
+			callback: function(success) {
+				if(success) {
+					me.loadFolderNode(node.get('_pid'));
+					if (node.get('_visible')) me.reloadTasks();
+				}
+			}
+		});
+	},
+	
+	updateCheckedFoldersUI: function(node, checked) {
+		var me = this;
+		me.updateCheckedFolders(node.getId(), checked, {
+			callback: function(success) {
+				if(success) {
+					if (node.get('_visible')) {
+						me.reloadTasks();
+					} else {
+						if (checked) me.showHideF3Node(node, checked);
+					}
+				}
+			}
+		});
 	},
 	
 	addTaskUI: function(ownerId, categoryId) {
@@ -677,12 +825,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	confirmMoveTask: function(copy, id, ownerId, catId, opts) {
 		var me = this,
-				vw = me.createCategoryChooser(copy, ownerId, catId);
+				vct = me.createCategoryChooser(copy, ownerId, catId);
 		
-		vw.getView().on('viewok', function(s) {
+		vct.getView().on('viewok', function(s) {
 			me.moveTask(copy, id, s.getVMData().categoryId, opts);
 		});
-		vw.show();
+		vct.show();
 	},
 	
 	printTasksDetail: function(taskIds) {
@@ -742,6 +890,49 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					categoryId: categoryId
 				}
 			});
+		});
+	},
+	
+	updateCategoryVisibility: function(categoryId, hidden, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'ManageHiddenCategories', {
+			params: {
+				crud: 'update',
+				categoryId: categoryId,
+				hidden: hidden
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
+			}
+		});
+	},
+	
+	updateCategoryColor: function(categoryId, color, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'SetCategoryColor', {
+			params: {
+				id: categoryId,
+				color: color
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
+			}
+		});
+	},
+	
+	updateCheckedFolders: function(rootId, checked, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'UpdateCheckedFolders', {
+			params: {
+				rootId: rootId,
+				checked: checked
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
+			}
 		});
 	},
 	
@@ -861,7 +1052,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				sel = me.getSelectedTasks();
 				if(sel.length === 1) {
 					er = me.toRightsObj(sel[0].get('_erights'));
-					return !er.UPDATE;
+					return !er.DELETE;
 				} else {
 					return true;
 				}
@@ -887,6 +1078,22 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 				break;
 		}
+	},
+	
+	/**
+	 * @private
+	 */
+	createHiddenCategories: function(rootNodeId) {
+		var me = this;
+		return WT.createView(me.ID, 'view.HiddenCategories', {
+			viewCfg: {
+				action: 'ManageHiddenCategories',
+				extraParams: {
+					crud: 'list',
+					rootId: rootNodeId
+				}
+			}
+		});
 	},
 	
 	/**

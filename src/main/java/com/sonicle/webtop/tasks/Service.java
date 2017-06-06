@@ -67,6 +67,7 @@ import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
+import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.Task;
@@ -75,6 +76,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
@@ -172,14 +174,16 @@ public class Service extends BaseService {
 				foldersByRoot.put(root.getShareId(), new ArrayList<CategoryFolder>());
 				if(root instanceof MyCategoryRoot) {
 					for(Category cat : manager.listCategories()) {
-						MyCategoryFolder fold = new MyCategoryFolder(root.getShareId(), cat);
+						final MyCategoryFolder fold = new MyCategoryFolder(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
 					}
 				} else {
 					for(CategoryFolder fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
+						final int catId = fold.getCategory().getCategoryId();
+						fold.setData(us.getCategoryFolderData(catId));
 						foldersByRoot.get(root.getShareId()).add(fold);
-						folders.put(fold.getCategory().getCategoryId(), fold);
+						folders.put(catId, fold);
 					}
 				}
 			}
@@ -215,7 +219,8 @@ public class Service extends BaseService {
 						*/
 						if(foldersByRoot.containsKey(root.getShareId())) {
 							for(CategoryFolder fold : foldersByRoot.get(root.getShareId())) {
-								children.add(createFolderNode(fold, root.getPerms()));
+								final ExtTreeNode etn = createFolderNode(fold, root.getPerms());
+								if (etn != null) children.add(etn);
 							}
 						}
 					}
@@ -250,6 +255,27 @@ public class Service extends BaseService {
 			
 		} catch(Exception ex) {
 			logger.error("Error in action ManageFoldersTree", ex);
+		}
+	}
+	
+	public void processUpdateCheckedFolders(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			String rootId = ServletUtils.getStringParameter(request, "rootId", true);
+			Boolean checked = ServletUtils.getBooleanParameter(request, "checked", true);
+			
+			synchronized(roots) {
+				ArrayList<Integer> catIds = new ArrayList<>();
+				for(CategoryFolder fold : foldersByRoot.get(rootId)) {
+					catIds.add(fold.getCategory().getCategoryId());
+				}
+				toggleCheckedFolders(catIds.toArray(new Integer[catIds.size()]), checked);
+			}
+			
+			new JsonResult().printTo(out);
+			
+		} catch(Exception ex) {
+			logger.error("Error in UpdateCheckedFolders", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -290,7 +316,7 @@ public class Service extends BaseService {
 					if(foldersByRoot.containsKey(root.getShareId())) {
 						for(CategoryFolder fold : foldersByRoot.get(root.getShareId())) {
 							if(!fold.getElementsPerms().implies("CREATE")) continue;
-							items.add(new JsCategoryLkp(fold.getCategory()));
+							items.add(new JsCategoryLkp(fold));
 						}
 					}
 				}
@@ -324,6 +350,55 @@ public class Service extends BaseService {
 		} catch(Exception ex) {
 			logger.error("Error in action ManageSharing", ex);
 			new JsonResult(false, "Error").printTo(out);
+		}
+	}
+	
+	public void processManageHiddenCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			String crud = ServletUtils.getStringParameter(request, "crud", true);
+			if(crud.equals(Crud.READ)) {
+				String rootId = ServletUtils.getStringParameter(request, "rootId", true);
+				if (rootId.equals(MyCategoryRoot.SHARE_ID)) throw new WTException();
+				
+				ArrayList<JsSimple> items = new ArrayList<>();
+				synchronized(roots) {
+					for(CategoryFolder fold : foldersByRoot.get(rootId)) {
+						CategoryFolderData data = (CategoryFolderData)fold.getData();
+						if (data != null) {
+							if ((data.hidden != null) && data.hidden) {
+								items.add(new JsSimple(fold.getCategory().getCategoryId(), fold.getCategory().getName()));
+							}
+						}
+					}
+				}
+				new JsonResult(items).printTo(out);
+				
+			} else if(crud.equals(Crud.UPDATE)) {
+				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
+				Boolean hidden = ServletUtils.getBooleanParameter(request, "hidden", false);
+				
+				updateCategoryFolderVisibility(categoryId, hidden);
+				new JsonResult().printTo(out);
+				
+			} else if(crud.equals(Crud.DELETE)) {
+				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, true);
+				
+				HashSet<String> pids = new HashSet<>();
+				synchronized(roots) {
+					for(String id : ids) {
+						int categoryId = Integer.valueOf(id);
+						CategoryFolder fold = folders.get(categoryId);
+						if (fold != null) {
+							updateCategoryFolderVisibility(categoryId, null);
+							pids.add(fold.getCategory().getProfileId().toString());
+						}
+					}
+				}
+				new JsonResult(pids).printTo(out);
+			}
+			
+		} catch(Exception ex) {
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -364,6 +439,20 @@ public class Service extends BaseService {
 		} catch(Exception ex) {
 			logger.error("Error in action ManageCategories", ex);
 			new JsonResult(false, "Error").printTo(out);
+		}
+	}
+	
+	public void processSetCategoryColor(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			Integer id = ServletUtils.getIntParameter(request, "id", true);
+			String color = ServletUtils.getStringParameter(request, "color", null);
+
+			updateCategoryFolderColor(id, color);
+
+			new JsonResult().printTo(out);
+			
+		} catch(Exception ex) {
+			new JsonResult(ex).printTo(out);
 		}
 	}
 
@@ -547,24 +636,72 @@ public class Service extends BaseService {
 	}
 	
 	private void toggleCheckedRoot(String shareId, boolean checked) {
+		toggleCheckedRoots(new String[]{shareId}, checked);
+	}
+	
+	private void toggleCheckedRoots(String[] shareIds, boolean checked) {
 		synchronized(roots) {
-			if(checked) {
-				checkedRoots.add(shareId);
-			} else {
-				checkedRoots.remove(shareId);
-			}
+			for(String shareId : shareIds) {
+				if(checked) {
+					checkedRoots.add(shareId);
+				} else {
+					checkedRoots.remove(shareId);
+				}
+			}	
 			us.setCheckedCategoryRoots(checkedRoots);
 		}
 	}
 	
-	private void toggleCheckedFolder(int folderId, boolean checked) {
+	private void toggleCheckedFolder(Integer folderId, boolean checked) {
+		toggleCheckedFolders(new Integer[]{folderId}, checked);
+	}
+	
+	private void toggleCheckedFolders(Integer[] folderIds, boolean checked) {
 		synchronized(roots) {
-			if(checked) {
-				checkedFolders.add(folderId);
-			} else {
-				checkedFolders.remove(folderId);
+			for(int folderId : folderIds) {
+				if(checked) {
+					checkedFolders.add(folderId);
+				} else {
+					checkedFolders.remove(folderId);
+				}
 			}
 			us.setCheckedCategoryFolders(checkedFolders);
+		}
+	}
+	
+	private void updateCategoryFolderColor(int categoryId, String color) {
+		synchronized(roots) {
+			CategoryFolderData data = us.getCategoryFolderData(categoryId);
+			data.color = color;
+			if (!data.isNull()) {
+				us.setCategoryFolderData(categoryId, data);
+			} else {
+				us.clearCategoryFolderData(categoryId);
+			}
+			
+			// Update internal cache
+			CategoryFolder folder = folders.get(categoryId);
+			if (!(folder instanceof MyCategoryFolder)) {
+				((CategoryFolderData)folder.getData()).update(data);
+			}
+		}
+	}
+	
+	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
+		synchronized(roots) {
+			CategoryFolderData data = us.getCategoryFolderData(categoryId);
+			data.hidden = hidden;
+			if (!data.isNull()) {
+				us.setCategoryFolderData(categoryId, data);
+			} else {
+				us.clearCategoryFolderData(categoryId);
+			}
+			
+			// Update internal cache
+			CategoryFolder folder = folders.get(categoryId);
+			if (!(folder instanceof MyCategoryFolder)) {
+				((CategoryFolderData)folder.getData()).update(data);
+			}
 		}
 	}
 	
@@ -591,7 +728,15 @@ public class Service extends BaseService {
 	private ExtTreeNode createFolderNode(CategoryFolder folder, SharePermsRoot rootPerms) {
 		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
+		String color = cat.getColor();
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
+		
+		if (folder.getData() != null) {
+			CategoryFolderData data = (CategoryFolderData)folder.getData();
+			if ((data.hidden != null) && data.hidden) return null;
+			if (!StringUtils.isBlank(data.color)) color = data.color;
+		}
+		
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);
 		node.put("_type", JsFolderNode.TYPE_FOLDER);
 		node.put("_pid", cat.getProfileId().toString());
@@ -601,7 +746,7 @@ public class Service extends BaseService {
 		node.put("_catId", cat.getCategoryId());
 		node.put("_builtIn", cat.getBuiltIn());
 		node.put("_default", cat.getIsDefault());
-		node.put("_color", cat.getColor());
+		node.put("_color", Category.getHexColor(color));
 		node.put("_visible", visible);
 		
 		List<String> classes = new ArrayList<>();
@@ -611,9 +756,8 @@ public class Service extends BaseService {
 				&& !folder.getElementsPerms().implies("DELETE")) classes.add("wttasks-tree-readonly");
 		node.setCls(StringUtils.join(classes, " "));
 		
-		node.setIconClass("wt-palette-" + cat.getHexColor());
+		node.setIconClass("wt-palette-" + Category.getHexColor(color));
 		node.setChecked(visible);
 		return node;
 	}
-	
 }

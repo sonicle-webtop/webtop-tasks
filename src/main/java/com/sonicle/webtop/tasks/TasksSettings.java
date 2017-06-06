@@ -74,4 +74,11 @@ public class TasksSettings {
 	 * List of checked (or visible) folders (groups).
 	 */
 	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
+	
+	/**
+	 * [user]
+	 * [object[]]
+	 * Custom data for the @ category folder.
+	 */
+	public static final String CATEGORY_FOLDER_DATA = "category.folder.data@{0}";
 }

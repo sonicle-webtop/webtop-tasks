@@ -34,7 +34,10 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
+import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -64,6 +67,8 @@ public class JsGridTask {
 	public JsGridTask() {}
 	
 	public JsGridTask(CategoryFolder folder, VTask task, DateTimeZone profileTz) {
+		Category category = folder.getCategory();
+		
 		taskId = task.getTaskId();
         subject = task.getSubject();
         description = task.getDescription();
@@ -77,10 +82,14 @@ public class JsGridTask {
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
         //publicUid;
         categoryId = task.getCategoryId();
-        categoryName = folder.getCategory().getName();
-        categoryColor = folder.getCategory().getColor();
+        categoryName = category.getName();
+		categoryColor = category.getColor();
+		if (folder.getData() != null) {
+			CategoryFolderData data = (CategoryFolderData)folder.getData();
+			if (!StringUtils.isBlank(data.color)) categoryColor = data.color;
+		}
         _frights = folder.getPerms().toString();
         _erights = folder.getElementsPerms().toString();
-        _profileId = folder.getCategory().getProfileId().toString();
+        _profileId = category.getProfileId().toString();
 	}
 }

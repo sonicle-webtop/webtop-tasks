@@ -34,6 +34,7 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.db.DbUtils;
+import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
@@ -58,6 +59,7 @@ import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
 import com.sonicle.webtop.tasks.model.CategoryRoot;
 import com.sonicle.webtop.tasks.model.Task;
@@ -126,33 +128,33 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private String ownerToRootShareId(UserProfileId owner) {
 		synchronized(shareCacheLock) {
-			if(!cacheOwnerToRootShare.containsKey(owner)) buildShareCache();
+			if (!cacheOwnerToRootShare.containsKey(owner)) buildShareCache();
 			return cacheOwnerToRootShare.get(owner);
 		}
 	}
 	
 	private String ownerToWildcardFolderShareId(UserProfileId ownerPid) {
 		synchronized(shareCacheLock) {
-			if(!cacheOwnerToWildcardFolderShare.containsKey(ownerPid) && cacheOwnerToRootShare.isEmpty()) buildShareCache();
+			if (!cacheOwnerToWildcardFolderShare.containsKey(ownerPid) && cacheOwnerToRootShare.isEmpty()) buildShareCache();
 			return cacheOwnerToWildcardFolderShare.get(ownerPid);
 		}
 	}
 	
 	private String categoryToFolderShareId(int category) {
 		synchronized(shareCacheLock) {
-			if(!cacheCategoryToFolderShare.containsKey(category)) buildShareCache();
+			if (!cacheCategoryToFolderShare.containsKey(category)) buildShareCache();
 			return cacheCategoryToFolderShare.get(category);
 		}
 	}
 	
 	private UserProfileId categoryToOwner(int categoryId) {
 		synchronized(cacheCategoryToOwner) {
-			if(cacheCategoryToOwner.containsKey(categoryId)) {
+			if (cacheCategoryToOwner.containsKey(categoryId)) {
 				return cacheCategoryToOwner.get(categoryId);
 			} else {
 				try {
 					UserProfileId owner = findCategoryOwner(categoryId);
-					cacheCategoryToOwner.put(categoryId, owner);
+					if (owner != null) cacheCategoryToOwner.put(categoryId, owner);
 					return owner;
 				} catch(WTException ex) {
 					throw new WTRuntimeException(ex.getMessage());
@@ -208,6 +210,29 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 		}
 		return folders;
+	}
+	
+	public String buildCategoryFolderShareId(int categoryId) throws WTException {
+		UserProfileId targetPid = getTargetProfileId();
+		
+		UserProfileId ownerPid = categoryToOwner(categoryId);
+		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		
+		String rootShareId = null;
+		if (ownerPid.equals(targetPid)) {
+			rootShareId = MyCategoryRoot.SHARE_ID;
+		} else {
+			for(CategoryRoot root : listIncomingCategoryRoots()) {
+				HashMap<Integer, CategoryFolder> folders = listIncomingCategoryFolders(root.getShareId());
+				if (folders.containsKey(categoryId)) {
+					rootShareId = root.getShareId();
+					break;
+				}
+			}
+		}
+		
+		if (rootShareId == null) throw new WTException("Unable to find a root share [{0}]", categoryId);
+		return new CompositeId().setTokens(rootShareId, categoryId).toString();
 	}
 	
 	public Sharing getSharing(String shareId) throws WTException {
@@ -391,13 +416,27 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			checkRightsOnCategoryFolder(categoryId, "DELETE");
+			
+			// Retrieve sharing status (for later)
+			String shareId = buildCategoryFolderShareId(categoryId);
+			Sharing sharing = getSharing(shareId);
 
 			con = WT.getConnection(SERVICE_ID, false);
 			int ret = catdao.deleteById(con, categoryId);
 			doDeleteTasksByCategory(con, categoryId);
+			
+			// Cleanup sharing, if necessary
+			if ((sharing != null) && !sharing.getRights().isEmpty()) {
+				logger.debug("Removing {} active sharing [{}]", sharing.getRights().size(), sharing.getId());
+				sharing.getRights().clear();
+				updateSharing(sharing);
+			}
+			
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_DELETE", String.valueOf(categoryId));
-			writeLog("TASK_DELETE", "*");
+			
+			final String ref = String.valueOf(categoryId);
+			writeLog("CATEGORY_DELETE", ref);
+			writeLog("TASK_DELETE", "*@"+ref);
 			
 			return ret == 1;
 			
@@ -432,7 +471,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			List<OCategory> ocats = catdao.selectByProfileIn(con, pid.getDomainId(), pid.getUserId(), categoryFolders);
 			List<VTask> vts = null;
 			for(OCategory ocat : ocats) {
-				checkRightsOnCategoryFolder(ocat.getCategoryId(), "READ");
+				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
+				
 				vts = tasdao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
 				catTasks.add(new CategoryTasks(createCategory(ocat), vts));
 			}
@@ -455,7 +495,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			OTask otask = tasdao.selectById(con, taskId);
 			if (otask == null) return null;
-			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ"); // Rights check!
+			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ");
 			
 			return createTask(otask);
 		
@@ -615,10 +655,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID);
 			OTask otask = tasdao.selectById(con, taskId);
 			if (otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
-			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ"); // Rights check!
+			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ");
 			
 			if (copy || (targetCategoryId != otask.getCategoryId())) {
-				checkRightsOnCategoryElements(targetCategoryId, "CREATE"); // Rights check!
+				checkRightsOnCategoryElements(targetCategoryId, "CREATE");
+				if (!copy) checkRightsOnCategoryElements(otask.getCategoryId(), "DELETE");
 				
 				Task task = createTask(otask);
 
@@ -795,8 +836,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID);
 			CategoryDAO dao = CategoryDAO.getInstance();
 			Owner owner = dao.selectOwnerById(con, categoryId);
-			if(owner == null) throw new WTException("Category not found [{0}]", categoryId);
-			return new UserProfileId(owner.getDomainId(), owner.getUserId());
+			return (owner == null) ? null : new UserProfileId(owner.getDomainId(), owner.getUserId());
 			
 		} catch(SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
@@ -808,39 +848,53 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void checkRightsOnCategoryRoot(UserProfileId ownerPid, String action) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
-		if(RunContext.isWebTopAdmin()) return;
-		if(ownerPid.equals(targetPid)) return;
+		if (RunContext.isWebTopAdmin()) return;
+		if (ownerPid.equals(targetPid)) return;
 		
 		String shareId = ownerToRootShareId(ownerPid);
-		if(shareId == null) throw new WTException("ownerToRootShareId({0}) -> null", ownerPid);
+		if (shareId == null) throw new WTException("ownerToRootShareId({0}) -> null", ownerPid);
 		CoreManager core = WT.getCoreManager(targetPid);
-		if(core.isShareRootPermitted(shareId, action)) return;
+		if (core.isShareRootPermitted(shareId, action)) return;
 		//if(core.isShareRootPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
 		throw new AuthException("Action not allowed on root share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
+	}
+	
+	private boolean quietlyCheckRightsOnCategoryFolder(int categoryId, String action) {
+		try {
+			checkRightsOnCategoryFolder(categoryId, action);
+			return true;
+		} catch(AuthException ex1) {
+			return false;
+		} catch(WTException ex1) {
+			logger.warn("Unable to check rights [{}]", categoryId);
+			return false;
+		}
 	}
 	
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
 		if(RunContext.isWebTopAdmin()) return;
+		
 		// Skip rights check if running user is resource's owner
 		UserProfileId ownerPid = categoryToOwner(categoryId);
-		if(ownerPid.equals(targetPid)) return;
+		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		if (ownerPid.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
 		CoreManager core = WT.getCoreManager(targetPid);
 		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
-		if(wildcardShareId != null) {
-			if(core.isShareFolderPermitted(wildcardShareId, action)) return;
+		if (wildcardShareId != null) {
+			if (core.isShareFolderPermitted(wildcardShareId, action)) return;
 			//if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on category instance
 		String shareId = categoryToFolderShareId(categoryId);
-		if(shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
-		if(core.isShareFolderPermitted(shareId, action)) return;
-		//if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
+		if (shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
+		if (core.isShareFolderPermitted(shareId, action)) return;
+		// if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
 		throw new AuthException("Action not allowed on folder share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
@@ -848,24 +902,26 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void checkRightsOnCategoryElements(int categoryId, String action) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
-		if(RunContext.isWebTopAdmin()) return;
+		if (RunContext.isWebTopAdmin()) return;
+		
 		// Skip rights check if running user is resource's owner
 		UserProfileId ownerPid = categoryToOwner(categoryId);
-		if(ownerPid.equals(getTargetProfileId())) return;
+		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		if (ownerPid.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
 		CoreManager core = WT.getCoreManager(targetPid);
 		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
-		if(wildcardShareId != null) {
-			if(core.isShareElementsPermitted(wildcardShareId, action)) return;
-			//if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
+		if (wildcardShareId != null) {
+			if (core.isShareElementsPermitted(wildcardShareId, action)) return;
+			//if (core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on calendar instance
 		String shareId = categoryToFolderShareId(categoryId);
-		if(shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
-		if(core.isShareElementsPermitted(shareId, action)) return;
-		//if(core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
+		if (shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
+		if (core.isShareElementsPermitted(shareId, action)) return;
+		//if (core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
 		
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
