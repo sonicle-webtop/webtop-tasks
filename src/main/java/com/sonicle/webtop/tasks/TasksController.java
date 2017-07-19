@@ -36,6 +36,7 @@ import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.sdk.BaseController;
 import com.sonicle.webtop.core.sdk.BaseReminder;
+import com.sonicle.webtop.core.sdk.ServiceVersion;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesProfiles;
@@ -73,6 +74,11 @@ public class TasksController extends BaseController implements IControllerHandle
 	public void removeProfile(UserProfileId profileId, boolean deep) throws WTException {
 		TasksManager manager = new TasksManager(false, profileId);
 		manager.eraseData(deep);
+	}
+	
+	@Override
+	public void upgradeProfile(UserProfileId profileId, ServiceVersion current, ServiceVersion lastSeen) throws WTException {
+		
 	}
 
 	@Override
