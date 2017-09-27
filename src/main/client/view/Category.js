@@ -76,6 +76,11 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 				fieldLabel: me.mys.res('category.fld-name.lbl'),
 				anchor: '100%'
 			}, {
+				xtype: 'checkbox',
+				bind: '{isDefault}',
+				hideEmptyLabel: false,
+				boxLabel: me.mys.res('category.fld-default.lbl')
+			}, {
 				xtype: 'textareafield',
 				bind: '{record.description}',
 				fieldLabel: me.mys.res('category.fld-description.lbl'),
@@ -86,16 +91,6 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 				colors: WT.getColorPalette(),
 				fieldLabel: me.mys.res('category.fld-color.lbl'),
 				width: 210
-			}, {
-				xtype: 'checkbox',
-				bind: '{isPrivate}',
-				hideEmptyLabel: false,
-				boxLabel: me.mys.res('category.fld-private.lbl')
-			}, {
-				xtype: 'checkbox',
-				bind: '{isDefault}',
-				hideEmptyLabel: false,
-				boxLabel: me.mys.res('category.fld-default.lbl')
 			},
 			WTF.lookupCombo('id', 'desc', {
 				bind: '{record.sync}',
@@ -104,7 +99,13 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 				}),
 				fieldLabel: me.mys.res('category.fld-sync.lbl'),
 				width: 250
-			})]
+			}),
+			{
+				xtype: 'checkbox',
+				bind: '{isPrivate}',
+				hideEmptyLabel: false,
+				boxLabel: me.mys.res('category.fld-private.lbl')
+			}]
 		});
 		me.on('viewload', me.onViewLoad);
 	},
