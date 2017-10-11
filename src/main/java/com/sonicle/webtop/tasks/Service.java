@@ -66,11 +66,13 @@ import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
+import com.sonicle.webtop.tasks.bol.js.JsPletMyTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.Task;
+import com.sonicle.webtop.tasks.model.TaskEx;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
@@ -348,7 +350,7 @@ public class Service extends BaseService {
 			}
 			
 		} catch(Exception ex) {
-			logger.error("Error in action ManageSharing", ex);
+			logger.error("Error in ManageSharing", ex);
 			new JsonResult(false, "Error").printTo(out);
 		}
 	}
@@ -437,7 +439,7 @@ public class Service extends BaseService {
 			}
 			
 		} catch(Exception ex) {
-			logger.error("Error in action ManageCategories", ex);
+			logger.error("Error in ManageCategories", ex);
 			new JsonResult(false, "Error").printTo(out);
 		}
 	}
@@ -446,7 +448,7 @@ public class Service extends BaseService {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
 			String color = ServletUtils.getStringParameter(request, "color", null);
-
+			
 			updateCategoryFolderColor(id, color);
 
 			new JsonResult().printTo(out);
@@ -460,9 +462,6 @@ public class Service extends BaseService {
 		ArrayList<JsGridTask> items = new ArrayList<>();
 		
 		try {
-			UserProfile up = getEnv().getProfile();
-			//DateTimeZone utz = up.getTimeZone();
-			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if(crud.equals(Crud.READ)) {
 				String query = ServletUtils.getStringParameter(request, "query", null);
@@ -471,13 +470,13 @@ public class Service extends BaseService {
 				List<TasksManager.CategoryTasks> foldTasks = null;
 				Integer[] checked = getCheckedFolders();
 				for (CategoryRoot root : getCheckedRoots()) {
-					foldTasks = manager.listTasks(root, checked, pattern);
+					foldTasks = manager.listCategoryTasks(root, checked, pattern);
 					// Iterates over category->tasks
 					for (TasksManager.CategoryTasks foldTask : foldTasks) {
 						CategoryFolder fold = folders.get(foldTask.folder.getCategoryId());
                         if (fold == null) continue;
 						
-                        for (VTask vt : foldTask.tasks) {
+                        for (TaskEx vt : foldTask.tasks) {
                             items.add(new JsGridTask(fold, vt, DateTimeZone.UTC));
                         }
 					}
@@ -486,7 +485,7 @@ public class Service extends BaseService {
 			}
 		
 		} catch(Exception ex) {
-			logger.error("Error in action ManageGridTasks", ex);
+			logger.error("Error in ManageGridTasks", ex);
 			new JsonResult(false, "Error").printTo(out);
 		}
 	}
@@ -543,7 +542,7 @@ public class Service extends BaseService {
 			}
 			
 		} catch(Exception ex) {
-			logger.error("Error in action ManageTasks", ex);
+			logger.error("Error in ManageTasks", ex);
 			new JsonResult(false, "Error").printTo(out);	
 		}
 	}
@@ -580,6 +579,29 @@ public class Service extends BaseService {
 			ServletUtils.writeErrorHandlingJs(response, ex.getMessage());
 		} finally {
 			IOUtils.closeQuietly(baos);
+		}
+	}
+	
+	public void processPletMyTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		ArrayList<JsPletMyTasks> items = new ArrayList<>();
+		
+		try {
+			String query = ServletUtils.getStringParameter(request, "query", null);
+			String pattern = (query == null) ? "%" : ("%" + query.toLowerCase() + "%");
+			
+			List<Integer> ids = manager.listCategoryIds();
+			List<TaskEx> tasks = manager.listUpcomingTasks(ids, pattern);
+			for(TaskEx task : tasks) {
+				final CategoryFolder folder = folders.get(task.getCategoryId());
+				if (folder == null) continue;
+				items.add(new JsPletMyTasks(folder, task, DateTimeZone.UTC));
+			}
+			
+			new JsonResult(items).printTo(out);
+			
+		} catch(Exception ex) {
+			logger.error("Error in PortletMyTasks", ex);
+			new JsonResult(false, "Error").printTo(out);	
 		}
 	}
 	

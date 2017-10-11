@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks.dal;
 
+import com.sonicle.commons.EnumUtils;
 import static com.sonicle.webtop.tasks.jooq.Sequences.SEQ_TASKS;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.dal.BaseDAO;
@@ -40,7 +41,9 @@ import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
+import com.sonicle.webtop.tasks.model.Task;
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.List;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
@@ -102,6 +105,54 @@ public class TaskDAO extends BaseDAO {
 			)
 			.orderBy(
 				TASKS.SUBJECT.asc()
+			)
+			.fetchInto(VTask.class);
+	}
+	
+	public List<VTask> viewUpcomingByCategoriesPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		Condition patternCndt = null;
+		patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
+				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.CATEGORY_ID,
+				TASKS.PUBLIC_UID,
+				TASKS.SUBJECT,
+				TASKS.DESCRIPTION,
+				TASKS.START_DATE,
+				TASKS.DUE_DATE,
+				TASKS.IMPORTANCE,
+				TASKS.IS_PRIVATE,
+				TASKS.STATUS,
+				TASKS.COMPLETION_PERCENTAGE,
+				TASKS.REMINDER_DATE
+			)
+			.select(
+				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
+				CATEGORIES.USER_ID.as("category_user_id")
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_NEW)
+					.or(TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_MODIFIED))
+				)
+				.and(
+					TASKS.DUE_DATE.isNotNull()
+					.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.DEFERRED)))
+				)
+				.and(
+					patternCndt
+				)
+			)
+			.orderBy(
+				TASKS.DUE_DATE.asc()
 			)
 			.fetchInto(VTask.class);
 	}

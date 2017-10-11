@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.webtop.core.sdk.BaseServiceSettings;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
-import com.sonicle.webtop.tasks.model.Sync;
+import com.sonicle.webtop.tasks.model.Category;
 
 /**
  *
@@ -46,8 +46,8 @@ public class TasksServiceSettings extends BaseServiceSettings {
 		super(serviceId, domainId);
 	}
 	
-	public Sync getDefaultCategorySync() {
-		return getEnum(Sync.class, DEFAULT_PREFIX + CATEGORY_SYNC, Sync.OFF);
+	public Category.Sync getDefaultCategorySync() {
+		return getEnum(DEFAULT_PREFIX + CATEGORY_SYNC, Category.Sync.OFF, Category.Sync.class);
 	}
 	
 	public String getDefaultTaskReminderDelivery() {

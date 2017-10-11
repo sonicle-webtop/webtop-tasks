@@ -40,6 +40,7 @@ import com.sonicle.webtop.core.bol.Owner;
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.List;
 import org.jooq.DSLContext;
 
@@ -88,6 +89,22 @@ public class CategoryDAO extends BaseDAO {
 			.from(CATEGORIES)
 			.where(
 				CATEGORIES.DOMAIN_ID.equal(domainId)
+			)
+			.orderBy(
+				CATEGORIES.BUILT_IN.desc(),
+				CATEGORIES.NAME.asc()
+			)
+			.fetchInto(OCategory.class);
+	}
+	
+	public List<OCategory> selectByDomainIn(Connection con, String domainId, Collection<Integer> categoryIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.CATEGORY_ID.in(categoryIds))
 			)
 			.orderBy(
 				CATEGORIES.BUILT_IN.desc(),
