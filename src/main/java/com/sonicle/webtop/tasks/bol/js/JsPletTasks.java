@@ -43,7 +43,7 @@ import org.joda.time.DateTimeZone;
  *
  * @author malbinola
  */
-public class JsPletMyTasks {
+public class JsPletTasks {
 	public Integer taskId;
 	public String subject;
 	public String description;
@@ -54,7 +54,7 @@ public class JsPletMyTasks {
 	public String _frights;
 	public String _erights;
 	
-	public JsPletMyTasks(CategoryFolder folder, TaskEx task, DateTimeZone profileTz) {
+	public JsPletTasks(CategoryFolder folder, TaskEx task, DateTimeZone profileTz) {
 		final Category category = folder.getCategory();
 		
 		taskId = task.getTaskId();

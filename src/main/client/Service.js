@@ -49,7 +49,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.view.Task',
 		'Sonicle.webtop.tasks.view.CategoryChooser',
 		'Sonicle.webtop.tasks.view.HiddenCategories',
-		'Sonicle.webtop.tasks.portlet.MyTasks'
+		'Sonicle.webtop.tasks.portlet.Tasks'
 	],
 	mixins: [
 		'WTA.mixin.FoldersTree'

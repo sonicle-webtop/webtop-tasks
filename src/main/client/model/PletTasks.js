@@ -30,12 +30,19 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
-Ext.define('Sonicle.webtop.tasks.portlet.MyTasks', {
-	extend: 'WTA.sdk.Portlet',
-	requires: [
-		'Sonicle.webtop.tasks.portlet.MyTasksBody'
-	],
+Ext.define('Sonicle.webtop.tasks.model.PletTasks', {
+	extend: 'WTA.ux.data.BaseModel',
 	
-	title: '{portlet.mytasks.tit}',
-	bodyClass: 'Sonicle.webtop.tasks.portlet.MyTasksBody'
+	idProperty: 'taskId',
+	fields: [
+		WTF.roField('taskId', 'int'),
+		WTF.roField('subject', 'string'),
+		WTF.roField('description', 'string'),
+		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('categoryId', 'int'),
+		WTF.roField('categoryName', 'string'),
+		WTF.roField('categoryColor', 'string'),
+		WTF.roField('_frights', 'string'),
+		WTF.roField('_erights', 'string')
+	]
 });

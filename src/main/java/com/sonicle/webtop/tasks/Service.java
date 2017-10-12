@@ -61,12 +61,11 @@ import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
-import com.sonicle.webtop.tasks.bol.js.JsPletMyTasks;
+import com.sonicle.webtop.tasks.bol.js.JsPletTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
@@ -582,25 +581,30 @@ public class Service extends BaseService {
 		}
 	}
 	
-	public void processPletMyTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
-		ArrayList<JsPletMyTasks> items = new ArrayList<>();
+	public void processPortletTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		ArrayList<JsPletTasks> items = new ArrayList<>();
 		
 		try {
 			String query = ServletUtils.getStringParameter(request, "query", null);
-			String pattern = (query == null) ? "%" : ("%" + query.toLowerCase() + "%");
 			
-			List<Integer> ids = manager.listCategoryIds();
-			List<TaskEx> tasks = manager.listUpcomingTasks(ids, pattern);
-			for(TaskEx task : tasks) {
-				final CategoryFolder folder = folders.get(task.getCategoryId());
-				if (folder == null) continue;
-				items.add(new JsPletMyTasks(folder, task, DateTimeZone.UTC));
+			if (query == null) {
+				List<Integer> ids = manager.listCategoryIds();
+				List<TaskEx> tasks = manager.listUpcomingTasks(ids, "%");
+				for(TaskEx task : tasks) {
+					final CategoryFolder folder = folders.get(task.getCategoryId());
+					if (folder == null) continue;
+					items.add(new JsPletTasks(folder, task, DateTimeZone.UTC));
+				}
+				
+			} else {
+				String pattern = "%" + query.toLowerCase() + "%";
+				//TODO: implement this fork
 			}
 			
 			new JsonResult(items).printTo(out);
 			
 		} catch(Exception ex) {
-			logger.error("Error in PortletMyTasks", ex);
+			logger.error("Error in PortletTasks", ex);
 			new JsonResult(false, "Error").printTo(out);	
 		}
 	}

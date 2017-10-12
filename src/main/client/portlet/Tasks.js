@@ -30,70 +30,12 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Copyright (C) 2014 Sonicle S.r.l.".
  */
-Ext.define('Sonicle.webtop.tasks.portlet.MyTasksBody', {
-	extend: 'WTA.sdk.PortletBody',
+Ext.define('Sonicle.webtop.tasks.portlet.Tasks', {
+	extend: 'WTA.sdk.Portlet',
 	requires: [
-		'Sonicle.webtop.tasks.model.PletMyTasks'
+		'Sonicle.webtop.tasks.portlet.TasksBody'
 	],
 	
-	initComponent: function() {
-		var me = this;
-		me.callParent(arguments);
-		me.add({
-			region: 'center',
-			xtype: 'gridpanel',
-			reference: 'gp',
-			store: {
-				autoLoad: true,
-				model: 'Sonicle.webtop.tasks.model.PletMyTasks',
-				proxy: WTF.apiProxy(me.mys.ID, 'PletMyTasks', 'data', {
-					extraParams: {
-						query: null
-					}
-				})
-			},
-			viewConfig: {
-				getRowClass: function (rec, indx) {
-					if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(rec.get('dueDate'), new Date(), false)>0)
-						return 'wttasks-row-expired';
-					return '';
-				}
-			},
-			columns: [{
-				xtype: 'socolorcolumn',
-				dataIndex: 'categoryName',
-				colorField: 'categoryColor',
-				width: 30
-			}, {
-				dataIndex: 'subject',
-				flex: 1
-			}],
-			features: [{
-				ftype: 'rowbody',
-				getAdditionalData: function(data, idx, rec, orig) {
-					var desc = Ext.String.ellipsis(rec.get('description'), 100),
-						date = Ext.Date.format(rec.get('dueDate'), WT.getShortDateFmt()),
-						html = Ext.String.format(me.mys.res('portlet.mytasks.dueon'), date);
-						if (!Ext.isEmpty(desc)) html += (' <span style="color:grey;">' + Ext.String.htmlEncode(desc) + '</span>');
-					return {
-						rowBody: html
-					};
-				}
-			}],
-			listeners: {
-				rowdblclick: function(s, rec) {
-					var er = me.mys.toRightsObj(rec.get('_erights'));
-					me.mys.openTaskUI(er.UPDATE, rec.get('taskId'));
-				}
-			}
-		});
-	},
-	
-	refresh: function() {
-		this.lref('gp').getStore().load();
-	},
-	
-	search: function(s) {
-		WTU.loadWithExtraParams(this.lref('gp').getStore(), {query: s});
-	}
+	title: '{portlet.tasks.tit}',
+	bodyClass: 'Sonicle.webtop.tasks.portlet.TasksBody'
 });
