@@ -66,8 +66,8 @@ import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.TaskEx;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -254,6 +254,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
+	public List<Integer> listCategoryIds() throws WTException {
+		ArrayList<Integer> ids = new ArrayList<>();
+		for(Category category : listCategories()) {
+			ids.add(category.getCategoryId());
+		}
+		return ids;
+	}
+	
+	@Override
 	public List<Category> listCategories() throws WTException {
 		return listCategories(getTargetProfileId());
 	}
@@ -267,25 +276,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID);
 			for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
 				items.add(createCategory(ocat));
-			}
-			return items;
-			
-		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	
-	public List<Integer> listCategoryIds() throws WTException {
-		CategoryDAO catDao = CategoryDAO.getInstance();
-		ArrayList<Integer> items = new ArrayList<>();
-		Connection con = null;
-		
-		try {
-			con = WT.getConnection(SERVICE_ID);
-			for (OCategory ocat : catDao.selectByProfile(con, getTargetProfileId().getDomainId(), getTargetProfileId().getUserId())) {
-				items.add(ocat.getCategoryId());
 			}
 			return items;
 			
@@ -466,45 +456,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.closeQuietly(con);
 		}
 	}
-
-	public List<CategoryTasks> listCategoryTasks(CategoryRoot root, Integer[] categoryFolderIds, String pattern) throws WTException {
-		return listCategoryTasks(root.getOwnerProfileId(), categoryFolderIds, pattern);
-	}
 	
-	public List<CategoryTasks> listCategoryTasks(UserProfileId ownerId, Integer[] categoryFolderIds, String pattern) throws WTException {
-		CategoryDAO catDao = CategoryDAO.getInstance();
-		TaskDAO tasDao = TaskDAO.getInstance();
-		Connection con = null;
-		
-		try {
-            // TODO: implementare filtro task privati
-			con = WT.getConnection(SERVICE_ID);
-			
-			// Lists desired groups (tipically visibles) coming from passed list
-			// Passed ids should belong to referenced folder(group), 
-			// this is ensured using domainId and userId parameters in below query.
-			ArrayList<CategoryTasks> catTasks = new ArrayList<>();
-			List<OCategory> ocats = catDao.selectByProfileIn(con, ownerId.getDomainId(), ownerId.getUserId(), categoryFolderIds);
-			for(OCategory ocat : ocats) {
-				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
-				
-				final List<VTask> vtasks = tasDao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
-				final ArrayList<TaskEx> tasks = new ArrayList<>();
-				for(VTask vtask : vtasks) {
-					tasks.add(fillTaskEx(new TaskEx(), vtask));
-				}
-				catTasks.add(new CategoryTasks(createCategory(ocat), tasks));
-			}
-			return catTasks;
-		
-		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	
-	public List<CategoryTasks> listCategoryTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+	@Override
+	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
@@ -512,21 +466,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			
-			ArrayList<CategoryTasks> catTasks = new ArrayList<>();
+			// TODO: implementare filtro task privati
+			ArrayList<FolderTasks> foTasks = new ArrayList<>();
 			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryFolderIds);
-			for(OCategory ocat : ocats) {
+			for (OCategory ocat : ocats) {
 				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
 				
 				final List<VTask> vtasks = tasDao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
 				final ArrayList<TaskEx> tasks = new ArrayList<>();
-				for(VTask vtask : vtasks) {
+				for (VTask vtask : vtasks) {
 					tasks.add(fillTaskEx(new TaskEx(), vtask));
 				}
-				catTasks.add(new CategoryTasks(createCategory(ocat), tasks));
+				foTasks.add(new FolderTasks(createCategory(ocat), tasks));
 			}
-			return catTasks;
+			return foTasks;
 			
-		} catch(SQLException | DAOException ex) {
+		} catch (SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
 		} finally {
 			DbUtils.closeQuietly(con);
@@ -1149,15 +1104,5 @@ public class TasksManager extends BaseManager implements ITasksManager {
     
 	private DateTime createRevisionTimestamp() {
 		return DateTime.now(DateTimeZone.UTC);
-	}
-	
-    public static class CategoryTasks {
-		public final Category folder;
-		public final List<TaskEx> tasks;
-		
-		public CategoryTasks(Category folder, List<TaskEx> tasks) {
-			this.folder = folder;
-			this.tasks = tasks;
-		}
 	}
 }

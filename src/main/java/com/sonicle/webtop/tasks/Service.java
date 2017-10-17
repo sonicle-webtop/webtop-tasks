@@ -70,6 +70,7 @@ import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
@@ -101,8 +102,9 @@ public class Service extends BaseService {
 	private TasksUserSettings us;
 	
 	private final LinkedHashMap<String, CategoryRoot> roots = new LinkedHashMap<>();
-	private final HashMap<String, ArrayList<CategoryFolder>> foldersByRoot = new HashMap<>();
 	private final LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
+	private final HashMap<String, ArrayList<CategoryFolder>> foldersByRoot = new HashMap<>();
+	private final HashMap<Integer, CategoryRoot> rootByFolder = new HashMap<>();
 	
 	private CheckedRoots checkedRoots = null;
 	private CheckedFolders checkedFolders = null;
@@ -122,8 +124,9 @@ public class Service extends BaseService {
 		checkedFolders = null;
 		checkedRoots.clear();
 		checkedRoots = null;
-		folders.clear();
+		rootByFolder.clear();
 		foldersByRoot.clear();
+		folders.clear();
 		roots.clear();
 		us = null;
 		ss = null;
@@ -171,6 +174,7 @@ public class Service extends BaseService {
 		synchronized(roots) {
 			foldersByRoot.clear();
 			folders.clear();
+			rootByFolder.clear();
 			for(CategoryRoot root : roots.values()) {
 				foldersByRoot.put(root.getShareId(), new ArrayList<CategoryFolder>());
 				if(root instanceof MyCategoryRoot) {
@@ -178,6 +182,7 @@ public class Service extends BaseService {
 						final MyCategoryFolder fold = new MyCategoryFolder(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
+						rootByFolder.put(cat.getCategoryId(), root);
 					}
 				} else {
 					for(CategoryFolder fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
@@ -185,6 +190,7 @@ public class Service extends BaseService {
 						fold.setData(us.getCategoryFolderData(catId));
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(catId, fold);
+						rootByFolder.put(catId, root);
 					}
 				}
 			}
@@ -453,6 +459,7 @@ public class Service extends BaseService {
 			new JsonResult().printTo(out);
 			
 		} catch(Exception ex) {
+			logger.error("Error in SetCategoryColor", ex);
 			new JsonResult(ex).printTo(out);
 		}
 	}
@@ -464,20 +471,16 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if(crud.equals(Crud.READ)) {
 				String query = ServletUtils.getStringParameter(request, "query", null);
-				String pattern = (query == null) ? "%" : ("%" + query.toLowerCase() + "%");
+				String pattern = (query == null) ? null : ("%" + query.toLowerCase() + "%");
 				
-				List<TasksManager.CategoryTasks> foldTasks = null;
-				Integer[] checked = getCheckedFolders();
-				for (CategoryRoot root : getCheckedRoots()) {
-					foldTasks = manager.listCategoryTasks(root, checked, pattern);
-					// Iterates over category->tasks
-					for (TasksManager.CategoryTasks foldTask : foldTasks) {
-						CategoryFolder fold = folders.get(foldTask.folder.getCategoryId());
-                        if (fold == null) continue;
-						
-                        for (TaskEx vt : foldTask.tasks) {
-                            items.add(new JsGridTask(fold, vt, DateTimeZone.UTC));
-                        }
+				List<Integer> visibleCategoryIds = getVisibleFolderIds(true);
+				List<FolderTasks> foTasksObjs = manager.listFolderTasks(visibleCategoryIds, pattern);
+				for (FolderTasks foTasksObj : foTasksObjs) {
+					final CategoryFolder fold = folders.get(foTasksObj.folder.getCategoryId());
+					if (fold == null) continue;
+					
+					for (TaskEx te : foTasksObj.tasks) {
+						items.add(new JsGridTask(fold, te, DateTimeZone.UTC));
 					}
 				}
 				new JsonResult("tasks", items).printTo(out);
@@ -646,6 +649,28 @@ public class Service extends BaseService {
 		}
 		
 		return sb.toString();
+	}
+	
+	private ArrayList<Integer> getVisibleFolderIds(boolean cleanupOrphans) {
+		ArrayList<Integer> ids = new ArrayList<>();
+		ArrayList<Integer> orphans = new ArrayList<>();
+		
+		Integer[] checked = getCheckedFolders();
+		for (CategoryRoot root : getCheckedRoots()) {
+			for (Integer folderId : checked) {
+				final CategoryRoot folderRoot = rootByFolder.get(folderId);
+				if (folderRoot == null) {
+					if (cleanupOrphans) orphans.add(folderId);
+					continue;
+				}
+				
+				if (root.getShareId().equals(folderRoot.getShareId())) {
+					ids.add(folderId);
+				}
+			}
+		}
+		if (cleanupOrphans) toggleCheckedFolders(orphans.toArray(new Integer[orphans.size()]), false);
+		return ids;
 	}
 	
 	private List<CategoryRoot> getCheckedRoots() {

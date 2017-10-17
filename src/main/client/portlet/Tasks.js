@@ -37,5 +37,6 @@ Ext.define('Sonicle.webtop.tasks.portlet.Tasks', {
 	],
 	
 	title: '{portlet.tasks.tit}',
+	iconCls: 'wttasks-icon-task-xs',
 	bodyClass: 'Sonicle.webtop.tasks.portlet.TasksBody'
 });

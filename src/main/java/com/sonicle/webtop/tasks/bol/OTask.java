@@ -36,15 +36,8 @@ import com.sonicle.webtop.tasks.jooq.tables.pojos.Tasks;
 
 /**
  *
- * @author rfullone
+ * @author malbinola
  */
-public class OTask extends Tasks  {
-	public final static String REV_STATUS_NEW = "N";
-	public final static String REV_STATUS_MODIFIED = "M";
-	public final static String REV_STATUS_DELETED = "D";
+public class OTask extends Tasks {
 	
-	public OTask() {
-		super();
-		setRevisionStatus(REV_STATUS_NEW);
-	}
 }

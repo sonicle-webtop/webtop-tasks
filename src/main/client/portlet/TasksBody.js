@@ -36,6 +36,8 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 		'Sonicle.webtop.tasks.model.PletTasks'
 	],
 	
+	isSearch: false,
+	
 	initComponent: function() {
 		var me = this;
 		me.callParent(arguments);
@@ -93,7 +95,13 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 		this.lref('gp').getStore().load();
 	},
 	
+	recents: function() {
+		this.isSearch = false;
+		WTU.loadWithExtraParams(this.lref('gp').getStore(), {query: null});
+	},
+	
 	search: function(s) {
+		this.isSearch = true;
 		WTU.loadWithExtraParams(this.lref('gp').getStore(), {query: s});
 	}
 });
