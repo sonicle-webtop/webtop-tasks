@@ -36,12 +36,13 @@ Ext.define('Sonicle.webtop.tasks.model.PletTasks', {
 	idProperty: 'taskId',
 	fields: [
 		WTF.roField('taskId', 'int'),
-		WTF.roField('subject', 'string'),
-		WTF.roField('description', 'string'),
-		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string'),
+		WTF.roField('subject', 'string'),
+		WTF.roField('description', 'string'),
+		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('_owner', 'string'),
 		WTF.roField('_frights', 'string'),
 		WTF.roField('_erights', 'string')
 	]

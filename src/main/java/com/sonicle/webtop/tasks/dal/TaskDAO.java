@@ -116,9 +116,11 @@ public class TaskDAO extends BaseDAO {
 	public List<VTask> viewUpcomingByCategoriesPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
-		Condition patternCndt = null;
-		patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
+		Condition patternCndt = DSL.trueCondition();
+		if (!StringUtils.isBlank(pattern)) {
+			patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
 				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+		}
 		
 		return dsl
 			.select(

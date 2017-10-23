@@ -81,6 +81,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
@@ -591,17 +592,26 @@ public class Service extends BaseService {
 			String query = ServletUtils.getStringParameter(request, "query", null);
 			
 			if (query == null) {
-				List<Integer> ids = manager.listCategoryIds();
-				List<TaskEx> tasks = manager.listUpcomingTasks(ids, "%");
-				for(TaskEx task : tasks) {
+				final CategoryRoot root = roots.get(MyCategoryRoot.SHARE_ID);
+				final List<Integer> ids = manager.listCategoryIds();
+				for (TaskEx task : manager.listUpcomingTasks(ids)) {
 					final CategoryFolder folder = folders.get(task.getCategoryId());
 					if (folder == null) continue;
-					items.add(new JsPletTasks(folder, task, DateTimeZone.UTC));
+					
+					items.add(new JsPletTasks(root, folder, task, DateTimeZone.UTC));
 				}
-				
 			} else {
-				String pattern = "%" + query.toLowerCase() + "%";
-				//TODO: implement this fork
+				final Set<Integer> ids = folders.keySet();
+				for (FolderTasks foTaskObj : manager.listFolderTasks(ids, "%"+query+"%")) {
+					final CategoryRoot root = rootByFolder.get(foTaskObj.folder.getCategoryId());
+					if (root == null) continue;
+					final CategoryFolder folder = folders.get(foTaskObj.folder.getCategoryId());
+					if (folder == null) continue;
+					
+					for (TaskEx task : foTaskObj.tasks) {
+						items.add(new JsPletTasks(root, folder, task, DateTimeZone.UTC));
+					}
+				}
 			}
 			
 			new JsonResult(items).printTo(out);

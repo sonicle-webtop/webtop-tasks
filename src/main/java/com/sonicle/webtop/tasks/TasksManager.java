@@ -167,55 +167,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		ArrayList<CategoryRoot> roots = new ArrayList();
-		HashSet<String> hs = new HashSet<>();
-		
-		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
-		for(IncomingShareRoot share : shares) {
-			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
-			CategoryRoot root = new CategoryRoot(share, perms);
-			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
-			hs.add(root.getShareId());
-			roots.add(root);
-		}
-		return roots;
-	}
-	
-	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
-		
-		// Retrieves incoming folders (from sharing). This lookup already 
-		// returns readable shares (we don't need to test READ permission)
-		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
-		for(OShare share : shares) {
-			
-			List<Category> cats = null;
-			if(share.hasWildcard()) {
-				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
-				cats = listCategories(ownerId);
-			} else {
-				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
-			}
-			
-			for(Category cat : cats) {
-				SharePermsFolder fperms = core.getShareFolderPermissions(share.getShareId().toString());
-				SharePermsElements eperms = core.getShareElementsPermissions(share.getShareId().toString());
-				
-				if(folders.containsKey(cat.getCategoryId())) {
-					CategoryFolder folder = folders.get(cat.getCategoryId());
-					folder.getPerms().merge(fperms);
-					folder.getElementsPerms().merge(eperms);
-				} else {
-					folders.put(cat.getCategoryId(), new CategoryFolder(share.getShareId().toString(), fperms, eperms, cat));
-				}
-			}
-		}
-		return folders;
-	}
-	
 	public String buildCategoryFolderShareId(int categoryId) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
@@ -254,10 +205,70 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
+	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
+		CoreManager core = WT.getCoreManager(getTargetProfileId());
+		ArrayList<CategoryRoot> roots = new ArrayList();
+		HashSet<String> hs = new HashSet<>();
+		
+		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
+		for(IncomingShareRoot share : shares) {
+			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
+			CategoryRoot root = new CategoryRoot(share, perms);
+			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
+			hs.add(root.getShareId());
+			roots.add(root);
+		}
+		return roots;
+	}
+	
+	@Override
+	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
+		CoreManager core = WT.getCoreManager(getTargetProfileId());
+		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
+		
+		// Retrieves incoming folders (from sharing). This lookup already 
+		// returns readable shares (we don't need to test READ permission)
+		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
+		for(OShare share : shares) {
+			
+			List<Category> cats = null;
+			if(share.hasWildcard()) {
+				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
+				cats = listCategories(ownerId);
+			} else {
+				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
+			}
+			
+			for(Category cat : cats) {
+				SharePermsFolder fperms = core.getShareFolderPermissions(share.getShareId().toString());
+				SharePermsElements eperms = core.getShareElementsPermissions(share.getShareId().toString());
+				
+				if(folders.containsKey(cat.getCategoryId())) {
+					CategoryFolder folder = folders.get(cat.getCategoryId());
+					folder.getPerms().merge(fperms);
+					folder.getElementsPerms().merge(eperms);
+				} else {
+					folders.put(cat.getCategoryId(), new CategoryFolder(share.getShareId().toString(), fperms, eperms, cat));
+				}
+			}
+		}
+		return folders;
+	}
+	
+	@Override
 	public List<Integer> listCategoryIds() throws WTException {
 		ArrayList<Integer> ids = new ArrayList<>();
-		for(Category category : listCategories()) {
+		for (Category category : listCategories()) {
 			ids.add(category.getCategoryId());
+		}
+		return ids;
+	}
+	
+	@Override
+	public List<Integer> listIncomingCategoryIds() throws WTException {
+		ArrayList<Integer> ids = new ArrayList<>();
+		for (CategoryRoot root : listIncomingCategoryRoots()) {
+			ids.addAll(listIncomingCategoryFolders(root.getShareId()).keySet());
 		}
 		return ids;
 	}
@@ -486,6 +497,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
+	}
+	
+	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds) throws WTException {
+		return listUpcomingTasks(categoryFolderIds, null);
 	}
 	
 	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
