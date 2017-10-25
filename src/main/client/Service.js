@@ -49,6 +49,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.view.Task',
 		'Sonicle.webtop.tasks.view.CategoryChooser',
 		'Sonicle.webtop.tasks.view.HiddenCategories',
+		'Sonicle.webtop.tasks.ServiceApi',
 		'Sonicle.webtop.tasks.portlet.Tasks'
 	],
 	mixins: [
@@ -56,6 +57,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	],
 	
 	needsReload: true,
+	api: null,
+	
+	getApiInstance: function() {
+		var me = this;
+		if (!me.api) me.api = Ext.create('Sonicle.webtop.tasks.ServiceApi', {service: me});
+		return me.api;
+	},
 	
 	init: function() {
 		var me = this;
