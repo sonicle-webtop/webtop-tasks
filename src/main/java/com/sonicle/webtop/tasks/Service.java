@@ -33,6 +33,7 @@
 package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.IntegerArray;
@@ -592,7 +593,8 @@ public class Service extends BaseService {
 				}
 			} else {
 				final Set<Integer> ids = folders.keySet();
-				for (FolderTasks foTaskObj : manager.listFolderTasks(ids, "%"+query+"%")) {
+				final String pattern = LangUtils.patternizeWords(query);
+				for (FolderTasks foTaskObj : manager.listFolderTasks(ids, pattern)) {
 					final CategoryRoot root = rootByFolder.get(foTaskObj.folder.getCategoryId());
 					if (root == null) continue;
 					final CategoryFolder folder = folders.get(foTaskObj.folder.getCategoryId());

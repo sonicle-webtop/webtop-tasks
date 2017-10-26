@@ -40,6 +40,13 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 	
 	initComponent: function() {
 		var me = this;
+		Ext.apply(me, {
+			bbar: {
+				xtype: 'statusbar',
+				reference: 'sbar',
+				hidden: true
+			}
+		});
 		me.callParent(arguments);
 		me.add({
 			region: 'center',
@@ -52,7 +59,12 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 					extraParams: {
 						query: null
 					}
-				})
+				}),
+				listeners: {
+					load: function(s) {
+						if (me.isSearch) me.lref('sbar').setStatus(me.buildSearchStatus(s.getCount()));
+					}
+				}
 			},
 			viewConfig: {
 				getRowClass: function (rec, indx) {
@@ -92,16 +104,27 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 	},
 	
 	refresh: function() {
-		this.lref('gp').getStore().load();
+		if (!this.isSearch) {
+			this.lref('gp').getStore().load();
+		}
 	},
 	
 	recents: function() {
-		this.isSearch = false;
-		WTU.loadWithExtraParams(this.lref('gp').getStore(), {query: null});
+		var me = this;
+		me.isSearch = false;
+		me.lref('sbar').hide();
+		WTU.loadWithExtraParams(me.lref('gp').getStore(), {query: null});
 	},
 	
 	search: function(s) {
-		this.isSearch = true;
-		WTU.loadWithExtraParams(this.lref('gp').getStore(), {query: s});
+		var me = this;
+		me.isSearch = true;
+		me.lref('sbar').setStatus(me.buildSearchStatus(-1));
+		me.lref('sbar').show();
+		WTU.loadWithExtraParams(me.lref('gp').getStore(), {query: s});
+	},
+	
+	buildSearchStatus: function(count) {
+		return Ext.String.format(this.mys.res('portlet.tasks.sbar.count'), (count > -1) ? count : '?');
 	}
 });
