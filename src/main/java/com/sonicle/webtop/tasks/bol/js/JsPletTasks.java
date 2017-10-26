@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -32,50 +32,44 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
-import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.CategoryRoot;
+import com.sonicle.webtop.tasks.model.TaskEx;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTimeZone;
 
 /**
  *
  * @author malbinola
  */
-public class JsCategory {
+public class JsPletTasks {
+	public Integer taskId;
 	public Integer categoryId;
-	public String domainId;
-	public String userId;
-	public Boolean builtIn;
-	public String name;
+	public String categoryName;
+    public String categoryColor;
+	public String subject;
 	public String description;
-	public String color;
-	public String sync;
-	public Boolean isDefault;
-	public Boolean isPrivate;
+	public String dueDate;
+	public String _owner;
+	public String _frights;
+	public String _erights;
 	
-	public JsCategory(Category cat) {
-		categoryId = cat.getCategoryId();
-		domainId = cat.getDomainId();
-		userId = cat.getUserId();
-		builtIn = cat.getBuiltIn();
-		name = cat.getName();
-		description = cat.getDescription();
-		color = cat.getColor();
-		sync = EnumUtils.toSerializedName(cat.getSync());
-		isDefault = cat.getIsDefault();
-		isPrivate = cat.getIsPrivate();
-	}
-	
-	public static Category createFolder(JsCategory js) {
-		Category cat = new Category();
-		cat.setCategoryId(js.categoryId);
-		cat.setDomainId(js.domainId);
-		cat.setUserId(js.userId);
-		cat.setBuiltIn(js.builtIn);
-		cat.setName(js.name);
-		cat.setDescription(js.description);
-		cat.setColor(js.color);
-		cat.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
-		cat.setIsDefault(js.isDefault);
-		cat.setIsPrivate(js.isPrivate);
-		return cat;
+	public JsPletTasks(CategoryRoot root, CategoryFolder folder, TaskEx task, DateTimeZone profileTz) {
+		final Category category = folder.getCategory();
+		
+		taskId = task.getTaskId();
+		categoryId = task.getCategoryId();
+		categoryName = category.getName();
+		categoryColor = category.getColor();
+		subject = task.getSubject();
+		description = StringUtils.left(task.getDescription(), 250);
+		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
+		
+		_owner = (root instanceof MyCategoryRoot) ? "" : root.getDescription();
+		_frights = folder.getPerms().toString();
+		_erights = folder.getElementsPerms().toString();
 	}
 }

@@ -41,18 +41,29 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.store.Importance',
 		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.FolderNode',
-		'Sonicle.webtop.tasks.model.GridTask',
+		'Sonicle.webtop.tasks.model.GridTask'
+	],
+	uses: [
 		'Sonicle.webtop.tasks.view.Sharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
 		'Sonicle.webtop.tasks.view.CategoryChooser',
-		'Sonicle.webtop.tasks.view.HiddenCategories'
+		'Sonicle.webtop.tasks.view.HiddenCategories',
+		'Sonicle.webtop.tasks.ServiceApi',
+		'Sonicle.webtop.tasks.portlet.Tasks'
 	],
 	mixins: [
 		'WTA.mixin.FoldersTree'
 	],
 	
 	needsReload: true,
+	api: null,
+	
+	getApiInstance: function() {
+		var me = this;
+		if (!me.api) me.api = Ext.create('Sonicle.webtop.tasks.ServiceApi', {service: me});
+		return me.api;
+	},
 	
 	init: function() {
 		var me = this;

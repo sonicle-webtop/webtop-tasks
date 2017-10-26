@@ -85,5 +85,9 @@
 		<permissions>
 			<sharePermission group="CATEGORY" />
 		</permissions>
+		
+		<portlets>
+			<portlet jsClassName="portlet.Tasks" />
+		</portlets>
 	</service>
 </services>

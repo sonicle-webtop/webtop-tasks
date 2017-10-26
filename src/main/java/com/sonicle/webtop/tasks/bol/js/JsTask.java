@@ -36,7 +36,6 @@ import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
-import com.sonicle.webtop.tasks.model.TaskStatus;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -73,7 +72,7 @@ public class JsTask {
 		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
 		importance = task.getImportance();
 		isPrivate = task.getIsPrivate();
-		status = EnumUtils.getValue(task.getStatus());
+		status = EnumUtils.toSerializedName(task.getStatus());
 		percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
 		_profileId = ownerId.toString();
@@ -90,7 +89,7 @@ public class JsTask {
 		item.setCompletedDate(DateTimeUtils.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
 		item.setImportance(js.importance);
 		item.setIsPrivate(js.isPrivate);
-		item.setStatus(EnumUtils.forValue(TaskStatus.class, js.status));
+		item.setStatus(EnumUtils.forSerializedName(js.status, Task.Status.class));
 		item.setCompletionPercentage(js.percentage);
 		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
 		return item;

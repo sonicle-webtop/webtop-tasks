@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks.dal;
 
+import com.sonicle.commons.EnumUtils;
 import static com.sonicle.webtop.tasks.jooq.Sequences.SEQ_TASKS;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.dal.BaseDAO;
@@ -40,15 +41,19 @@ import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
+import com.sonicle.webtop.tasks.model.Task;
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 /**
  *
- * @author rfullone
+ * @author malbinola
  */
 public class TaskDAO extends BaseDAO {
 	private final static TaskDAO INSTANCE = new TaskDAO();
@@ -65,9 +70,11 @@ public class TaskDAO extends BaseDAO {
 	public List<VTask> viewByCategoryPattern(Connection con, int categoryId, String pattern) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
-		Condition searchCndt = null;
-		searchCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
+		Condition patternCndt = DSL.trueCondition();
+		if (!StringUtils.isBlank(pattern)) {
+			patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
 				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+		}
 		
 		return dsl
 			.select(
@@ -93,15 +100,65 @@ public class TaskDAO extends BaseDAO {
 			.where(
 				TASKS.CATEGORY_ID.equal(categoryId)
 				.and(
-					TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_NEW)
-					.or(TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_MODIFIED))
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
-					searchCndt
+					patternCndt
 				)
 			)
 			.orderBy(
 				TASKS.SUBJECT.asc()
+			)
+			.fetchInto(VTask.class);
+	}
+	
+	public List<VTask> viewUpcomingByCategoriesPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		Condition patternCndt = DSL.trueCondition();
+		if (!StringUtils.isBlank(pattern)) {
+			patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
+				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+		}
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.CATEGORY_ID,
+				TASKS.PUBLIC_UID,
+				TASKS.SUBJECT,
+				TASKS.DESCRIPTION,
+				TASKS.START_DATE,
+				TASKS.DUE_DATE,
+				TASKS.IMPORTANCE,
+				TASKS.IS_PRIVATE,
+				TASKS.STATUS,
+				TASKS.COMPLETION_PERCENTAGE,
+				TASKS.REMINDER_DATE
+			)
+			.select(
+				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
+				CATEGORIES.USER_ID.as("category_user_id")
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(
+					TASKS.DUE_DATE.isNotNull()
+					.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.DEFERRED)))
+				)
+				.and(
+					patternCndt
+				)
+			)
+			.orderBy(
+				TASKS.DUE_DATE.asc()
 			)
 			.fetchInto(VTask.class);
 	}
@@ -126,8 +183,8 @@ public class TaskDAO extends BaseDAO {
 			.where(
 				TASKS.REMINDER_DATE.isNotNull()
 				.and(
-					TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_NEW)
-					.or(TASKS.REVISION_STATUS.equal(OTask.REV_STATUS_MODIFIED))
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(TASKS.REMINDER_DATE.lessThan(until))
 			)
@@ -161,7 +218,7 @@ public class TaskDAO extends BaseDAO {
 	
 	public int insert(Connection con, OTask item, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
-		item.setRevisionStatus(OTask.REV_STATUS_NEW);
+		item.setRevisionStatus(EnumUtils.toSerializedName(Task.RevisionStatus.NEW));
 		item.setRevisionTimestamp(revisionTimestamp);
 		item.setRevisionSequence(0);
 		TasksRecord record = dsl.newRecord(TASKS, item);
@@ -173,23 +230,23 @@ public class TaskDAO extends BaseDAO {
 	
 	public int update(Connection con, OTask item, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
-		item.setRevisionStatus(OTask.REV_STATUS_MODIFIED);
+		item.setRevisionStatus(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED));
 		item.setRevisionTimestamp(revisionTimestamp);
 		return dsl
 			.update(TASKS)
-			.set(TASKS.CATEGORY_ID,item.getCategoryId())
-			.set(TASKS.REVISION_STATUS,item.getRevisionStatus())
-			.set(TASKS.REVISION_TIMESTAMP,item.getRevisionTimestamp())
-			.set(TASKS.SUBJECT,item.getSubject())
-			.set(TASKS.DESCRIPTION,item.getDescription())
-			.set(TASKS.START_DATE,item.getStartDate())
-			.set(TASKS.DUE_DATE,item.getDueDate())
-			.set(TASKS.COMPLETED_DATE,item.getCompletedDate())
-			.set(TASKS.IMPORTANCE,item.getImportance())
-			.set(TASKS.IS_PRIVATE,item.getIsPrivate())
-			.set(TASKS.STATUS,item.getStatus())
-			.set(TASKS.COMPLETION_PERCENTAGE,item.getCompletionPercentage())
-			.set(TASKS.REMINDER_DATE,item.getReminderDate())
+			.set(TASKS.CATEGORY_ID, item.getCategoryId())
+			.set(TASKS.REVISION_STATUS, item.getRevisionStatus())
+			.set(TASKS.REVISION_TIMESTAMP, item.getRevisionTimestamp())
+			.set(TASKS.SUBJECT, item.getSubject())
+			.set(TASKS.DESCRIPTION, item.getDescription())
+			.set(TASKS.START_DATE, item.getStartDate())
+			.set(TASKS.DUE_DATE, item.getDueDate())
+			.set(TASKS.COMPLETED_DATE, item.getCompletedDate())
+			.set(TASKS.IMPORTANCE, item.getImportance())
+			.set(TASKS.IS_PRIVATE, item.getIsPrivate())
+			.set(TASKS.STATUS, item.getStatus())
+			.set(TASKS.COMPLETION_PERCENTAGE, item.getCompletionPercentage())
+			.set(TASKS.REMINDER_DATE, item.getReminderDate())
 			.where(
 				TASKS.TASK_ID.equal(item.getTaskId())
 			)
@@ -201,7 +258,7 @@ public class TaskDAO extends BaseDAO {
 		return dsl
 			.update(TASKS)
 			.set(TASKS.CATEGORY_ID, categoryId)
-			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_MODIFIED)
+			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
 			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
 				TASKS.TASK_ID.equal(contactId)
@@ -220,11 +277,11 @@ public class TaskDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int updateRevisionStatus(Connection con, int taskId, String revisionStatus, DateTime revisionTimestamp) throws DAOException {
+	public int updateRevisionStatus(Connection con, int taskId, Task.RevisionStatus revisionStatus, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, revisionStatus)
+			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(revisionStatus))
 			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
 				TASKS.TASK_ID.equal(taskId)
@@ -243,27 +300,29 @@ public class TaskDAO extends BaseDAO {
 	}
 	
 	public int logicDeleteById(Connection con, int taskId, DateTime revisionTimestamp) throws DAOException {
+		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_DELETED)
+			.set(TASKS.REVISION_STATUS, DELETED)
 			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
 				TASKS.TASK_ID.equal(taskId)
-				.and(TASKS.REVISION_STATUS.notEqual(OTask.REV_STATUS_DELETED))
+				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
 			)
 			.execute();
 	}
 	
 	public int logicDeleteByCategoryId(Connection con, int categoryId, DateTime revisionTimestamp) throws DAOException {
+		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, OTask.REV_STATUS_DELETED)
+			.set(TASKS.REVISION_STATUS, DELETED)
 			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
 				TASKS.CATEGORY_ID.equal(categoryId)
-				.and(TASKS.REVISION_STATUS.notEqual(OTask.REV_STATUS_DELETED))
+				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
 			)
 			.execute();
 	}

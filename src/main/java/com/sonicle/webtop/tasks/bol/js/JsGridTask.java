@@ -32,11 +32,12 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.TaskEx;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
 
@@ -66,7 +67,7 @@ public class JsGridTask {
 	
 	public JsGridTask() {}
 	
-	public JsGridTask(CategoryFolder folder, VTask task, DateTimeZone profileTz) {
+	public JsGridTask(CategoryFolder folder, TaskEx task, DateTimeZone profileTz) {
 		Category category = folder.getCategory();
 		
 		taskId = task.getTaskId();
@@ -77,7 +78,7 @@ public class JsGridTask {
 		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
         importance = task.getImportance();
         isPrivate = task.getIsPrivate();
-        status = task.getStatus();
+        status = EnumUtils.toSerializedName(task.getStatus());
         percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
         //publicUid;

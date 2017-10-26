@@ -66,19 +66,19 @@ import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.Sync;
-import com.sonicle.webtop.tasks.model.TaskStatus;
-import java.lang.reflect.InvocationTargetException;
+import com.sonicle.webtop.tasks.model.FolderTasks;
+import com.sonicle.webtop.tasks.model.TaskEx;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -101,6 +101,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
+	}
+	
+	private TasksServiceSettings getServiceSettings() {
+		return new TasksServiceSettings(SERVICE_ID, getTargetProfileId().getDomainId());
 	}
 	
 	private void buildShareCache() {
@@ -163,55 +167,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		ArrayList<CategoryRoot> roots = new ArrayList();
-		HashSet<String> hs = new HashSet<>();
-		
-		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
-		for(IncomingShareRoot share : shares) {
-			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
-			CategoryRoot root = new CategoryRoot(share, perms);
-			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
-			hs.add(root.getShareId());
-			roots.add(root);
-		}
-		return roots;
-	}
-	
-	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
-		
-		// Retrieves incoming folders (from sharing). This lookup already 
-		// returns readable shares (we don't need to test READ permission)
-		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
-		for(OShare share : shares) {
-			
-			List<Category> cats = null;
-			if(share.hasWildcard()) {
-				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
-				cats = listCategories(ownerId);
-			} else {
-				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
-			}
-			
-			for(Category cat : cats) {
-				SharePermsFolder fperms = core.getShareFolderPermissions(share.getShareId().toString());
-				SharePermsElements eperms = core.getShareElementsPermissions(share.getShareId().toString());
-				
-				if(folders.containsKey(cat.getCategoryId())) {
-					CategoryFolder folder = folders.get(cat.getCategoryId());
-					folder.getPerms().merge(fperms);
-					folder.getElementsPerms().merge(eperms);
-				} else {
-					folders.put(cat.getCategoryId(), new CategoryFolder(share.getShareId().toString(), fperms, eperms, cat));
-				}
-			}
-		}
-		return folders;
-	}
-	
 	public String buildCategoryFolderShareId(int categoryId) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
@@ -250,18 +205,87 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
+	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
+		CoreManager core = WT.getCoreManager(getTargetProfileId());
+		ArrayList<CategoryRoot> roots = new ArrayList();
+		HashSet<String> hs = new HashSet<>();
+		
+		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
+		for(IncomingShareRoot share : shares) {
+			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
+			CategoryRoot root = new CategoryRoot(share, perms);
+			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
+			hs.add(root.getShareId());
+			roots.add(root);
+		}
+		return roots;
+	}
+	
+	@Override
+	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
+		CoreManager core = WT.getCoreManager(getTargetProfileId());
+		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
+		
+		// Retrieves incoming folders (from sharing). This lookup already 
+		// returns readable shares (we don't need to test READ permission)
+		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
+		for(OShare share : shares) {
+			
+			List<Category> cats = null;
+			if(share.hasWildcard()) {
+				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
+				cats = listCategories(ownerId);
+			} else {
+				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
+			}
+			
+			for(Category cat : cats) {
+				SharePermsFolder fperms = core.getShareFolderPermissions(share.getShareId().toString());
+				SharePermsElements eperms = core.getShareElementsPermissions(share.getShareId().toString());
+				
+				if(folders.containsKey(cat.getCategoryId())) {
+					CategoryFolder folder = folders.get(cat.getCategoryId());
+					folder.getPerms().merge(fperms);
+					folder.getElementsPerms().merge(eperms);
+				} else {
+					folders.put(cat.getCategoryId(), new CategoryFolder(share.getShareId().toString(), fperms, eperms, cat));
+				}
+			}
+		}
+		return folders;
+	}
+	
+	@Override
+	public List<Integer> listCategoryIds() throws WTException {
+		ArrayList<Integer> ids = new ArrayList<>();
+		for (Category category : listCategories()) {
+			ids.add(category.getCategoryId());
+		}
+		return ids;
+	}
+	
+	@Override
+	public List<Integer> listIncomingCategoryIds() throws WTException {
+		ArrayList<Integer> ids = new ArrayList<>();
+		for (CategoryRoot root : listIncomingCategoryRoots()) {
+			ids.addAll(listIncomingCategoryFolders(root.getShareId()).keySet());
+		}
+		return ids;
+	}
+	
+	@Override
 	public List<Category> listCategories() throws WTException {
 		return listCategories(getTargetProfileId());
 	}
 	
 	private List<Category> listCategories(UserProfileId pid) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
 		ArrayList<Category> items = new ArrayList<>();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			for (OCategory ocat : catdao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
+			for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
 				items.add(createCategory(ocat));
 			}
 			return items;
@@ -315,19 +339,19 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public Category addCategory(Category cat) throws WTException {
+	public Category addCategory(Category category) throws WTException {
 		Connection con = null;
 		
 		try {
-			checkRightsOnCategoryRoot(cat.getProfileId(), "MANAGE");
+			checkRightsOnCategoryRoot(category.getProfileId(), "MANAGE");
 			
 			con = WT.getConnection(SERVICE_ID, false);
-			cat.setBuiltIn(false);
-			cat = doCategoryUpdate(true, con, cat);
+			category.setBuiltIn(false);
+			category = doCategoryUpdate(true, con, category);
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_INSERT", String.valueOf(cat.getCategoryId()));
+			writeLog("CATEGORY_INSERT", String.valueOf(category.getCategoryId()));
 			
-			return cat;
+			return category;
 			
 		} catch(SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -355,17 +379,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				return null;
 			}
 			
-			TasksServiceSettings ss = new TasksServiceSettings(SERVICE_ID, getTargetProfileId().getDomainId());
-			
 			Category cat = new Category();
-			cat.setDomainId(getTargetProfileId().getDomainId());
-			cat.setUserId(getTargetProfileId().getUserId());
 			cat.setBuiltIn(true);
 			cat.setName(WT.getPlatformName());
 			cat.setDescription("");
-			cat.setColor("#FFFFFF");
-			cat.setSync(ss.getDefaultCategorySync());
-			cat.setIsPrivate(false);
 			cat.setIsDefault(true);
 			cat = doCategoryUpdate(true, con, cat);
 			DbUtils.commitQuietly(con);
@@ -450,34 +467,63 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.closeQuietly(con);
 		}
 	}
-
-	public List<CategoryTasks> listTasks(CategoryRoot root, Integer[] categoryFolders, String pattern) throws WTException {
-		return listTasks(root.getOwnerProfileId(), categoryFolders, pattern);
-	}
 	
-	public List<CategoryTasks> listTasks(UserProfileId pid, Integer[] categoryFolders, String pattern) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
-		TaskDAO tasdao = TaskDAO.getInstance();
-		ArrayList<CategoryTasks> catTasks = new ArrayList<>();
+	@Override
+	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
-            // TODO: implementare filtro task privati
 			con = WT.getConnection(SERVICE_ID);
 			
-			// Lists desired groups (tipically visibles) coming from passed list
-			// Passed ids should belong to referenced folder(group), 
-			// this is ensured using domainId and userId parameters in below query.
-			List<OCategory> ocats = catdao.selectByProfileIn(con, pid.getDomainId(), pid.getUserId(), categoryFolders);
-			List<VTask> vts = null;
-			for(OCategory ocat : ocats) {
+			// TODO: implementare filtro task privati
+			ArrayList<FolderTasks> foTasks = new ArrayList<>();
+			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryFolderIds);
+			for (OCategory ocat : ocats) {
 				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
 				
-				vts = tasdao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
-				catTasks.add(new CategoryTasks(createCategory(ocat), vts));
+				final List<VTask> vtasks = tasDao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
+				final ArrayList<TaskEx> tasks = new ArrayList<>();
+				for (VTask vtask : vtasks) {
+					tasks.add(fillTaskEx(new TaskEx(), vtask));
+				}
+				foTasks.add(new FolderTasks(createCategory(ocat), tasks));
 			}
-			return catTasks;
+			return foTasks;
+			
+		} catch (SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds) throws WTException {
+		return listUpcomingTasks(categoryFolderIds, null);
+	}
+	
+	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
 		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			ArrayList<Integer> validIds = new ArrayList<>();
+			for(Integer catId : categoryFolderIds) {
+				if (!quietlyCheckRightsOnCategoryFolder(catId, "READ")) continue;
+				validIds.add(catId);
+			}
+			
+			ArrayList<TaskEx> items = new ArrayList<>();
+			List<VTask> vtasks = tasDao.viewUpcomingByCategoriesPattern(con, validIds, pattern);
+			for(VTask vtask : vtasks) {
+				items.add(fillTaskEx(new TaskEx(), vtask));
+			}
+			
+			return items;
+			
 		} catch(SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
 		} finally {
@@ -516,11 +562,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			checkRightsOnCategoryElements(task.getCategoryId(), "CREATE"); // Rights check!
 			
-			con = WT.getConnection(SERVICE_ID);
-			con.setAutoCommit(false);
-			OTask result = doInsertTask(con, task);
+			con = WT.getConnection(SERVICE_ID, false);
+			OTask otask = doUpdateTask(true, con, task);
 			DbUtils.commitQuietly(con);
-			writeLog("TASK_INSERT", String.valueOf(result.getTaskId()));
+			writeLog("TASK_INSERT", String.valueOf(otask.getTaskId()));
 			
 			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, task.getSubject());
 			
@@ -544,9 +589,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE"); // Rights check!
 
-			con = WT.getConnection(SERVICE_ID);
-			con.setAutoCommit(false);
-			doUpdateTask(con, task);
+			con = WT.getConnection(SERVICE_ID, false);
+			doUpdateTask(false, con, task);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
 
@@ -764,49 +808,50 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return alerts;
 	}
 	
-	
-	
 	private Category doCategoryUpdate(boolean insert, Connection con, Category cat) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
 		
 		OCategory ocat = createOCategory(cat);
-		if (ocat.getDomainId() == null) ocat.setDomainId(getTargetProfileId().getDomainId());
-		if (ocat.getUserId() == null) ocat.setUserId(getTargetProfileId().getUserId());
-		
-		if(ocat.getIsDefault()) catdao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
 		if (insert) {
-			ocat.setCategoryId(catdao.getSequence(con).intValue());
-			catdao.insert(con, ocat);
+			ocat.setCategoryId(catDao.getSequence(con).intValue());
+		}
+		fillOCategoryWithDefaults(ocat);
+		if (ocat.getIsDefault()) catDao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
+		if (insert) {
+			catDao.insert(con, ocat);
 		} else {
-			catdao.update(con, ocat);
+			catDao.update(con, ocat);
 		}
 		
 		return createCategory(ocat);
 	}
 	
-	private OTask doInsertTask(Connection con, Task task) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
-		OTask item = new OTask();
-		try {
-			BeanUtils.copyProperties(item, task);
-		} catch (IllegalAccessException | InvocationTargetException ex) {
-			throw new WTException(ex, "Error creating bean");
-		}
-		if(StringUtils.isEmpty(item.getPublicUid())) item.setPublicUid(IdentifierUtils.getUUID());
-        item.setTaskId(tasdao.getSequence(con).intValue());
-        tasdao.insert(con, item, createRevisionTimestamp());
-        return item;
+	private String buildTaskUid(int taskId, String internetName) {
+		return buildTaskUid(IdentifierUtils.getUUIDTimeBased(true), taskId, internetName);
 	}
 	
-	private void doUpdateTask(Connection con, Task task) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
-		OTask item = new OTask();
-		try {
-			BeanUtils.copyProperties(item, task);
-		} catch (IllegalAccessException | InvocationTargetException ex) {
-			throw new WTException(ex, "Error creating bean");
+	private String buildTaskUid(String timeBasedPart, int taskId, String internetName) {
+		return buildTaskUid(timeBasedPart, DigestUtils.md5Hex(String.valueOf(taskId)), internetName);
+	}
+	
+	private String buildTaskUid(String timeBasedPart, String taskPart, String internetName) {
+		return timeBasedPart + "." + taskPart + "@" + internetName;
+	}
+	
+	private OTask doUpdateTask(boolean insert, Connection con, Task task) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		
+		OTask otask = createOTask(task);
+		if (insert) {
+			otask.setTaskId(tasDao.getSequence(con).intValue());
 		}
-        tasdao.update(con, item, createRevisionTimestamp());
+		fillOTaskWithDefaults(otask);
+		if (insert) {
+			tasDao.insert(con, otask, createRevisionTimestamp());
+		} else {
+			tasDao.update(con, otask, createRevisionTimestamp());
+		}
+		return otask;
 	}
 	
 	private int doDeleteTask(Connection con, int taskId) throws WTException {
@@ -822,10 +867,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void doMoveTask(Connection con, boolean copy, Task task, int targetCategoryId) throws WTException {
 		if(copy) {
 			task.setCategoryId(targetCategoryId);
-            doInsertTask(con, task);
+			doUpdateTask(true, con, task);
 		} else {
-			TaskDAO tasdao = TaskDAO.getInstance();
-			tasdao.updateCategory(con, task.getTaskId(), targetCategoryId, createRevisionTimestamp());
+			TaskDAO tasDao = TaskDAO.getInstance();
+			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, createRevisionTimestamp());
 		}
 	}
 	
@@ -875,7 +920,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void checkRightsOnCategoryFolder(int categoryId, String action) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
-		if(RunContext.isWebTopAdmin()) return;
+		if (RunContext.isWebTopAdmin()) return;
 		
 		// Skip rights check if running user is resource's owner
 		UserProfileId ownerPid = categoryToOwner(categoryId);
@@ -926,58 +971,131 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
 	
-	private Category createCategory(OCategory ocat) {
-		if (ocat == null) return null;
-		Category cat = new Category();
-		cat.setCategoryId(ocat.getCategoryId());
-		cat.setDomainId(ocat.getDomainId());
-		cat.setUserId(ocat.getUserId());
-		cat.setBuiltIn(ocat.getBuiltIn());
-		cat.setName(ocat.getName());
-		cat.setDescription(ocat.getDescription());
-		cat.setColor(ocat.getColor());
-		cat.setSync(EnumUtils.forValue(Sync.class, ocat.getSync()));
-		cat.setIsPrivate(ocat.getIsPrivate());
-		cat.setIsDefault(ocat.getIsDefault());
-		return cat;
+	private Category createCategory(OCategory with) {
+		return fillCategory(new Category(), with);
 	}
 	
-	private OCategory createOCategory(Category cat) {
-		if (cat == null) return null;
-		OCategory ocat = new OCategory();
-		ocat.setCategoryId(cat.getCategoryId());
-		ocat.setDomainId(cat.getDomainId());
-		ocat.setUserId(cat.getUserId());
-		ocat.setBuiltIn(cat.getBuiltIn());
-		ocat.setName(cat.getName());
-		ocat.setDescription(cat.getDescription());
-		ocat.setColor(cat.getColor());
-		ocat.setSync(EnumUtils.getValue(cat.getSync()));
-		ocat.setIsPrivate(cat.getIsPrivate());
-		ocat.setIsDefault(cat.getIsDefault());
-		return ocat;
+	private Category fillCategory(Category fill, OCategory with) {
+		if ((fill != null) && (with != null)) {
+			fill.setCategoryId(with.getCategoryId());
+			fill.setDomainId(with.getDomainId());
+			fill.setUserId(with.getUserId());
+			fill.setBuiltIn(with.getBuiltIn());
+			fill.setName(with.getName());
+			fill.setDescription(with.getDescription());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.forSerializedName(with.getSync(), Category.Sync.class));
+			fill.setIsPrivate(with.getIsPrivate());
+			fill.setIsDefault(with.getIsDefault());
+		}
+		return fill;
 	}
 	
-	private Task createTask(OTask otask) throws WTException {
-		if (otask == null) return null;
-		Task task = new Task();
-		task.setTaskId(otask.getTaskId());
-		task.setCategoryId(otask.getCategoryId());
-		task.setRevisionStatus(otask.getRevisionStatus());
-		task.setRevisionTimestamp(otask.getRevisionTimestamp());
-		task.setPublicUid(otask.getPublicUid());
-		task.setSubject(otask.getSubject());
-		task.setDescription(otask.getDescription());
-		task.setStartDate(otask.getStartDate());
-		task.setDueDate(otask.getDueDate());
-		task.setCompletedDate(otask.getCompletedDate());
-		task.setImportance(otask.getImportance());
-		task.setIsPrivate(otask.getIsPrivate());
-		task.setStatus(EnumUtils.forValue(TaskStatus.class, otask.getStatus()));
-		task.setCompletionPercentage(otask.getCompletionPercentage());
-		task.setReminderDate(otask.getReminderDate());
-		task.setRemindedOn(otask.getRemindedOn());
-		return task;
+	private OCategory createOCategory(Category with) {
+		return fillOCategory(new OCategory(), with);
+	}
+	
+	private OCategory fillOCategory(OCategory fill, Category with) {
+		if ((fill != null) && (with != null)) {
+			fill.setCategoryId(with.getCategoryId());
+			fill.setDomainId(with.getDomainId());
+			fill.setUserId(with.getUserId());
+			fill.setBuiltIn(with.getBuiltIn());
+			fill.setName(with.getName());
+			fill.setDescription(with.getDescription());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.toSerializedName(with.getSync()));
+			fill.setIsPrivate(with.getIsPrivate());
+			fill.setIsDefault(with.getIsDefault());
+		}
+		return fill;
+	}
+	
+	private OCategory fillOCategoryWithDefaults(OCategory fill) {
+		if (fill != null) {
+			TasksServiceSettings ss = getServiceSettings();
+			if (fill.getDomainId() == null) fill.setDomainId(getTargetProfileId().getDomainId());
+			if (fill.getUserId() == null) fill.setUserId(getTargetProfileId().getUserId());
+			if (fill.getBuiltIn() == null) fill.setBuiltIn(false);
+			if (StringUtils.isBlank(fill.getColor())) fill.setColor("#FFFFFF");
+			if (StringUtils.isBlank(fill.getSync())) fill.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
+			if (fill.getIsDefault() == null) fill.setIsDefault(false);
+			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
+		}
+		return fill;
+	}
+	
+	private Task createTask(OTask with) {
+		return fillTask(new Task(), with);
+	}
+	
+	private Task fillTask(Task fill, OTask with) {
+		if ((fill != null) && (with != null)) {
+			fill.setTaskId(with.getTaskId());
+			fill.setCategoryId(with.getCategoryId());
+			fill.setRevisionStatus(EnumUtils.forSerializedName(with.getRevisionStatus(), Task.RevisionStatus.class));
+			fill.setRevisionTimestamp(with.getRevisionTimestamp());
+			fill.setPublicUid(with.getPublicUid());
+			fill.setSubject(with.getSubject());
+			fill.setDescription(with.getDescription());
+			fill.setStartDate(with.getStartDate());
+			fill.setDueDate(with.getDueDate());
+			fill.setCompletedDate(with.getCompletedDate());
+			fill.setImportance(with.getImportance());
+			fill.setIsPrivate(with.getIsPrivate());
+			fill.setStatus(EnumUtils.forSerializedName(with.getStatus(), Task.Status.class));
+			fill.setCompletionPercentage(with.getCompletionPercentage());
+			fill.setReminderDate(with.getReminderDate());
+			fill.setRemindedOn(with.getRemindedOn());
+		}
+		return fill;
+	}
+	
+	private OTask createOTask(Task with) {
+		return fillOTask(new OTask(), with);
+	}
+	
+	private OTask fillOTask(OTask fill, Task with) {
+		if ((fill != null) && (with != null)) {
+			fill.setTaskId(with.getTaskId());
+			fill.setCategoryId(with.getCategoryId());
+			fill.setRevisionStatus(EnumUtils.toSerializedName(with.getRevisionStatus()));
+			fill.setRevisionTimestamp(with.getRevisionTimestamp());
+			fill.setPublicUid(with.getPublicUid());
+			fill.setSubject(with.getSubject());
+			fill.setDescription(with.getDescription());
+			fill.setStartDate(with.getStartDate());
+			fill.setDueDate(with.getDueDate());
+			fill.setCompletedDate(with.getCompletedDate());
+			fill.setImportance(with.getImportance());
+			fill.setIsPrivate(with.getIsPrivate());
+			fill.setStatus(EnumUtils.toSerializedName(with.getStatus()));
+			fill.setCompletionPercentage(with.getCompletionPercentage());
+			fill.setReminderDate(with.getReminderDate());
+			fill.setRemindedOn(with.getRemindedOn());
+		}
+		return fill;
+	}
+	
+	private OTask fillOTaskWithDefaults(OTask fill) {
+		if (fill != null) {
+			if (StringUtils.isBlank(fill.getPublicUid())) {
+				fill.setPublicUid(buildTaskUid(fill.getTaskId(), WT.getDomainInternetName(getTargetProfileId().getDomainId())));
+			}
+			if (fill.getImportance() == null) fill.setImportance((short)0);
+			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
+			if (fill.getStatus() == null) fill.setStatus(EnumUtils.toSerializedName(Task.Status.NOT_STARTED));
+		}
+		return fill;
+	}
+	
+	private TaskEx fillTaskEx(TaskEx fill, VTask with) {
+		if ((fill != null) && (with != null)) {
+			fillTask(fill, with);
+			fill.setCategoryDomainId(with.getCategoryDomainId());
+			fill.setCategoryUserId(with.getCategoryUserId());
+		}
+		return fill;
 	}
 	
 	private ReminderInApp createTaskReminderAlertWeb(VTask task, DateTime profileReminderDate, DateTimeZone profileTz) {
@@ -1001,15 +1119,5 @@ public class TasksManager extends BaseManager implements ITasksManager {
     
 	private DateTime createRevisionTimestamp() {
 		return DateTime.now(DateTimeZone.UTC);
-	}
-	
-    public static class CategoryTasks {
-		public final Category folder;
-		public final List<VTask> tasks;
-		
-		public CategoryTasks(Category folder, List<VTask> tasks) {
-			this.folder = folder;
-			this.tasks = tasks;
-		}
 	}
 }
