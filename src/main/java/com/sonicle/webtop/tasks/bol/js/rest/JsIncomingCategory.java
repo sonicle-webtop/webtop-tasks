@@ -33,6 +33,7 @@
 package com.sonicle.webtop.tasks.bol.js.rest;
 
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
 import com.sonicle.webtop.tasks.model.CategoryRoot;
@@ -46,6 +47,7 @@ public class JsIncomingCategory {
 	public String ownerDisplayName;
 	public Integer categoryId;
 	public String categoryName;
+	public Boolean readOnly;
 	
 	public JsIncomingCategory(CategoryRoot root, CategoryFolder folder) {
 		UserProfile.Data udata = WT.getUserData(root.getOwnerProfileId());
@@ -53,5 +55,6 @@ public class JsIncomingCategory {
 		this.ownerDisplayName = udata.getDisplayName();
 		this.categoryId = folder.getCategory().getCategoryId();
 		this.categoryName = folder.getCategory().getName();
+		this.readOnly = !SharePermsElements.full().toString().equals(folder.getElementsPerms().toString());
 	}
 }
