@@ -1,7 +1,7 @@
 <#if licenseFirst??>
 ${licenseFirst}
 </#if>
-${licensePrefix}Copyright (C) 2014 Sonicle S.r.l.
+${licensePrefix}Copyright (C) ${date?date?string("yyyy")} Sonicle S.r.l.
 ${licensePrefix?replace(" +$", "", "r")}
 ${licensePrefix}This program is free software; you can redistribute it and/or modify it under
 ${licensePrefix}the terms of the GNU Affero General Public License version 3 as published by
@@ -30,7 +30,7 @@ ${licensePrefix}In accordance with Section 7(b) of the GNU Affero General Public
 ${licensePrefix}version 3, these Appropriate Legal Notices must retain the display of the
 ${licensePrefix}Sonicle logo and Sonicle copyright notice. If the display of the logo is not
 ${licensePrefix}reasonably feasible for technical reasons, the Appropriate Legal Notices must
-${licensePrefix}display the words "Copyright (C) 2014 Sonicle S.r.l.".
+${licensePrefix}display the words "Copyright (C) ${date?date?string("yyyy")} Sonicle S.r.l.".
 <#if licenseLast??>
 ${licenseLast}
 </#if>

@@ -69,8 +69,12 @@
 		<version>@@webtop.service.version@@</version>
 		<buildDate>@@webtop.service.buildDate@@</buildDate>
 		
+		<controller name=".TasksController" />
+		<manager name=".TasksManager" />
+		<!--
 		<controllerClassName>TasksController</controllerClassName>
 		<managerClassName>TasksManager</managerClassName>
+		-->
 		<serviceClassName>Service</serviceClassName>
 		<company>Sonicle S.r.l.</company>
 		<companyEmail>sonicle@sonicle.com</companyEmail>
@@ -81,6 +85,8 @@
 			<viewJsClassName>view.UserOptions</viewJsClassName>
 			<modelJsClassName>model.UserOptions</modelJsClassName>
 		</userOptions>
+		
+		<restApiEndpoint name=".RestApi" />
 		
 		<permissions>
 			<sharePermission group="CATEGORY" />
