@@ -67,6 +67,8 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 				}
 			},
 			viewConfig: {
+				deferEmptyText: false,
+				emptyText: me.mys.res('portlet.tasks.gp.emp'),
 				getRowClass: function (rec, indx) {
 					if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(rec.get('dueDate'), new Date(), false)>0)
 						return 'wttasks-row-expired';
