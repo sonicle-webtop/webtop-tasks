@@ -71,7 +71,7 @@ import com.sonicle.webtop.tasks.bol.js.JsPletTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryPropertySet;
+import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskEx;
@@ -405,8 +405,8 @@ public class Service extends BaseService {
 				synchronized(roots) {
 					for (CategoryFolder folder : foldersByRoot.get(rootId)) {
 						if (folder.getData() != null) {
-							CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
-							if ((propertySet.getHidden() != null) && propertySet.getHidden()) {
+							CategoryPropSet pset = (CategoryPropSet)folder.getData();
+							if ((pset.getHidden() != null) && pset.getHidden()) {
 								items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
 							}
 						}
@@ -748,14 +748,14 @@ public class Service extends BaseService {
 	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
 		synchronized(roots) {
 			try {
-				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
 				pset.setHidden(hidden);
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
 				CategoryFolder folder = folders.get(categoryId);
 				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropertySet)folder.getData()).set(pset);
+					((CategoryPropSet)folder.getData()).set(pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -766,14 +766,14 @@ public class Service extends BaseService {
 	private void updateCategoryFolderColor(int categoryId, String color) {
 		synchronized(roots) {
 			try {
-				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
 				pset.setColor(color);
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
 				CategoryFolder folder = folders.get(categoryId);
 				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropertySet)folder.getData()).set(pset);
+					((CategoryPropSet)folder.getData()).set(pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -784,14 +784,14 @@ public class Service extends BaseService {
 	private void updateCategoryFolderSync(int categoryId, Category.Sync sync) {
 		synchronized(roots) {
 			try {
-				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
 				pset.setSync(sync);
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
 				CategoryFolder folder = folders.get(categoryId);
 				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropertySet)folder.getData()).set(pset);
+					((CategoryPropSet)folder.getData()).set(pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -827,14 +827,10 @@ public class Service extends BaseService {
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
 		
 		if (folder.getData() != null) {
-			//CategoryFolderData data = (CategoryFolderData)folder.getData();
-			//if ((data.hidden != null) && data.hidden) return null;
-			//if (!StringUtils.isBlank(data.color)) color = data.color;
-			
-			CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
-			if ((propertySet.getHidden() != null) && propertySet.getHidden()) return null;
-			if (!StringUtils.isBlank(propertySet.getColor())) color = propertySet.getColor();
-			if (propertySet.getSync() != null) sync = propertySet.getSync();
+			CategoryPropSet pset = (CategoryPropSet)folder.getData();
+			if ((pset.getHidden() != null) && pset.getHidden()) return null;
+			if (!StringUtils.isBlank(pset.getColor())) color = pset.getColor();
+			if (pset.getSync() != null) sync = pset.getSync();
 		}
 		
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);

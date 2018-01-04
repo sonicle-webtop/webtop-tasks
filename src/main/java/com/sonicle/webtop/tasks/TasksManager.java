@@ -58,7 +58,7 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
-import com.sonicle.webtop.tasks.bol.OCategoryPropertySet;
+import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
@@ -66,10 +66,10 @@ import com.sonicle.webtop.tasks.model.CategoryFolder;
 import com.sonicle.webtop.tasks.model.CategoryRoot;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
-import com.sonicle.webtop.tasks.dal.CategoryPropertySetDAO;
+import com.sonicle.webtop.tasks.dal.CategoryPropsDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryPropertySet;
+import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import java.sql.Connection;
@@ -434,7 +434,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	@Override
 	public boolean deleteCategory(int categoryId) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
-		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
 		try {
@@ -476,18 +476,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public CategoryPropertySet getCategoryCustomProps(int categoryId) throws WTException {
+	public CategoryPropSet getCategoryCustomProps(int categoryId) throws WTException {
 		return getCategoryCustomProps(getTargetProfileId(), categoryId);
 	}
 	
-	private CategoryPropertySet getCategoryCustomProps(UserProfileId profileId, int categoryId) throws WTException {
-		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+	private CategoryPropSet getCategoryCustomProps(UserProfileId profileId, int categoryId) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			OCategoryPropertySet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
-			return (opset == null) ? new CategoryPropertySet() : createCategoryPropertySet(opset);
+			OCategoryPropSet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
+			return (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset);
 			
 		} catch(SQLException | DAOException ex) {
 			throw new WTException(ex, "DB error");
@@ -497,21 +497,21 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public Map<Integer, CategoryPropertySet> getCategoryCustomProps(Collection<Integer> categoryIds) throws WTException {
+	public Map<Integer, CategoryPropSet> getCategoryCustomProps(Collection<Integer> categoryIds) throws WTException {
 		return getCategoryCustomProps(getTargetProfileId(), categoryIds);
 	}
 	
-	public Map<Integer, CategoryPropertySet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
-		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+	public Map<Integer, CategoryPropSet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			LinkedHashMap<Integer, CategoryPropertySet> psets = new LinkedHashMap<>(categoryIds.size());
-			Map<Integer, OCategoryPropertySet> map = psetDao.selectByProfileCategoryIn(con, profileId.getDomainId(), profileId.getUserId(), categoryIds);
+			LinkedHashMap<Integer, CategoryPropSet> psets = new LinkedHashMap<>(categoryIds.size());
+			Map<Integer, OCategoryPropSet> map = psetDao.selectByProfileCategoryIn(con, profileId.getDomainId(), profileId.getUserId(), categoryIds);
 			for (Integer categoryId : categoryIds) {
-				OCategoryPropertySet opset = map.get(categoryId);
-				psets.put(categoryId, (opset == null) ? new CategoryPropertySet() : createCategoryPropertySet(opset));
+				OCategoryPropSet opset = map.get(categoryId);
+				psets.put(categoryId, (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset));
 			}
 			return psets;
 			
@@ -523,17 +523,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public CategoryPropertySet updateCategoryCustomProps(int categoryId, CategoryPropertySet propertySet) throws WTException {
+	public CategoryPropSet updateCategoryCustomProps(int categoryId, CategoryPropSet propertySet) throws WTException {
 		ensureUser();
 		return updateCategoryCustomProps(getTargetProfileId(), categoryId, propertySet);
 	}
 	
-	private CategoryPropertySet updateCategoryCustomProps(UserProfileId profileId, int categoryId, CategoryPropertySet propertySet) throws WTException {
-		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+	private CategoryPropSet updateCategoryCustomProps(UserProfileId profileId, int categoryId, CategoryPropSet propertySet) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
 		try {
-			OCategoryPropertySet opset = createOCategoryPropertySet(propertySet);
+			OCategoryPropSet opset = createOCategoryPropSet(propertySet);
 			opset.setDomainId(profileId.getDomainId());
 			opset.setUserId(profileId.getUserId());
 			opset.setCategoryId(categoryId);
@@ -811,7 +811,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	public void eraseData(boolean deep) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
-		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
@@ -1112,11 +1112,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return fill;
 	}
 	
-	private CategoryPropertySet createCategoryPropertySet(OCategoryPropertySet with) {
-		return fillCategoryPropertySet(new CategoryPropertySet(), with);
+	private CategoryPropSet createCategoryPropSet(OCategoryPropSet with) {
+		return fillCategoryPropSet(new CategoryPropSet(), with);
 	}
 	
-	private CategoryPropertySet fillCategoryPropertySet(CategoryPropertySet fill, OCategoryPropertySet with) {
+	private CategoryPropSet fillCategoryPropSet(CategoryPropSet fill, OCategoryPropSet with) {
 		if ((fill != null) && (with != null)) {
 			fill.setHidden(with.getHidden());
 			fill.setColor(with.getColor());
@@ -1125,11 +1125,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return fill;
 	}
 	
-	private OCategoryPropertySet createOCategoryPropertySet(CategoryPropertySet with) {
-		return fillOCategoryPropertySet(new OCategoryPropertySet(), with);
+	private OCategoryPropSet createOCategoryPropSet(CategoryPropSet with) {
+		return fillOCategoryPropSet(new OCategoryPropSet(), with);
 	}
 	
-	private OCategoryPropertySet fillOCategoryPropertySet(OCategoryPropertySet fill, CategoryPropertySet with) {
+	private OCategoryPropSet fillOCategoryPropSet(OCategoryPropSet fill, CategoryPropSet with) {
 		if ((fill != null) && (with != null)) {
 			fill.setHidden(with.getHidden());
 			fill.setColor(with.getColor());

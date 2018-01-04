@@ -1,10 +1,10 @@
 @DataSource[default@com.sonicle.webtop.tasks]
 
 -- ----------------------------
--- Table structure for category_property_sets
+-- Table structure for category_props
 -- ----------------------------
-DROP TABLE IF EXISTS "tasks"."category_property_sets";
-CREATE TABLE "tasks"."category_property_sets" (
+DROP TABLE IF EXISTS "tasks"."category_props";
+CREATE TABLE "tasks"."category_props" (
 "domain_id" varchar(20) NOT NULL,
 "user_id" varchar(100) NOT NULL,
 "category_id" int4 NOT NULL,
@@ -16,14 +16,14 @@ WITH (OIDS=FALSE)
 ;
 
 -- ----------------------------
--- Indexes structure for table category_property_sets
+-- Indexes structure for table category_props
 -- ----------------------------
-CREATE INDEX "category_property_sets_ak1" ON "tasks"."category_property_sets" USING btree ("category_id");
+CREATE INDEX "category_props_ak1" ON "tasks"."category_props" USING btree ("category_id");
 
 -- ----------------------------
--- Primary Key structure for table category_property_sets
+-- Primary Key structure for table category_props
 -- ----------------------------
-ALTER TABLE "tasks"."category_property_sets" ADD PRIMARY KEY ("domain_id", "user_id", "category_id");
+ALTER TABLE "tasks"."category_props" ADD PRIMARY KEY ("domain_id", "user_id", "category_id");
 
 -- ----------------------------
 -- Cleanup old settings

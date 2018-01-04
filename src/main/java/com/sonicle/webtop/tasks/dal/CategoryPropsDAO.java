@@ -34,12 +34,11 @@ package com.sonicle.webtop.tasks.dal;
 
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
-import com.sonicle.webtop.tasks.bol.OCategoryPropertySet;
-import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORY_PROPERTY_SETS;
-import com.sonicle.webtop.tasks.jooq.tables.records.CategoryPropertySetsRecord;
+import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
+import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORY_PROPS;
+import com.sonicle.webtop.tasks.jooq.tables.records.CategoryPropsRecord;
 import java.sql.Connection;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import org.jooq.DSLContext;
 
@@ -47,58 +46,58 @@ import org.jooq.DSLContext;
  *
  * @author malbinola
  */
-public class CategoryPropertySetDAO extends BaseDAO {
-	private final static CategoryPropertySetDAO INSTANCE = new CategoryPropertySetDAO();
-	public static CategoryPropertySetDAO getInstance() {
+public class CategoryPropsDAO extends BaseDAO {
+	private final static CategoryPropsDAO INSTANCE = new CategoryPropsDAO();
+	public static CategoryPropsDAO getInstance() {
 		return INSTANCE;
 	}
 	
-	public Map<Integer, OCategoryPropertySet> selectByProfileCategoryIn(Connection con, String domainId, String userId, Collection<Integer> categoryIds) throws DAOException {
+	public Map<Integer, OCategoryPropSet> selectByProfileCategoryIn(Connection con, String domainId, String userId, Collection<Integer> categoryIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
-			.from(CATEGORY_PROPERTY_SETS)
+			.from(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(domainId)
-				.and(CATEGORY_PROPERTY_SETS.USER_ID.equal(userId))
-				.and(CATEGORY_PROPERTY_SETS.CATEGORY_ID.in(categoryIds))
+				CATEGORY_PROPS.DOMAIN_ID.equal(domainId)
+				.and(CATEGORY_PROPS.USER_ID.equal(userId))
+				.and(CATEGORY_PROPS.CATEGORY_ID.in(categoryIds))
 			)
-			.fetchMap(CATEGORY_PROPERTY_SETS.CATEGORY_ID, OCategoryPropertySet.class);
+			.fetchMap(CATEGORY_PROPS.CATEGORY_ID, OCategoryPropSet.class);
 	}
 	
-	public OCategoryPropertySet selectByProfileCategory(Connection con, String domainId, String userId, int categoryId) throws DAOException {
+	public OCategoryPropSet selectByProfileCategory(Connection con, String domainId, String userId, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
-			.from(CATEGORY_PROPERTY_SETS)
+			.from(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(domainId)
-				.and(CATEGORY_PROPERTY_SETS.USER_ID.equal(userId))
-				.and(CATEGORY_PROPERTY_SETS.CATEGORY_ID.equal(categoryId))
+				CATEGORY_PROPS.DOMAIN_ID.equal(domainId)
+				.and(CATEGORY_PROPS.USER_ID.equal(userId))
+				.and(CATEGORY_PROPS.CATEGORY_ID.equal(categoryId))
 			)
-			.fetchOneInto(OCategoryPropertySet.class);
+			.fetchOneInto(OCategoryPropSet.class);
 	}
 	
-	public int insert(Connection con, OCategoryPropertySet item) throws DAOException {
+	public int insert(Connection con, OCategoryPropSet item) throws DAOException {
 		DSLContext dsl = getDSL(con);
-		CategoryPropertySetsRecord record = dsl.newRecord(CATEGORY_PROPERTY_SETS, item);
+		CategoryPropsRecord record = dsl.newRecord(CATEGORY_PROPS, item);
 		return dsl
-			.insertInto(CATEGORY_PROPERTY_SETS)
+			.insertInto(CATEGORY_PROPS)
 			.set(record)
 			.execute();
 	}
 	
-	public int update(Connection con, OCategoryPropertySet item) throws DAOException {
+	public int update(Connection con, OCategoryPropSet item) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(CATEGORY_PROPERTY_SETS)
-			.set(CATEGORY_PROPERTY_SETS.HIDDEN, item.getHidden())
-			.set(CATEGORY_PROPERTY_SETS.COLOR, item.getColor())
-			.set(CATEGORY_PROPERTY_SETS.SYNC, item.getSync())
+			.update(CATEGORY_PROPS)
+			.set(CATEGORY_PROPS.HIDDEN, item.getHidden())
+			.set(CATEGORY_PROPS.COLOR, item.getColor())
+			.set(CATEGORY_PROPS.SYNC, item.getSync())
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(item.getDomainId())
-				.and(CATEGORY_PROPERTY_SETS.USER_ID.equal(item.getUserId()))
-				.and(CATEGORY_PROPERTY_SETS.CATEGORY_ID.equal(item.getCategoryId()))
+				CATEGORY_PROPS.DOMAIN_ID.equal(item.getDomainId())
+				.and(CATEGORY_PROPS.USER_ID.equal(item.getUserId()))
+				.and(CATEGORY_PROPS.CATEGORY_ID.equal(item.getCategoryId()))
 			)
 			.execute();
 	}
@@ -106,9 +105,9 @@ public class CategoryPropertySetDAO extends BaseDAO {
 	public int deleteByCategory(Connection con, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(CATEGORY_PROPERTY_SETS)
+			.delete(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.CATEGORY_ID.equal(categoryId)
+				CATEGORY_PROPS.CATEGORY_ID.equal(categoryId)
 			)
 			.execute();
 	}
@@ -116,9 +115,9 @@ public class CategoryPropertySetDAO extends BaseDAO {
 	public int deleteByDomain(Connection con, String domainId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(CATEGORY_PROPERTY_SETS)
+			.delete(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(domainId)
+				CATEGORY_PROPS.DOMAIN_ID.equal(domainId)
 			)
 			.execute();
 	}
@@ -126,10 +125,10 @@ public class CategoryPropertySetDAO extends BaseDAO {
 	public int deleteByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(CATEGORY_PROPERTY_SETS)
+			.delete(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(domainId)
-				.and(CATEGORY_PROPERTY_SETS.USER_ID.equal(userId))
+				CATEGORY_PROPS.DOMAIN_ID.equal(domainId)
+				.and(CATEGORY_PROPS.USER_ID.equal(userId))
 			)
 			.execute();
 	}
@@ -137,11 +136,11 @@ public class CategoryPropertySetDAO extends BaseDAO {
 	public int deleteByProfileCategory(Connection con, String domainId, String userId, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(CATEGORY_PROPERTY_SETS)
+			.delete(CATEGORY_PROPS)
 			.where(
-				CATEGORY_PROPERTY_SETS.DOMAIN_ID.equal(domainId)
-				.and(CATEGORY_PROPERTY_SETS.USER_ID.equal(userId))
-				.and(CATEGORY_PROPERTY_SETS.CATEGORY_ID.equal(categoryId))
+				CATEGORY_PROPS.DOMAIN_ID.equal(domainId)
+				.and(CATEGORY_PROPS.USER_ID.equal(userId))
+				.and(CATEGORY_PROPS.CATEGORY_ID.equal(categoryId))
 			)
 			.execute();
 	}

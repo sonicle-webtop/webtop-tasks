@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryPropertySet;
+import com.sonicle.webtop.tasks.model.CategoryPropSet;
 
 /**
  *
@@ -47,7 +47,7 @@ public class JsCategoryProps {
 	public String color;
 	public String sync;
 	
-	public JsCategoryProps(int categoryId, String categoryName, CategoryPropertySet propertySet) {
+	public JsCategoryProps(int categoryId, String categoryName, CategoryPropSet propertySet) {
 		this.categoryId = categoryId;
 		this.categoryName = categoryName;
 		hidden = (propertySet.getHidden() == null) ? false : propertySet.getHidden();
@@ -55,11 +55,11 @@ public class JsCategoryProps {
 		sync = EnumUtils.toSerializedName(propertySet.getSync());
 	}
 	
-	public static CategoryPropertySet createCategoryPropertySet(JsCategoryProps js) {
-		CategoryPropertySet propertySet = new CategoryPropertySet();
-		propertySet.setHidden(js.hidden ? true : null);
-		propertySet.setColor(js.color);
-		propertySet.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
-		return propertySet;
+	public static CategoryPropSet createCategoryPropertySet(JsCategoryProps js) {
+		CategoryPropSet pset = new CategoryPropSet();
+		pset.setHidden(js.hidden ? true : null);
+		pset.setColor(js.color);
+		pset.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
+		return pset;
 	}
 }

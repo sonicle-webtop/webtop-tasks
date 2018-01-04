@@ -32,12 +32,12 @@
  */
 package com.sonicle.webtop.tasks.bol;
 
-import com.sonicle.webtop.tasks.jooq.tables.pojos.CategoryPropertySets;
+import com.sonicle.webtop.tasks.jooq.tables.pojos.CategoryProps;
 
 /**
  *
  * @author malbinola
  */
-public class OCategoryPropertySet extends CategoryPropertySets {
+public class OCategoryPropSet extends CategoryProps {
 	
 }
