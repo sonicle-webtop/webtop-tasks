@@ -32,9 +32,9 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
-import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.CategoryPropertySet;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -63,8 +63,8 @@ public class JsCategoryLkp {
 	public JsCategoryLkp(CategoryFolder folder) {
 		this(folder.getCategory());
 		if (folder.getData() != null) {
-			CategoryFolderData data = (CategoryFolderData)folder.getData();
-			if (!StringUtils.isBlank(data.color)) color = data.color;
+			CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
+			if (!StringUtils.isBlank(propertySet.getColor())) color = propertySet.getColor();
 		}
 	}
 }

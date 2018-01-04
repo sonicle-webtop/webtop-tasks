@@ -404,11 +404,57 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) me.deleteCategoryUI(node);
 			}
 		});
+		var onItemClick = function(s) {
+			var node = me.getSelectedFolder(me.trFolders());
+			if (node && s.checked) me.updateCategorySyncUI(node, s.getItemId());
+		};
+		me.addAct('categorySync', {
+			text: me.res('mni-categorySync.lbl'),
+			tooltip: null,
+			menu: {
+				itemId: 'categorySync',
+				items: [{
+						itemId: 'O',
+						text: me.res('store.sync.O'),
+						group: 'categorySync',
+						checked: false,
+						listeners: {
+							click: onItemClick
+						}
+					}, {
+						itemId: 'R',
+						text: me.res('store.sync.R'),
+						group: 'categorySync',
+						checked: false,
+						listeners: {
+							click: onItemClick
+						}
+					}, {
+						itemId: 'W',
+						text: me.res('store.sync.W'),
+						group: 'categorySync',
+						checked: false,
+						listeners: {
+							click: onItemClick
+						}
+					},
+					'-',
+					me.addAct('restoreCategorySync', {
+						tooltip: null,
+						handler: function() {
+							var node = me.getSelectedFolder(me.trFolders());
+							if (node) me.updateCategorySyncUI(node, null);
+						}
+					})
+				]
+			}
+		});
 		me.addAct('categoryColor', {
 			text: me.res('mni-categoryColor.lbl'),
 			tooltip: null,
 			menu: {
-				showSeparator: false,
+				//showSeparator: false,
+				itemId: 'categoryColor',
 				items: [{
 						xtype: 'colorpicker',
 						colors: WT.getColorPalette(),
@@ -594,8 +640,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				},
 				'-',
 				me.getAct('editSharing'),
-				me.getAct('hideCategory'),
-				me.getAct('categoryColor'),
+				{
+					text: me.res('mni-customizeFolder.lbl'),
+					menu: {
+						items: [
+							me.getAct('hideCategory'),
+							me.getAct('categoryColor'),
+							me.getAct('categorySync')
+						]
+					}
+				},
 				'-',
 				me.getAct('addTask')
 				//TODO: azioni altri servizi?
@@ -614,7 +668,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					me.getAct('addTask').setDisabled(!er.CREATE);
 					me.getAct('hideCategory').setDisabled(mine);
 					me.getAct('categoryColor').setDisabled(mine);
-					if (!mine) s.down('colorpicker').select(rec.get('_color'), true);
+					me.getAct('categorySync').setDisabled(mine);
+					if (!mine) {
+						s.down('menu#categoryColor').down('colorpicker').select(rec.get('_color'), true);
+						s.down('menu#categorySync').getComponent(rec.get('_sync')).setChecked(true);
+					}
 				}
 			}
 		}));
@@ -759,6 +817,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if(success) {
 					me.loadFolderNode(node.get('_pid'));
 					if (node.get('_visible')) me.reloadTasks();
+				}
+			}
+		});
+	},
+	
+	updateCategorySyncUI: function(node, sync) {
+		var me = this;
+		me.updateCategorySync(node.get('_catId'), sync, {
+			callback: function(success) {
+				if(success) {
+					me.loadFolderNode(node.get('_pid'));
 				}
 			}
 		});
@@ -925,7 +994,21 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.ajaxReq(me.ID, 'SetCategoryColor', {
 			params: {
 				id: categoryId,
-				color: color
+				value: color
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope || me, [success, json]);
+			}
+		});
+	},
+	
+	updateCategorySync: function(categoryId, sync, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'SetCategorySync', {
+			params: {
+				id: categoryId,
+				value: sync
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);

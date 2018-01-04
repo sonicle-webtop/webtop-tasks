@@ -46,6 +46,7 @@ import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.dal.DAOException;
+import com.sonicle.webtop.core.dal.DAOIntegrityViolationException;
 import com.sonicle.webtop.core.sdk.AuthException;
 import com.sonicle.webtop.core.sdk.BaseManager;
 import com.sonicle.webtop.core.sdk.BaseReminder;
@@ -57,6 +58,7 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
+import com.sonicle.webtop.tasks.bol.OCategoryPropertySet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
@@ -64,8 +66,10 @@ import com.sonicle.webtop.tasks.model.CategoryFolder;
 import com.sonicle.webtop.tasks.model.CategoryRoot;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
+import com.sonicle.webtop.tasks.dal.CategoryPropertySetDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryPropertySet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import java.sql.Connection;
@@ -78,6 +82,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -428,7 +433,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public boolean deleteCategory(int categoryId) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
 		Connection con = null;
 		
 		try {
@@ -439,7 +445,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			Sharing sharing = getSharing(shareId);
 
 			con = WT.getConnection(SERVICE_ID, false);
-			int ret = catdao.deleteById(con, categoryId);
+			int ret = catDao.deleteById(con, categoryId);
+			psetDao.deleteByCategory(con, categoryId);
 			doDeleteTasksByCategory(con, categoryId);
 			
 			// Cleanup sharing, if necessary
@@ -469,7 +476,85 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+	public CategoryPropertySet getCategoryCustomProps(int categoryId) throws WTException {
+		return getCategoryCustomProps(getTargetProfileId(), categoryId);
+	}
+	
+	private CategoryPropertySet getCategoryCustomProps(UserProfileId profileId, int categoryId) throws WTException {
+		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			OCategoryPropertySet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
+			return (opset == null) ? new CategoryPropertySet() : createCategoryPropertySet(opset);
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Map<Integer, CategoryPropertySet> getCategoryCustomProps(Collection<Integer> categoryIds) throws WTException {
+		return getCategoryCustomProps(getTargetProfileId(), categoryIds);
+	}
+	
+	public Map<Integer, CategoryPropertySet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
+		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			LinkedHashMap<Integer, CategoryPropertySet> psets = new LinkedHashMap<>(categoryIds.size());
+			Map<Integer, OCategoryPropertySet> map = psetDao.selectByProfileCategoryIn(con, profileId.getDomainId(), profileId.getUserId(), categoryIds);
+			for (Integer categoryId : categoryIds) {
+				OCategoryPropertySet opset = map.get(categoryId);
+				psets.put(categoryId, (opset == null) ? new CategoryPropertySet() : createCategoryPropertySet(opset));
+			}
+			return psets;
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public CategoryPropertySet updateCategoryCustomProps(int categoryId, CategoryPropertySet propertySet) throws WTException {
+		ensureUser();
+		return updateCategoryCustomProps(getTargetProfileId(), categoryId, propertySet);
+	}
+	
+	private CategoryPropertySet updateCategoryCustomProps(UserProfileId profileId, int categoryId, CategoryPropertySet propertySet) throws WTException {
+		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			OCategoryPropertySet opset = createOCategoryPropertySet(propertySet);
+			opset.setDomainId(profileId.getDomainId());
+			opset.setUserId(profileId.getUserId());
+			opset.setCategoryId(categoryId);
+			
+			con = WT.getConnection(SERVICE_ID);
+			try {
+				psetDao.insert(con, opset);
+			} catch(DAOIntegrityViolationException ex1) {
+				psetDao.update(con, opset);
+			}
+			return propertySet;
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
@@ -479,7 +564,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			// TODO: implementare filtro task privati
 			ArrayList<FolderTasks> foTasks = new ArrayList<>();
-			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryFolderIds);
+			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryIds);
 			for (OCategory ocat : ocats) {
 				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
 				
@@ -725,8 +810,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	public void eraseData(boolean deep) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
-		TaskDAO tasdao = TaskDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		CategoryPropertySetDAO psetDao = CategoryPropertySetDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		//TODO: controllo permessi
@@ -737,18 +823,19 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			// Erase tasks
 			if (deep) {
-				for (OCategory ocat : catdao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-					tasdao.deleteByCategoryId(con, ocat.getCategoryId());
+				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
+					tasDao.deleteByCategoryId(con, ocat.getCategoryId());
 				}
 			} else {
 				DateTime revTs = createRevisionTimestamp();
-				for (OCategory ocat : catdao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-					tasdao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
+				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
+					tasDao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
 				}
 			}
 			
 			// Erase categories
-			catdao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
+			psetDao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
+			catDao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
 			
 			DbUtils.commitQuietly(con);
 			
@@ -1021,6 +1108,32 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (StringUtils.isBlank(fill.getSync())) fill.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
 			if (fill.getIsDefault() == null) fill.setIsDefault(false);
 			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
+		}
+		return fill;
+	}
+	
+	private CategoryPropertySet createCategoryPropertySet(OCategoryPropertySet with) {
+		return fillCategoryPropertySet(new CategoryPropertySet(), with);
+	}
+	
+	private CategoryPropertySet fillCategoryPropertySet(CategoryPropertySet fill, OCategoryPropertySet with) {
+		if ((fill != null) && (with != null)) {
+			fill.setHidden(with.getHidden());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.forSerializedName(with.getSync(), Category.Sync.class));
+		}
+		return fill;
+	}
+	
+	private OCategoryPropertySet createOCategoryPropertySet(CategoryPropertySet with) {
+		return fillOCategoryPropertySet(new OCategoryPropertySet(), with);
+	}
+	
+	private OCategoryPropertySet fillOCategoryPropertySet(OCategoryPropertySet fill, CategoryPropertySet with) {
+		if ((fill != null) && (with != null)) {
+			fill.setHidden(with.getHidden());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.toSerializedName(with.getSync()));
 		}
 		return fill;
 	}

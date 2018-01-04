@@ -69,9 +69,9 @@ import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsPletTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
-import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryPropertySet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskEx;
@@ -190,7 +190,8 @@ public class Service extends BaseService {
 				} else {
 					for(CategoryFolder fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
 						final int catId = fold.getCategory().getCategoryId();
-						fold.setData(us.getCategoryFolderData(catId));
+						//fold.setData(us.getCategoryFolderData(catId));
+						fold.setData(manager.getCategoryCustomProps(catId));
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(catId, fold);
 						rootByFolder.put(catId, root);
@@ -353,55 +354,6 @@ public class Service extends BaseService {
 		}
 	}
 	
-	public void processManageHiddenCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
-		try {
-			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			if (crud.equals(Crud.READ)) {
-				String rootId = ServletUtils.getStringParameter(request, "rootId", true);
-				if (rootId.equals(MyCategoryRoot.SHARE_ID)) throw new WTException();
-				
-				ArrayList<JsSimple> items = new ArrayList<>();
-				synchronized(roots) {
-					for (CategoryFolder fold : foldersByRoot.get(rootId)) {
-						CategoryFolderData data = (CategoryFolderData)fold.getData();
-						if (data != null) {
-							if ((data.hidden != null) && data.hidden) {
-								items.add(new JsSimple(fold.getCategory().getCategoryId(), fold.getCategory().getName()));
-							}
-						}
-					}
-				}
-				new JsonResult(items).printTo(out);
-				
-			} else if (crud.equals(Crud.UPDATE)) {
-				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
-				Boolean hidden = ServletUtils.getBooleanParameter(request, "hidden", false);
-				
-				updateCategoryFolderVisibility(categoryId, hidden);
-				new JsonResult().printTo(out);
-				
-			} else if (crud.equals(Crud.DELETE)) {
-				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, true);
-				
-				HashSet<String> pids = new HashSet<>();
-				synchronized(roots) {
-					for (String id : ids) {
-						int categoryId = Integer.valueOf(id);
-						CategoryFolder fold = folders.get(categoryId);
-						if (fold != null) {
-							updateCategoryFolderVisibility(categoryId, null);
-							pids.add(fold.getCategory().getProfileId().toString());
-						}
-					}
-				}
-				new JsonResult(pids).printTo(out);
-			}
-			
-		} catch(Exception ex) {
-			new JsonResult(ex).printTo(out);
-		}
-	}
-	
 	public void processManageCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		Category item = null;
 		
@@ -442,16 +394,87 @@ public class Service extends BaseService {
 		}
 	}
 	
+	public void processManageHiddenCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			String crud = ServletUtils.getStringParameter(request, "crud", true);
+			if (crud.equals(Crud.READ)) {
+				String rootId = ServletUtils.getStringParameter(request, "rootId", true);
+				if (rootId.equals(MyCategoryRoot.SHARE_ID)) throw new WTException("Personal root is not supported");
+				
+				ArrayList<JsSimple> items = new ArrayList<>();
+				synchronized(roots) {
+					for (CategoryFolder folder : foldersByRoot.get(rootId)) {
+						if (folder.getData() != null) {
+							CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
+							if ((propertySet.getHidden() != null) && propertySet.getHidden()) {
+								items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
+							}
+						}
+						/*
+						CategoryFolderData data = (CategoryFolderData)folder.getData();
+						if (data != null) {
+							if ((data.hidden != null) && data.hidden) {
+								items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
+							}
+						}
+						*/
+					}
+				}
+				new JsonResult(items).printTo(out);
+				
+			} else if (crud.equals(Crud.UPDATE)) {
+				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
+				Boolean hidden = ServletUtils.getBooleanParameter(request, "hidden", false);
+				
+				updateCategoryFolderVisibility(categoryId, hidden);
+				new JsonResult().printTo(out);
+				
+			} else if (crud.equals(Crud.DELETE)) {
+				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, true);
+				
+				HashSet<String> pids = new HashSet<>();
+				synchronized(roots) {
+					for (String id : ids) {
+						int categoryId = Integer.valueOf(id);
+						CategoryFolder fold = folders.get(categoryId);
+						if (fold != null) {
+							updateCategoryFolderVisibility(categoryId, null);
+							pids.add(fold.getCategory().getProfileId().toString());
+						}
+					}
+				}
+				new JsonResult(pids).printTo(out);
+			}
+			
+		} catch(Exception ex) {
+			new JsonResult(ex).printTo(out);
+		}
+	}
+	
 	public void processSetCategoryColor(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
-			String color = ServletUtils.getStringParameter(request, "color", null);
+			String value = ServletUtils.getStringParameter(request, "value", null);
 			
-			updateCategoryFolderColor(id, color);
+			updateCategoryFolderColor(id, value);
 			new JsonResult().printTo(out);
 			
 		} catch(Exception ex) {
 			logger.error("Error in SetCategoryColor", ex);
+			new JsonResult(ex).printTo(out);
+		}
+	}
+	
+	public void processSetCategorySync(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			Integer id = ServletUtils.getIntParameter(request, "id", true);
+			String value = ServletUtils.getStringParameter(request, "value", null);
+			
+			updateCategoryFolderSync(id, EnumUtils.forSerializedName(value, Category.Sync.class));
+			new JsonResult().printTo(out);
+			
+		} catch(Exception ex) {
+			logger.error("Error in SetCategorySync", ex);
 			new JsonResult(ex).printTo(out);
 		}
 	}
@@ -722,38 +745,56 @@ public class Service extends BaseService {
 		}
 	}
 	
-	private void updateCategoryFolderColor(int categoryId, String color) {
+	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
 		synchronized(roots) {
-			CategoryFolderData data = us.getCategoryFolderData(categoryId);
-			data.color = color;
-			if (!data.isNull()) {
-				us.setCategoryFolderData(categoryId, data);
-			} else {
-				us.clearCategoryFolderData(categoryId);
-			}
-			
-			// Update internal cache
-			CategoryFolder folder = folders.get(categoryId);
-			if (!(folder instanceof MyCategoryFolder)) {
-				((CategoryFolderData)folder.getData()).update(data);
+			try {
+				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				pset.setHidden(hidden);
+				manager.updateCategoryCustomProps(categoryId, pset);
+				
+				// Update internal cache
+				CategoryFolder folder = folders.get(categoryId);
+				if (!(folder instanceof MyCategoryFolder)) {
+					((CategoryPropertySet)folder.getData()).set(pset);
+				}
+			} catch(WTException ex) {
+				logger.error("Error saving custom category props", ex);
 			}
 		}
 	}
 	
-	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
+	private void updateCategoryFolderColor(int categoryId, String color) {
 		synchronized(roots) {
-			CategoryFolderData data = us.getCategoryFolderData(categoryId);
-			data.hidden = hidden;
-			if (!data.isNull()) {
-				us.setCategoryFolderData(categoryId, data);
-			} else {
-				us.clearCategoryFolderData(categoryId);
+			try {
+				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				pset.setColor(color);
+				manager.updateCategoryCustomProps(categoryId, pset);
+				
+				// Update internal cache
+				CategoryFolder folder = folders.get(categoryId);
+				if (!(folder instanceof MyCategoryFolder)) {
+					((CategoryPropertySet)folder.getData()).set(pset);
+				}
+			} catch(WTException ex) {
+				logger.error("Error saving custom category props", ex);
 			}
-			
-			// Update internal cache
-			CategoryFolder folder = folders.get(categoryId);
-			if (!(folder instanceof MyCategoryFolder)) {
-				((CategoryFolderData)folder.getData()).update(data);
+		}
+	}
+	
+	private void updateCategoryFolderSync(int categoryId, Category.Sync sync) {
+		synchronized(roots) {
+			try {
+				CategoryPropertySet pset = manager.getCategoryCustomProps(categoryId);
+				pset.setSync(sync);
+				manager.updateCategoryCustomProps(categoryId, pset);
+				
+				// Update internal cache
+				CategoryFolder folder = folders.get(categoryId);
+				if (!(folder instanceof MyCategoryFolder)) {
+					((CategoryPropertySet)folder.getData()).set(pset);
+				}
+			} catch(WTException ex) {
+				logger.error("Error saving custom category props", ex);
 			}
 		}
 	}
@@ -782,12 +823,18 @@ public class Service extends BaseService {
 		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		String color = cat.getColor();
+		Category.Sync sync = cat.getSync();
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
 		
 		if (folder.getData() != null) {
-			CategoryFolderData data = (CategoryFolderData)folder.getData();
-			if ((data.hidden != null) && data.hidden) return null;
-			if (!StringUtils.isBlank(data.color)) color = data.color;
+			//CategoryFolderData data = (CategoryFolderData)folder.getData();
+			//if ((data.hidden != null) && data.hidden) return null;
+			//if (!StringUtils.isBlank(data.color)) color = data.color;
+			
+			CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
+			if ((propertySet.getHidden() != null) && propertySet.getHidden()) return null;
+			if (!StringUtils.isBlank(propertySet.getColor())) color = propertySet.getColor();
+			if (propertySet.getSync() != null) sync = propertySet.getSync();
 		}
 		
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);
@@ -799,6 +846,7 @@ public class Service extends BaseService {
 		node.put("_catId", cat.getCategoryId());
 		node.put("_builtIn", cat.getBuiltIn());
 		node.put("_color", Category.getHexColor(color));
+		node.put("_sync", EnumUtils.toSerializedName(sync));
 		node.put("_default", cat.getIsDefault());
 		node.put("_visible", visible);
 		

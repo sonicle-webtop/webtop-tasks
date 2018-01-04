@@ -36,8 +36,6 @@ import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.sdk.BaseUserSettings;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
-import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
-import java.text.MessageFormat;
 import java.util.HashSet;
 
 /**
@@ -84,21 +82,6 @@ public class TasksUserSettings extends BaseUserSettings {
 	
 	public boolean setCheckedCategoryFolders(CheckedFolders value) {
 		return setObject(CHECKED_CATEGORY_FOLDERS, value, CheckedFolders.class);
-	}
-	
-	public CategoryFolderData getCategoryFolderData(int categoryId) {
-		final String key = MessageFormat.format(CATEGORY_FOLDER_DATA, categoryId);
-		return getObject(key, new CategoryFolderData(), CategoryFolderData.class);
-	}
-	
-	public boolean setCategoryFolderData(int categoryId, CategoryFolderData value) {
-		final String key = MessageFormat.format(CATEGORY_FOLDER_DATA, categoryId);
-		return setObject(key, value, CategoryFolderData.class);
-	}
-	
-	public boolean clearCategoryFolderData(int categoryId) {
-		final String key = MessageFormat.format(CATEGORY_FOLDER_DATA, categoryId);
-		return clear(key);
 	}
 	
 	public static class CheckedRoots extends HashSet<String> {

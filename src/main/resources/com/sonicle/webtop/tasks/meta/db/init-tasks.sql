@@ -34,6 +34,22 @@ WITH (OIDS=FALSE)
 ;
 
 -- ----------------------------
+-- Table structure for category_property_sets
+-- ----------------------------
+DROP TABLE IF EXISTS "tasks"."category_property_sets";
+CREATE TABLE "tasks"."category_property_sets" (
+"domain_id" varchar(20) NOT NULL,
+"user_id" varchar(100) NOT NULL,
+"category_id" int4 NOT NULL,
+"hidden" bool,
+"color" varchar(20),
+"sync" varchar(1)
+)
+WITH (OIDS=FALSE)
+
+;
+
+-- ----------------------------
 -- Table structure for tasks
 -- ----------------------------
 DROP TABLE IF EXISTS "tasks"."tasks";
@@ -76,6 +92,16 @@ CREATE UNIQUE INDEX "categories_ak2" ON "tasks"."categories" USING btree ("domai
 ALTER TABLE "tasks"."categories" ADD PRIMARY KEY ("category_id");
 
 -- ----------------------------
+-- Indexes structure for table category_property_sets
+-- ----------------------------
+CREATE INDEX "category_property_sets_ak1" ON "tasks"."category_property_sets" USING btree ("category_id");
+
+-- ----------------------------
+-- Primary Key structure for table category_property_sets
+-- ----------------------------
+ALTER TABLE "tasks"."category_property_sets" ADD PRIMARY KEY ("domain_id", "user_id", "category_id");
+
+-- ----------------------------
 -- Indexes structure for table tasks
 -- ----------------------------
 CREATE INDEX "tasks_ak1" ON "tasks"."tasks" USING btree ("category_id", "revision_status", "revision_timestamp");
@@ -84,3 +110,10 @@ CREATE INDEX "tasks_ak1" ON "tasks"."tasks" USING btree ("category_id", "revisio
 -- Primary Key structure for table tasks
 -- ----------------------------
 ALTER TABLE "tasks"."tasks" ADD PRIMARY KEY ("task_id");
+
+-- ----------------------------
+-- Align service version
+-- ----------------------------
+@DataSource[default@com.sonicle.webtop.core]
+DELETE FROM "core"."settings" WHERE ("settings"."service_id" = 'com.sonicle.webtop.tasks') AND ("settings"."key" = 'manifest.version');
+INSERT INTO "core"."settings" ("service_id", "key", "value") VALUES ('com.sonicle.webtop.tasks', 'manifest.version', '5.1.3');

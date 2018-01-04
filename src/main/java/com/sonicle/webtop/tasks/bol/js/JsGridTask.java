@@ -34,9 +34,9 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.tasks.bol.model.CategoryFolderData;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.CategoryPropertySet;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
@@ -86,8 +86,8 @@ public class JsGridTask {
         categoryName = category.getName();
 		categoryColor = category.getColor();
 		if (folder.getData() != null) {
-			CategoryFolderData data = (CategoryFolderData)folder.getData();
-			if (!StringUtils.isBlank(data.color)) categoryColor = data.color;
+			CategoryPropertySet propertySet = (CategoryPropertySet)folder.getData();
+			if (!StringUtils.isBlank(propertySet.getColor())) categoryColor = propertySet.getColor();
 		}
         _frights = folder.getPerms().toString();
         _erights = folder.getElementsPerms().toString();
