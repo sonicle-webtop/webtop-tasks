@@ -35,7 +35,6 @@ package com.sonicle.webtop.tasks.bol.js;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -49,6 +48,7 @@ public class JsCategoryLkp {
 	public Boolean isDefault;
 	public Boolean isPrivate;
 	public String color;
+	public Boolean _writable;
 	
 	public JsCategoryLkp(Category cat) {
 		categoryId = cat.getCategoryId();
@@ -63,5 +63,6 @@ public class JsCategoryLkp {
 	public JsCategoryLkp(ShareFolderCategory folder, CategoryPropSet folderProps) {
 		this(folder.getCategory());
 		if (folderProps != null) color = folderProps.getColorOrDefault(color);
+		_writable = folder.getElementsPerms().implies("CREATE");
 	}
 }

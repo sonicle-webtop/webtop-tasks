@@ -404,9 +404,37 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) me.deleteCategoryUI(node);
 			}
 		});
+		me.addAct('categoryColor', {
+			text: me.res('mni-categoryColor.lbl'),
+			tooltip: null,
+			menu: {
+				showSeparator: false,
+				itemId: 'categoryColor',
+				items: [{
+						xtype: 'colorpicker',
+						colors: WT.getColorPalette(),
+						listeners: {
+							select: function(s, color) {
+								var node = me.getSelectedFolder(me.trFolders());
+								me.getRef('cxmFolder').hide();
+								if (node) me.updateCategoryColorUI(node, '#'+color);
+							}
+						}
+					},
+					'-',
+					me.addAct('restoreCategoryColor', {
+						tooltip: null,
+						handler: function() {
+							var node = me.getSelectedFolder(me.trFolders());
+							if (node) me.updateCategoryColorUI(node, null);
+						}
+					})
+				]
+			}
+		});
 		var onItemClick = function(s) {
 			var node = me.getSelectedFolder(me.trFolders());
-			if (node && s.checked) me.updateCategorySyncUI(node, s.getItemId());
+			if (node && s.checked) me.updateCategoryPropSyncUI(node, s.getItemId());
 		};
 		me.addAct('categorySync', {
 			text: me.res('mni-categorySync.lbl'),
@@ -438,34 +466,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							click: onItemClick
 						}
 					}
-				]
-			}
-		});
-		me.addAct('categoryColor', {
-			text: me.res('mni-categoryColor.lbl'),
-			tooltip: null,
-			menu: {
-				//showSeparator: false,
-				itemId: 'categoryColor',
-				items: [{
-						xtype: 'colorpicker',
-						colors: WT.getColorPalette(),
-						listeners: {
-							select: function(s, color) {
-								var node = me.getSelectedFolder(me.trFolders());
-								me.getRef('cxmFolder').hide();
-								if (node) me.updateCategoryColorUI(node, '#'+color);
-							}
-						}
-					},
-					'-',
-					me.addAct('restoreCategoryColor', {
-						tooltip: null,
-						handler: function() {
-							var node = me.getSelectedFolder(me.trFolders());
-							if (node) me.updateCategoryColorUI(node, null);
-						}
-					})
 				]
 			}
 		});
@@ -705,7 +705,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('deleteTask');
 	},
 	
-	loadFolderNode: function(pid, skipItems) {
+	loadRootNode: function(pid, reloadItemsIf) {
 		var me = this,
 				sto = me.trFolders().getStore(),
 				node;
@@ -713,7 +713,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		node = sto.findNode('_pid', pid, false);
 		if (node) {
 			sto.load({node: node});
-			if (!skipItems && node.get('checked'))	me.reloadTasks();
+			if (reloadItemsIf && node.get('checked')) me.reloadTasks();
 		}
 	},
 	
@@ -738,9 +738,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	getSelectedTask: function(forceSingle) {
-		if(forceSingle === undefined) forceSingle = true;
+		if (forceSingle === undefined) forceSingle = true;
 		var sel = this.getSelectedTasks();
-		if(forceSingle && sel.length !== 1) return null;
+		if (forceSingle && sel.length !== 1) return null;
 		return (sel.length > 0) ? sel[0] : null;
 	},
 	
@@ -752,7 +752,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.addCategory(domainId, userId, {
 			callback: function(success, model) {
-				if(success) me.loadFolderNode(model.get('_profileId'));
+				if (success) me.loadRootNode(model.get('_profileId'));
 			}
 		});
 	},
@@ -761,7 +761,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.editCategory(categoryId, {
 			callback: function(success, model) {
-				if(success) me.loadFolderNode(model.get('_profileId'));
+				if (success) me.loadRootNode(model.get('_profileId'), true);
 			}
 		});
 	},
@@ -779,7 +779,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		vct.getView().on('viewcallback', function(s, success, json) {
 			if (success) {
 				Ext.iterate(json.data, function(pid) {
-					me.loadFolderNode(pid);
+					me.loadRootNode(pid);
 				});
 			}
 		});
@@ -793,7 +793,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.updateCategoryVisibility(node.get('_catId'), true, {
 					callback: function(success) {
 						if(success) {
-							me.loadFolderNode(node.get('_pid'));
+							me.loadRootNode(node.get('_pid'));
 							me.showHideF3Node(node, false);
 						}
 					}
@@ -806,8 +806,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.updateCategoryColor(node.get('_catId'), color, {
 			callback: function(success) {
-				if(success) {
-					me.loadFolderNode(node.get('_pid'));
+				if (success) {
+					me.loadRootNode(node.get('_pid'));
 					if (node.get('_visible')) me.reloadTasks();
 				}
 			}
@@ -818,8 +818,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.updateCategorySync(node.get('_catId'), sync, {
 			callback: function(success) {
-				if(success) {
-					me.loadFolderNode(node.get('_pid'), true);
+				if (success) {
+					me.loadRootNode(node.get('_pid'));
 				}
 			}
 		});
@@ -986,7 +986,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.ajaxReq(me.ID, 'SetCategoryColor', {
 			params: {
 				id: categoryId,
-				value: color
+				color: color
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);
@@ -1000,7 +1000,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.ajaxReq(me.ID, 'SetCategorySync', {
 			params: {
 				id: categoryId,
-				value: sync
+				sync: sync
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope || me, [success, json]);

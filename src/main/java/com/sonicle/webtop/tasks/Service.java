@@ -446,9 +446,9 @@ public class Service extends BaseService {
 	public void processSetCategoryColor(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
-			String value = ServletUtils.getStringParameter(request, "value", null);
+			String color = ServletUtils.getStringParameter(request, "color", null);
 			
-			updateCategoryFolderColor(id, value);
+			updateCategoryFolderColor(id, color);
 			new JsonResult().printTo(out);
 			
 		} catch(Exception ex) {
@@ -460,9 +460,9 @@ public class Service extends BaseService {
 	public void processSetCategorySync(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
-			String value = ServletUtils.getStringParameter(request, "value", null);
+			String sync = ServletUtils.getStringParameter(request, "sync", null);
 			
-			updateCategoryFolderSync(id, EnumUtils.forSerializedName(value, Category.Sync.class));
+			updateCategoryFolderSync(id, EnumUtils.forSerializedName(sync, Category.Sync.class));
 			new JsonResult().printTo(out);
 			
 		} catch(Exception ex) {
