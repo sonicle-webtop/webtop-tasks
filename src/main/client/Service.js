@@ -437,15 +437,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						listeners: {
 							click: onItemClick
 						}
-					},
-					'-',
-					me.addAct('restoreCategorySync', {
-						tooltip: null,
-						handler: function() {
-							var node = me.getSelectedFolder(me.trFolders());
-							if (node) me.updateCategorySyncUI(node, null);
-						}
-					})
+					}
 				]
 			}
 		});
@@ -713,7 +705,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('deleteTask');
 	},
 	
-	loadFolderNode: function(pid) {
+	loadFolderNode: function(pid, skipItems) {
 		var me = this,
 				sto = me.trFolders().getStore(),
 				node;
@@ -721,7 +713,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		node = sto.findNode('_pid', pid, false);
 		if (node) {
 			sto.load({node: node});
-			if(node.get('checked'))	me.reloadTasks();
+			if (!skipItems && node.get('checked'))	me.reloadTasks();
 		}
 	},
 	
@@ -827,7 +819,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateCategorySync(node.get('_catId'), sync, {
 			callback: function(success) {
 				if(success) {
-					me.loadFolderNode(node.get('_pid'));
+					me.loadFolderNode(node.get('_pid'), true);
 				}
 			}
 		});

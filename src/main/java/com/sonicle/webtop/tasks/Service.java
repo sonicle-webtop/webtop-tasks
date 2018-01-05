@@ -48,10 +48,10 @@ import com.sonicle.webtop.tasks.TasksUserSettings.CheckedFolders;
 import com.sonicle.webtop.tasks.TasksUserSettings.CheckedRoots;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
-import com.sonicle.webtop.tasks.model.CategoryRoot;
-import com.sonicle.webtop.tasks.bol.model.MyCategoryFolder;
-import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.ShareRootCategory;
+import com.sonicle.webtop.tasks.bol.model.MyShareFolderCategory;
+import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.bol.js.JsSimple;
@@ -104,10 +104,11 @@ public class Service extends BaseService {
 	private TasksServiceSettings ss;
 	private TasksUserSettings us;
 	
-	private final LinkedHashMap<String, CategoryRoot> roots = new LinkedHashMap<>();
-	private final LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
-	private final HashMap<String, ArrayList<CategoryFolder>> foldersByRoot = new HashMap<>();
-	private final HashMap<Integer, CategoryRoot> rootByFolder = new HashMap<>();
+	private final LinkedHashMap<String, ShareRootCategory> roots = new LinkedHashMap<>();
+	private final LinkedHashMap<Integer, ShareFolderCategory> folders = new LinkedHashMap<>();
+	private final HashMap<Integer, CategoryPropSet> folderProps = new HashMap<>();
+	private final HashMap<String, ArrayList<ShareFolderCategory>> foldersByRoot = new HashMap<>();
+	private final HashMap<Integer, ShareRootCategory> rootByFolder = new HashMap<>();
 	
 	private CheckedRoots checkedRoots = null;
 	private CheckedFolders checkedFolders = null;
@@ -129,6 +130,7 @@ public class Service extends BaseService {
 		checkedRoots = null;
 		rootByFolder.clear();
 		foldersByRoot.clear();
+		folderProps.clear();
 		folders.clear();
 		roots.clear();
 		us = null;
@@ -155,7 +157,7 @@ public class Service extends BaseService {
 			checkedRoots = us.getCheckedCategoryRoots();
 			// If empty, adds MyNode checked by default!
 			if(checkedRoots.isEmpty()) {
-				checkedRoots.add(MyCategoryRoot.SHARE_ID);
+				checkedRoots.add(MyShareRootCategory.SHARE_ID);
 				us.setCheckedCategoryRoots(checkedRoots);
 			}
 			checkedFolders = us.getCheckedCategoryFolders();
@@ -166,8 +168,8 @@ public class Service extends BaseService {
 		UserProfileId pid = getEnv().getProfile().getId();
 		synchronized(roots) {
 			roots.clear();
-			roots.put(MyCategoryRoot.SHARE_ID, new MyCategoryRoot(pid));
-			for(CategoryRoot root : manager.listIncomingCategoryRoots()) {
+			roots.put(MyShareRootCategory.SHARE_ID, new MyShareRootCategory(pid));
+			for(ShareRootCategory root : manager.listIncomingCategoryRoots()) {
 				roots.put(root.getShareId(), root);
 			}
 		}
@@ -178,22 +180,21 @@ public class Service extends BaseService {
 			foldersByRoot.clear();
 			folders.clear();
 			rootByFolder.clear();
-			for(CategoryRoot root : roots.values()) {
-				foldersByRoot.put(root.getShareId(), new ArrayList<CategoryFolder>());
-				if(root instanceof MyCategoryRoot) {
+			for(ShareRootCategory root : roots.values()) {
+				foldersByRoot.put(root.getShareId(), new ArrayList<ShareFolderCategory>());
+				if(root instanceof MyShareRootCategory) {
 					for(Category cat : manager.listCategories()) {
-						final MyCategoryFolder fold = new MyCategoryFolder(root.getShareId(), cat);
+						final MyShareFolderCategory fold = new MyShareFolderCategory(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
 						rootByFolder.put(cat.getCategoryId(), root);
 					}
 				} else {
-					for(CategoryFolder fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
+					for(ShareFolderCategory fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
 						final int catId = fold.getCategory().getCategoryId();
-						//fold.setData(us.getCategoryFolderData(catId));
-						fold.setData(manager.getCategoryCustomProps(catId));
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(catId, fold);
+						folderProps.put(catId, manager.getCategoryCustomProps(catId));
 						rootByFolder.put(catId, root);
 					}
 				}
@@ -210,21 +211,22 @@ public class Service extends BaseService {
 				String node = ServletUtils.getStringParameter(request, "node", true);
 				
 				if (node.equals("root")) { // Node: root -> list roots
-					for (CategoryRoot root : roots.values()) {
+					for (ShareRootCategory root : roots.values()) {
 						children.add(createRootNode(root));
 					}
 				} else { // Node: folder -> list folders (categories)
-					CategoryRoot root = roots.get(node);
+					ShareRootCategory root = roots.get(node);
 					
-					if (root instanceof MyCategoryRoot) {
+					if (root instanceof MyShareRootCategory) {
 						for (Category cal : manager.listCategories()) {
-							MyCategoryFolder folder = new MyCategoryFolder(node, cal);
-							children.add(createFolderNode(folder, root.getPerms()));
+							MyShareFolderCategory folder = new MyShareFolderCategory(node, cal);
+							children.add(createFolderNode(folder, null, root.getPerms()));
 						}
 					} else {
 						if (foldersByRoot.containsKey(root.getShareId())) {
-							for (CategoryFolder fold : foldersByRoot.get(root.getShareId())) {
-								final ExtTreeNode etn = createFolderNode(fold, root.getPerms());
+							for (ShareFolderCategory fold : foldersByRoot.get(root.getShareId())) {
+								final CategoryPropSet pset = folderProps.get(fold.getCategory().getCategoryId());
+								final ExtTreeNode etn = createFolderNode(fold, pset, root.getPerms());
 								if (etn != null) children.add(etn);
 							}
 						}
@@ -270,7 +272,7 @@ public class Service extends BaseService {
 			
 			synchronized(roots) {
 				ArrayList<Integer> catIds = new ArrayList<>();
-				for(CategoryFolder fold : foldersByRoot.get(rootId)) {
+				for(ShareFolderCategory fold : foldersByRoot.get(rootId)) {
 					catIds.add(fold.getCategory().getCategoryId());
 				}
 				toggleCheckedFolders(catIds.toArray(new Integer[catIds.size()]), checked);
@@ -290,8 +292,8 @@ public class Service extends BaseService {
 		try {
 			boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", true);
 			
-			for (CategoryRoot root : roots.values()) {
-				if (root instanceof MyCategoryRoot) {
+			for (ShareRootCategory root : roots.values()) {
+				if (root instanceof MyShareRootCategory) {
 					UserProfile up = getEnv().getProfile();
 					items.add(new JsSimple(up.getStringId(), up.getDisplayName()));
 				} else {
@@ -313,11 +315,11 @@ public class Service extends BaseService {
 		
 		try {
 			synchronized(roots) {
-				for (CategoryRoot root : roots.values()) {
+				for (ShareRootCategory root : roots.values()) {
 					if (foldersByRoot.containsKey(root.getShareId())) {
-						for (CategoryFolder fold : foldersByRoot.get(root.getShareId())) {
+						for (ShareFolderCategory fold : foldersByRoot.get(root.getShareId())) {
 							if (!fold.getElementsPerms().implies("CREATE")) continue;
-							items.add(new JsCategoryLkp(fold));
+							items.add(new JsCategoryLkp(fold, folderProps.get(fold.getCategory().getCategoryId())));
 						}
 					}
 				}
@@ -399,25 +401,15 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				String rootId = ServletUtils.getStringParameter(request, "rootId", true);
-				if (rootId.equals(MyCategoryRoot.SHARE_ID)) throw new WTException("Personal root is not supported");
+				if (rootId.equals(MyShareRootCategory.SHARE_ID)) throw new WTException("Personal root is not supported");
 				
 				ArrayList<JsSimple> items = new ArrayList<>();
 				synchronized(roots) {
-					for (CategoryFolder folder : foldersByRoot.get(rootId)) {
-						if (folder.getData() != null) {
-							CategoryPropSet pset = (CategoryPropSet)folder.getData();
-							if ((pset.getHidden() != null) && pset.getHidden()) {
-								items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
-							}
+					for (ShareFolderCategory folder : foldersByRoot.get(rootId)) {
+						CategoryPropSet pset = folderProps.get(folder.getCategory().getCategoryId());
+						if ((pset != null) && pset.getHiddenOrDefault(false)) {
+							items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
 						}
-						/*
-						CategoryFolderData data = (CategoryFolderData)folder.getData();
-						if (data != null) {
-							if ((data.hidden != null) && data.hidden) {
-								items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
-							}
-						}
-						*/
 					}
 				}
 				new JsonResult(items).printTo(out);
@@ -436,7 +428,7 @@ public class Service extends BaseService {
 				synchronized(roots) {
 					for (String id : ids) {
 						int categoryId = Integer.valueOf(id);
-						CategoryFolder fold = folders.get(categoryId);
+						ShareFolderCategory fold = folders.get(categoryId);
 						if (fold != null) {
 							updateCategoryFolderVisibility(categoryId, null);
 							pids.add(fold.getCategory().getProfileId().toString());
@@ -491,11 +483,12 @@ public class Service extends BaseService {
 				List<Integer> visibleCategoryIds = getVisibleFolderIds(true);
 				List<FolderTasks> foTasksObjs = manager.listFolderTasks(visibleCategoryIds, pattern);
 				for (FolderTasks foTasksObj : foTasksObjs) {
-					final CategoryFolder fold = folders.get(foTasksObj.folder.getCategoryId());
+					final int categoryId = foTasksObj.folder.getCategoryId();
+					final ShareFolderCategory fold = folders.get(categoryId);
 					if (fold == null) continue;
 					
 					for (TaskEx te : foTasksObj.tasks) {
-						items.add(new JsGridTask(fold, te, DateTimeZone.UTC));
+						items.add(new JsGridTask(fold, folderProps.get(categoryId), te, DateTimeZone.UTC));
 					}
 				}
 				new JsonResult("tasks", items).printTo(out);
@@ -606,10 +599,10 @@ public class Service extends BaseService {
 			String query = ServletUtils.getStringParameter(request, "query", null);
 			
 			if (query == null) {
-				final CategoryRoot root = roots.get(MyCategoryRoot.SHARE_ID);
+				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
 				final List<Integer> ids = manager.listCategoryIds();
 				for (TaskEx task : manager.listUpcomingTasks(ids)) {
-					final CategoryFolder folder = folders.get(task.getCategoryId());
+					final ShareFolderCategory folder = folders.get(task.getCategoryId());
 					if (folder == null) continue;
 					
 					items.add(new JsPletTasks(root, folder, task, DateTimeZone.UTC));
@@ -618,9 +611,9 @@ public class Service extends BaseService {
 				final Set<Integer> ids = folders.keySet();
 				final String pattern = LangUtils.patternizeWords(query);
 				for (FolderTasks foTaskObj : manager.listFolderTasks(ids, pattern)) {
-					final CategoryRoot root = rootByFolder.get(foTaskObj.folder.getCategoryId());
+					final ShareRootCategory root = rootByFolder.get(foTaskObj.folder.getCategoryId());
 					if (root == null) continue;
-					final CategoryFolder folder = folders.get(foTaskObj.folder.getCategoryId());
+					final ShareFolderCategory folder = folders.get(foTaskObj.folder.getCategoryId());
 					if (folder == null) continue;
 					
 					for (TaskEx task : foTaskObj.tasks) {
@@ -657,8 +650,8 @@ public class Service extends BaseService {
 		// Root description part
 		CompositeId cid = new CompositeId().parse(sharing.getId());
 		if(roots.containsKey(cid.getToken(0))) {
-			CategoryRoot root = roots.get(cid.getToken(0));
-			if(root instanceof MyCategoryRoot) {
+			ShareRootCategory root = roots.get(cid.getToken(0));
+			if(root instanceof MyShareRootCategory) {
 				sb.append(lookupResource(TasksLocale.CATEGORIES_MY));
 			} else {
 				sb.append(root.getDescription());
@@ -681,9 +674,9 @@ public class Service extends BaseService {
 		ArrayList<Integer> orphans = new ArrayList<>();
 		
 		Integer[] checked = getCheckedFolders();
-		for (CategoryRoot root : getCheckedRoots()) {
+		for (ShareRootCategory root : getCheckedRoots()) {
 			for (Integer folderId : checked) {
-				final CategoryRoot folderRoot = rootByFolder.get(folderId);
+				final ShareRootCategory folderRoot = rootByFolder.get(folderId);
 				if (folderRoot == null) {
 					if (cleanupOrphans) orphans.add(folderId);
 					continue;
@@ -698,9 +691,9 @@ public class Service extends BaseService {
 		return ids;
 	}
 	
-	private List<CategoryRoot> getCheckedRoots() {
-		ArrayList<CategoryRoot> checked = new ArrayList<>();
-		for(CategoryRoot root : roots.values()) {
+	private List<ShareRootCategory> getCheckedRoots() {
+		ArrayList<ShareRootCategory> checked = new ArrayList<>();
+		for(ShareRootCategory root : roots.values()) {
 			if(!checkedRoots.contains(root.getShareId())) continue; // Skip folder if not visible
 			checked.add(root);
 		}
@@ -753,9 +746,9 @@ public class Service extends BaseService {
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
-				CategoryFolder folder = folders.get(categoryId);
-				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropSet)folder.getData()).set(pset);
+				ShareFolderCategory folder = folders.get(categoryId);
+				if (!(folder instanceof MyShareFolderCategory)) {
+					folderProps.put(categoryId, pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -771,9 +764,9 @@ public class Service extends BaseService {
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
-				CategoryFolder folder = folders.get(categoryId);
-				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropSet)folder.getData()).set(pset);
+				ShareFolderCategory folder = folders.get(categoryId);
+				if (!(folder instanceof MyShareFolderCategory)) {
+					folderProps.put(categoryId, pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -789,9 +782,9 @@ public class Service extends BaseService {
 				manager.updateCategoryCustomProps(categoryId, pset);
 				
 				// Update internal cache
-				CategoryFolder folder = folders.get(categoryId);
-				if (!(folder instanceof MyCategoryFolder)) {
-					((CategoryPropSet)folder.getData()).set(pset);
+				ShareFolderCategory folder = folders.get(categoryId);
+				if (!(folder instanceof MyShareFolderCategory)) {
+					folderProps.put(categoryId, pset);
 				}
 			} catch(WTException ex) {
 				logger.error("Error saving custom category props", ex);
@@ -799,8 +792,8 @@ public class Service extends BaseService {
 		}
 	}
 	
-	private ExtTreeNode createRootNode(CategoryRoot root) {
-		if(root instanceof MyCategoryRoot) {
+	private ExtTreeNode createRootNode(ShareRootCategory root) {
+		if(root instanceof MyShareRootCategory) {
 			return createRootNode(root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), lookupResource(TasksLocale.CATEGORIES_MY), false, "wttasks-icon-root-my-xs").setExpanded(true);
 		} else {
 			return createRootNode(root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), root.getDescription(), false, "wttasks-icon-root-incoming-xs");
@@ -819,18 +812,19 @@ public class Service extends BaseService {
 		return node;
 	}
 	
-	private ExtTreeNode createFolderNode(CategoryFolder folder, SharePermsRoot rootPerms) {
+	private ExtTreeNode createFolderNode(ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms) {
 		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		String color = cat.getColor();
-		Category.Sync sync = cat.getSync();
+		Category.Sync sync = Category.Sync.OFF;
 		boolean visible = checkedFolders.contains(cat.getCategoryId());
 		
-		if (folder.getData() != null) {
-			CategoryPropSet pset = (CategoryPropSet)folder.getData();
-			if ((pset.getHidden() != null) && pset.getHidden()) return null;
-			if (!StringUtils.isBlank(pset.getColor())) color = pset.getColor();
-			if (pset.getSync() != null) sync = pset.getSync();
+		if (folderProps != null) { // Props are not null only for incoming folders
+			if (folderProps.getHiddenOrDefault(false)) return null;
+			color = folderProps.getColorOrDefault(color);
+			sync = folderProps.getSyncOrDefault(sync);
+		} else {
+			sync = cat.getSync();
 		}
 		
 		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);

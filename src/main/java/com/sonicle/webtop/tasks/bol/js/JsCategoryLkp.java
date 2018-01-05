@@ -33,7 +33,7 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import org.apache.commons.lang3.StringUtils;
 
@@ -60,11 +60,8 @@ public class JsCategoryLkp {
 		color = cat.getColor();
 	}
 	
-	public JsCategoryLkp(CategoryFolder folder) {
+	public JsCategoryLkp(ShareFolderCategory folder, CategoryPropSet folderProps) {
 		this(folder.getCategory());
-		if (folder.getData() != null) {
-			CategoryPropSet pset = (CategoryPropSet)folder.getData();
-			if (!StringUtils.isBlank(pset.getColor())) color = pset.getColor();
-		}
+		if (folderProps != null) color = folderProps.getColorOrDefault(color);
 	}
 }

@@ -43,7 +43,7 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 		title: '{category.tit}',
 		iconCls: 'wttasks-icon-category-xs',
 		width: 360,
-		height: 290
+		height: 340
 	},
 	fieldTitle: 'name',
 	modelName: 'Sonicle.webtop.tasks.model.Category',

@@ -35,8 +35,10 @@ package com.sonicle.webtop.tasks.bol.js.rest;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.core.sdk.UserProfile;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
-import com.sonicle.webtop.tasks.model.CategoryRoot;
+import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryPropSet;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.ShareRootCategory;
 
 /**
  *
@@ -49,12 +51,16 @@ public class JsIncomingCategory {
 	public String categoryName;
 	public Boolean readOnly;
 	
-	public JsIncomingCategory(CategoryRoot root, CategoryFolder folder) {
+	public JsIncomingCategory(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps) {
 		UserProfile.Data udata = WT.getUserData(root.getOwnerProfileId());
 		this.ownerProfileId = root.getOwnerProfileId().toString();
 		this.ownerDisplayName = udata.getDisplayName();
 		this.categoryId = folder.getCategory().getCategoryId();
 		this.categoryName = folder.getCategory().getName();
-		this.readOnly = !SharePermsElements.full().toString().equals(folder.getElementsPerms().toString());
+		if ((folderProps != null) && Category.Sync.READ.equals(folderProps.getSync())) {
+			this.readOnly = true;
+		} else {
+			this.readOnly = !SharePermsElements.full().toString().equals(folder.getElementsPerms().toString());
+		}
 	}
 }

@@ -32,18 +32,18 @@
  */
 package com.sonicle.webtop.tasks.bol.model;
 
-import com.sonicle.webtop.tasks.model.CategoryRoot;
-import com.sonicle.webtop.core.model.SharePermsRoot;
-import com.sonicle.webtop.core.sdk.UserProfileId;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.core.model.SharePermsFolder;
+import com.sonicle.webtop.core.model.SharePermsElements;
+import com.sonicle.webtop.tasks.model.Category;
 
 /**
  *
  * @author malbinola
  */
-public class MyCategoryRoot extends CategoryRoot {
-	public static final String SHARE_ID = "0";
-	
-	public MyCategoryRoot(UserProfileId ownerId) {
-		super(SHARE_ID, SharePermsRoot.full(), ownerId, null);
+public class MyShareFolderCategory extends ShareFolderCategory {
+
+	public MyShareFolderCategory(String shareId, Category category) {
+		super(shareId, SharePermsFolder.full(), SharePermsElements.full(), category);
 	}
 }
