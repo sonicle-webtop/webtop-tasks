@@ -31,7 +31,7 @@ ALTER TABLE "tasks"."category_props" ADD PRIMARY KEY ("domain_id", "user_id", "c
 INSERT INTO "tasks"."category_props" 
 ("domain_id", "user_id", "category_id", "hidden", "color") 
 SELECT domain_id, user_id, 
-CAST (replace("key",'category.folder.data@','') AS int4), 
+CAST (replace(replace("key",'category.folder.data@',''),',','') AS int4), 
 CASE WHEN split_part(split_part(substr("value",2,length("value")-2),',',1),':',2)='true' THEN TRUE ELSE NULL END, 
 CASE WHEN replace(split_part(split_part(substr("value",2,length("value")-2),',',2),':',2),'"','')='null' THEN NULL ELSE replace(split_part(split_part(substr("value",2,length("value")-2),',',2),':',2),'"','') END 
 FROM "core"."user_settings" 
