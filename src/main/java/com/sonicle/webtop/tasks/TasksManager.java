@@ -46,6 +46,9 @@ import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.dal.DAOException;
+import com.sonicle.webtop.core.dal.DAOIntegrityViolationException;
+import com.sonicle.webtop.core.sdk.AbstractMapCache;
+import com.sonicle.webtop.core.sdk.AbstractShareCache;
 import com.sonicle.webtop.core.sdk.AuthException;
 import com.sonicle.webtop.core.sdk.BaseManager;
 import com.sonicle.webtop.core.sdk.BaseReminder;
@@ -57,27 +60,30 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
 import com.sonicle.webtop.core.util.IdentifierUtils;
 import com.sonicle.webtop.tasks.bol.OCategory;
+import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
-import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
-import com.sonicle.webtop.tasks.model.CategoryRoot;
+import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
+import com.sonicle.webtop.tasks.dal.CategoryPropsDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -93,99 +99,47 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	public static final String GROUPNAME_CATEGORY = "CATEGORY";
 	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
 	
-	private final HashMap<Integer, UserProfileId> cacheCategoryToOwner = new HashMap<>();
-	private final Object shareCacheLock = new Object();
-	private final HashMap<UserProfileId, String> cacheOwnerToRootShare = new HashMap<>();
-	private final HashMap<UserProfileId, String> cacheOwnerToWildcardFolderShare = new HashMap<>();
-	private final HashMap<Integer, String> cacheCategoryToFolderShare = new HashMap<>();
+	private final OwnerCache ownerCache = new OwnerCache();
+	private final ShareCache shareCache = new ShareCache();
 	
 	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
+		if (!fastInit) {
+			shareCache.init();
+		}
 	}
 	
 	private TasksServiceSettings getServiceSettings() {
 		return new TasksServiceSettings(SERVICE_ID, getTargetProfileId().getDomainId());
 	}
 	
-	private void buildShareCache() {
-		CoreManager core = WT.getCoreManager();
-		
-		try {
-			cacheOwnerToRootShare.clear();
-			cacheOwnerToWildcardFolderShare.clear();
-			cacheCategoryToFolderShare.clear();
-			for(CategoryRoot root : listIncomingCategoryRoots()) {
-				cacheOwnerToRootShare.put(root.getOwnerProfileId(), root.getShareId());
-				for(OShare folder : core.listIncomingShareFolders(root.getShareId(), GROUPNAME_CATEGORY)) {
-					if(folder.hasWildcard()) {
-						UserProfileId ownerId = core.userUidToProfileId(folder.getUserUid());
-						cacheOwnerToWildcardFolderShare.put(ownerId, folder.getShareId().toString());
-					} else {
-						cacheCategoryToFolderShare.put(Integer.valueOf(folder.getInstance()), folder.getShareId().toString());
-					}
-				}
-			}
-		} catch(WTException ex) {
-			throw new WTRuntimeException(ex.getMessage());
+	private List<ShareRootCategory> internalListIncomingCategoryShareRoots() throws WTException {
+		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
+		List<ShareRootCategory> roots = new ArrayList();
+		HashSet<String> hs = new HashSet<>();
+		for (IncomingShareRoot share : coreMgr.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY)) {
+			final SharePermsRoot perms = coreMgr.getShareRootPermissions(share.getShareId());
+			ShareRootCategory root = new ShareRootCategory(share, perms);
+			if (hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
+			hs.add(root.getShareId());
+			roots.add(root);
 		}
+		return roots;
 	}
 	
-	private String ownerToRootShareId(UserProfileId owner) {
-		synchronized(shareCacheLock) {
-			if (!cacheOwnerToRootShare.containsKey(owner)) buildShareCache();
-			return cacheOwnerToRootShare.get(owner);
-		}
-	}
-	
-	private String ownerToWildcardFolderShareId(UserProfileId ownerPid) {
-		synchronized(shareCacheLock) {
-			if (!cacheOwnerToWildcardFolderShare.containsKey(ownerPid) && cacheOwnerToRootShare.isEmpty()) buildShareCache();
-			return cacheOwnerToWildcardFolderShare.get(ownerPid);
-		}
-	}
-	
-	private String categoryToFolderShareId(int category) {
-		synchronized(shareCacheLock) {
-			if (!cacheCategoryToFolderShare.containsKey(category)) buildShareCache();
-			return cacheCategoryToFolderShare.get(category);
-		}
-	}
-	
-	private UserProfileId categoryToOwner(int categoryId) {
-		synchronized(cacheCategoryToOwner) {
-			if (cacheCategoryToOwner.containsKey(categoryId)) {
-				return cacheCategoryToOwner.get(categoryId);
-			} else {
-				try {
-					UserProfileId owner = findCategoryOwner(categoryId);
-					if (owner != null) cacheCategoryToOwner.put(categoryId, owner);
-					return owner;
-				} catch(WTException ex) {
-					throw new WTRuntimeException(ex.getMessage());
-				}
-			}
-		}
-	}
-	
-	public String buildCategoryFolderShareId(int categoryId) throws WTException {
+	public String buildSharingId(int categoryId) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
-		UserProfileId ownerPid = categoryToOwner(categoryId);
-		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		// Skip rights check if running user is resource's owner
+		UserProfileId owner = ownerCache.get(categoryId);
+		if (owner == null) throw new WTException("owner({0}) -> null", categoryId);
 		
 		String rootShareId = null;
-		if (ownerPid.equals(targetPid)) {
-			rootShareId = MyCategoryRoot.SHARE_ID;
+		if (owner.equals(targetPid)) {
+			rootShareId = MyShareRootCategory.SHARE_ID;
 		} else {
-			for(CategoryRoot root : listIncomingCategoryRoots()) {
-				HashMap<Integer, CategoryFolder> folders = listIncomingCategoryFolders(root.getShareId());
-				if (folders.containsKey(categoryId)) {
-					rootShareId = root.getShareId();
-					break;
-				}
-			}
+			rootShareId = shareCache.getShareRootIdByFolderId(categoryId);
 		}
-		
 		if (rootShareId == null) throw new WTException("Unable to find a root share [{0}]", categoryId);
 		return new CompositeId().setTokens(rootShareId, categoryId).toString();
 	}
@@ -201,55 +155,33 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	public UserProfileId getCategoryOwner(int categoryId) throws WTException {
-		return categoryToOwner(categoryId);
+		return ownerCache.get(categoryId);
 	}
 	
 	@Override
-	public List<CategoryRoot> listIncomingCategoryRoots() throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		ArrayList<CategoryRoot> roots = new ArrayList();
-		HashSet<String> hs = new HashSet<>();
-		
-		List<IncomingShareRoot> shares = core.listIncomingShareRoots(SERVICE_ID, GROUPNAME_CATEGORY);
-		for(IncomingShareRoot share : shares) {
-			SharePermsRoot perms = core.getShareRootPermissions(share.getShareId());
-			CategoryRoot root = new CategoryRoot(share, perms);
-			if(hs.contains(root.getShareId())) continue; // Avoid duplicates ??????????????????????
-			hs.add(root.getShareId());
-			roots.add(root);
-		}
-		return roots;
+	public List<ShareRootCategory> listIncomingCategoryRoots() {
+		return shareCache.getShareRoots();
 	}
 	
 	@Override
-	public HashMap<Integer, CategoryFolder> listIncomingCategoryFolders(String rootShareId) throws WTException {
-		CoreManager core = WT.getCoreManager(getTargetProfileId());
-		LinkedHashMap<Integer, CategoryFolder> folders = new LinkedHashMap<>();
+	public Map<Integer, ShareFolderCategory> listIncomingCategoryFolders(String rootShareId) throws WTException {
+		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
+		LinkedHashMap<Integer, ShareFolderCategory> folders = new LinkedHashMap<>();
 		
-		// Retrieves incoming folders (from sharing). This lookup already 
-		// returns readable shares (we don't need to test READ permission)
-		List<OShare> shares = core.listIncomingShareFolders(rootShareId, GROUPNAME_CATEGORY);
-		for(OShare share : shares) {
-			
-			List<Category> cats = null;
-			if(share.hasWildcard()) {
-				UserProfileId ownerId = core.userUidToProfileId(share.getUserUid());
-				cats = listCategories(ownerId);
+		for (Integer folderId : shareCache.getFolderIdsByShareRoot(rootShareId)) {
+			final String shareFolderId = shareCache.getShareFolderIdByFolderId(folderId);
+			if (StringUtils.isBlank(shareFolderId)) continue;
+			SharePermsFolder fperms = coreMgr.getShareFolderPermissions(shareFolderId);
+			SharePermsElements eperms = coreMgr.getShareElementsPermissions(shareFolderId);
+			if (folders.containsKey(folderId)) {
+				final ShareFolderCategory shareFolder = folders.get(folderId);
+				if (shareFolder == null) continue;
+				shareFolder.getPerms().merge(fperms);
+				shareFolder.getElementsPerms().merge(eperms);
 			} else {
-				cats = Arrays.asList(getCategory(Integer.valueOf(share.getInstance())));
-			}
-			
-			for(Category cat : cats) {
-				SharePermsFolder fperms = core.getShareFolderPermissions(share.getShareId().toString());
-				SharePermsElements eperms = core.getShareElementsPermissions(share.getShareId().toString());
-				
-				if(folders.containsKey(cat.getCategoryId())) {
-					CategoryFolder folder = folders.get(cat.getCategoryId());
-					folder.getPerms().merge(fperms);
-					folder.getElementsPerms().merge(eperms);
-				} else {
-					folders.put(cat.getCategoryId(), new CategoryFolder(share.getShareId().toString(), fperms, eperms, cat));
-				}
+				final Category category = getCategory(folderId);
+				if (category == null) continue;
+				folders.put(folderId, new ShareFolderCategory(shareFolderId, fperms, eperms, category));
 			}
 		}
 		return folders;
@@ -266,11 +198,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public List<Integer> listIncomingCategoryIds() throws WTException {
-		ArrayList<Integer> ids = new ArrayList<>();
-		for (CategoryRoot root : listIncomingCategoryRoots()) {
-			ids.addAll(listIncomingCategoryFolders(root.getShareId()).keySet());
-		}
-		return ids;
+		return shareCache.getFolderIds();
 	}
 	
 	@Override
@@ -299,14 +227,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public Category getCategory(int categoryId) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			checkRightsOnCategoryFolder(categoryId, "READ");
 			
 			con = WT.getConnection(SERVICE_ID);
-			OCategory ocat = catdao.selectById(con, categoryId);
+			OCategory ocat = catDao.selectById(con, categoryId);
 			
 			return createCategory(ocat);
 			
@@ -319,12 +247,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public Category getBuiltInCategory() throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			OCategory ocat = catdao.selectBuiltInByProfile(con, getTargetProfileId().getDomainId(), getTargetProfileId().getUserId());
+			OCategory ocat = catDao.selectBuiltInByProfile(con, getTargetProfileId().getDomainId(), getTargetProfileId().getUserId());
 			if(ocat == null) return null;
 			
 			checkRightsOnCategoryFolder(ocat.getCategoryId(), "READ");
@@ -428,18 +356,20 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public boolean deleteCategory(int categoryId) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			checkRightsOnCategoryFolder(categoryId, "DELETE");
 			
 			// Retrieve sharing status (for later)
-			String shareId = buildCategoryFolderShareId(categoryId);
-			Sharing sharing = getSharing(shareId);
+			String sharingId = buildSharingId(categoryId);
+			Sharing sharing = getSharing(sharingId);
 
 			con = WT.getConnection(SERVICE_ID, false);
-			int ret = catdao.deleteById(con, categoryId);
+			int ret = catDao.deleteById(con, categoryId);
+			psetDao.deleteByCategory(con, categoryId);
 			doDeleteTasksByCategory(con, categoryId);
 			
 			// Cleanup sharing, if necessary
@@ -469,7 +399,85 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+	public CategoryPropSet getCategoryCustomProps(int categoryId) throws WTException {
+		return getCategoryCustomProps(getTargetProfileId(), categoryId);
+	}
+	
+	private CategoryPropSet getCategoryCustomProps(UserProfileId profileId, int categoryId) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			OCategoryPropSet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
+			return (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset);
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Map<Integer, CategoryPropSet> getCategoryCustomProps(Collection<Integer> categoryIds) throws WTException {
+		return getCategoryCustomProps(getTargetProfileId(), categoryIds);
+	}
+	
+	public Map<Integer, CategoryPropSet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			LinkedHashMap<Integer, CategoryPropSet> psets = new LinkedHashMap<>(categoryIds.size());
+			Map<Integer, OCategoryPropSet> map = psetDao.selectByProfileCategoryIn(con, profileId.getDomainId(), profileId.getUserId(), categoryIds);
+			for (Integer categoryId : categoryIds) {
+				OCategoryPropSet opset = map.get(categoryId);
+				psets.put(categoryId, (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset));
+			}
+			return psets;
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public CategoryPropSet updateCategoryCustomProps(int categoryId, CategoryPropSet propertySet) throws WTException {
+		ensureUser();
+		return updateCategoryCustomProps(getTargetProfileId(), categoryId, propertySet);
+	}
+	
+	private CategoryPropSet updateCategoryCustomProps(UserProfileId profileId, int categoryId, CategoryPropSet propertySet) throws WTException {
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			OCategoryPropSet opset = createOCategoryPropSet(propertySet);
+			opset.setDomainId(profileId.getDomainId());
+			opset.setUserId(profileId.getUserId());
+			opset.setCategoryId(categoryId);
+			
+			con = WT.getConnection(SERVICE_ID);
+			try {
+				psetDao.insert(con, opset);
+			} catch(DAOIntegrityViolationException ex1) {
+				psetDao.update(con, opset);
+			}
+			return propertySet;
+			
+		} catch(SQLException | DAOException ex) {
+			throw new WTException(ex, "DB error");
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
@@ -479,7 +487,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			// TODO: implementare filtro task privati
 			ArrayList<FolderTasks> foTasks = new ArrayList<>();
-			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryFolderIds);
+			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryIds);
 			for (OCategory ocat : ocats) {
 				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
 				
@@ -725,8 +733,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	public void eraseData(boolean deep) throws WTException {
-		CategoryDAO catdao = CategoryDAO.getInstance();
-		TaskDAO tasdao = TaskDAO.getInstance();
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		//TODO: controllo permessi
@@ -737,18 +746,19 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			// Erase tasks
 			if (deep) {
-				for (OCategory ocat : catdao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-					tasdao.deleteByCategoryId(con, ocat.getCategoryId());
+				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
+					tasDao.deleteByCategoryId(con, ocat.getCategoryId());
 				}
 			} else {
 				DateTime revTs = createRevisionTimestamp();
-				for (OCategory ocat : catdao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-					tasdao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
+				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
+					tasDao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
 				}
 			}
 			
 			// Erase categories
-			catdao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
+			psetDao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
+			catDao.deleteByProfile(con, pid.getDomainId(), pid.getUserId());
 			
 			DbUtils.commitQuietly(con);
 			
@@ -875,11 +885,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private UserProfileId findCategoryOwner(int categoryId) throws WTException {
+		CategoryDAO dao = CategoryDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			CategoryDAO dao = CategoryDAO.getInstance();
 			Owner owner = dao.selectOwnerById(con, categoryId);
 			return (owner == null) ? null : new UserProfileId(owner.getDomainId(), owner.getUserId());
 			
@@ -890,14 +900,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private void checkRightsOnCategoryRoot(UserProfileId ownerPid, String action) throws WTException {
+	private void checkRightsOnCategoryRoot(UserProfileId owner, String action) throws WTException {
 		UserProfileId targetPid = getTargetProfileId();
 		
 		if (RunContext.isWebTopAdmin()) return;
-		if (ownerPid.equals(targetPid)) return;
+		if (owner.equals(targetPid)) return;
 		
-		String shareId = ownerToRootShareId(ownerPid);
-		if (shareId == null) throw new WTException("ownerToRootShareId({0}) -> null", ownerPid);
+		String shareId = shareCache.getShareRootIdByOwner(owner);
+		if (shareId == null) throw new WTException("ownerToRootShareId({0}) -> null", owner);
 		CoreManager core = WT.getCoreManager(targetPid);
 		if (core.isShareRootPermitted(shareId, action)) return;
 		//if(core.isShareRootPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
@@ -923,20 +933,20 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (RunContext.isWebTopAdmin()) return;
 		
 		// Skip rights check if running user is resource's owner
-		UserProfileId ownerPid = categoryToOwner(categoryId);
-		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
-		if (ownerPid.equals(targetPid)) return;
+		UserProfileId owner = ownerCache.get(categoryId);
+		if (owner == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		if (owner.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
 		CoreManager core = WT.getCoreManager(targetPid);
-		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
+		String wildcardShareId = shareCache.getWildcardShareFolderIdByOwner(owner);
 		if (wildcardShareId != null) {
 			if (core.isShareFolderPermitted(wildcardShareId, action)) return;
 			//if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on category instance
-		String shareId = categoryToFolderShareId(categoryId);
+		String shareId = shareCache.getShareFolderIdByFolderId(categoryId);
 		if (shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
 		if (core.isShareFolderPermitted(shareId, action)) return;
 		// if(core.isShareFolderPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
@@ -950,20 +960,20 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (RunContext.isWebTopAdmin()) return;
 		
 		// Skip rights check if running user is resource's owner
-		UserProfileId ownerPid = categoryToOwner(categoryId);
-		if (ownerPid == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
-		if (ownerPid.equals(targetPid)) return;
+		UserProfileId owner = ownerCache.get(categoryId);
+		if (owner == null) throw new WTException("categoryToOwner({0}) -> null", categoryId);
+		if (owner.equals(targetPid)) return;
 		
 		// Checks rights on the wildcard instance (if present)
 		CoreManager core = WT.getCoreManager(targetPid);
-		String wildcardShareId = ownerToWildcardFolderShareId(ownerPid);
+		String wildcardShareId = shareCache.getWildcardShareFolderIdByOwner(owner);
 		if (wildcardShareId != null) {
 			if (core.isShareElementsPermitted(wildcardShareId, action)) return;
 			//if (core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, wildcardShareId)) return;
 		}
 		
 		// Checks rights on calendar instance
-		String shareId = categoryToFolderShareId(categoryId);
+		String shareId = shareCache.getShareFolderIdByFolderId(categoryId);
 		if (shareId == null) throw new WTException("categoryToLeafShareId({0}) -> null", categoryId);
 		if (core.isShareElementsPermitted(shareId, action)) return;
 		//if (core.isShareElementsPermitted(SERVICE_ID, RESOURCE_CATEGORY, action, shareId)) return;
@@ -1021,6 +1031,32 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (StringUtils.isBlank(fill.getSync())) fill.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
 			if (fill.getIsDefault() == null) fill.setIsDefault(false);
 			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
+		}
+		return fill;
+	}
+	
+	private CategoryPropSet createCategoryPropSet(OCategoryPropSet with) {
+		return fillCategoryPropSet(new CategoryPropSet(), with);
+	}
+	
+	private CategoryPropSet fillCategoryPropSet(CategoryPropSet fill, OCategoryPropSet with) {
+		if ((fill != null) && (with != null)) {
+			fill.setHidden(with.getHidden());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.forSerializedName(with.getSync(), Category.Sync.class));
+		}
+		return fill;
+	}
+	
+	private OCategoryPropSet createOCategoryPropSet(CategoryPropSet with) {
+		return fillOCategoryPropSet(new OCategoryPropSet(), with);
+	}
+	
+	private OCategoryPropSet fillOCategoryPropSet(OCategoryPropSet fill, CategoryPropSet with) {
+		if ((fill != null) && (with != null)) {
+			fill.setHidden(with.getHidden());
+			fill.setColor(with.getColor());
+			fill.setSync(EnumUtils.toSerializedName(with.getSync()));
 		}
 		return fill;
 	}
@@ -1119,5 +1155,55 @@ public class TasksManager extends BaseManager implements ITasksManager {
     
 	private DateTime createRevisionTimestamp() {
 		return DateTime.now(DateTimeZone.UTC);
+	}
+	
+	private class OwnerCache extends AbstractMapCache<Integer, UserProfileId> {
+
+		@Override
+		protected void internalInitCache() {}
+
+		@Override
+		protected void internalMissKey(Integer key) {
+			try {
+				UserProfileId owner = findCategoryOwner(key);
+				if (owner == null) throw new WTException("Owner not found [{0}]", key);
+				put(key, owner);
+			} catch(WTException ex) {
+				throw new WTRuntimeException(ex.getMessage());
+			}
+		}
+	}
+	
+	private class ShareCache extends AbstractShareCache<Integer, ShareRootCategory> {
+
+		@Override
+		protected void internalInitCache() {
+			final CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
+			try {
+				for (ShareRootCategory root : internalListIncomingCategoryShareRoots()) {
+					shareRoots.add(root);
+					ownerToShareRoot.put(root.getOwnerProfileId(), root);
+					for (OShare folder : coreMgr.listIncomingShareFolders(root.getShareId(), GROUPNAME_CATEGORY)) {
+						if (folder.hasWildcard()) {
+							final UserProfileId ownerPid = coreMgr.userUidToProfileId(folder.getUserUid());
+							ownerToWildcardShareFolder.put(ownerPid, folder.getShareId().toString());
+							for (Category category : listCategories(ownerPid)) {
+								folderTo.add(category.getCategoryId());
+								rootShareToFolderShare.put(root.getShareId(), category.getCategoryId());
+								folderToWildcardShareFolder.put(category.getCategoryId(), folder.getShareId().toString());
+							}
+						} else {
+							int categoryId = Integer.valueOf(folder.getInstance());
+							folderTo.add(categoryId);
+							rootShareToFolderShare.put(root.getShareId(), categoryId);
+							folderToShareFolder.put(categoryId, folder.getShareId().toString());
+						}
+					}
+				}
+				ready = true;
+			} catch(WTException ex) {
+				throw new WTRuntimeException(ex.getMessage());
+			}
+		}
 	}
 }

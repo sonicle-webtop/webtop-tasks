@@ -45,6 +45,7 @@ Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 		WTF.roField('_default', 'boolean'),
 		WTF.field('_visible', 'boolean', false), // Same as checked
 		WTF.roField('_color', 'string'),
+		WTF.roField('_sync', 'string'),
 		WTF.calcField('_domainId', 'string', '_pid', function(v, rec) {
 			return (rec.get('_pid')) ? rec.get('_pid').split('@')[1] : null;
 		}),

@@ -28,6 +28,7 @@ public class Keys {
 	// -------------------------------------------------------------------------
 
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.CategoriesRecord> CATEGORIES_PKEY = UniqueKeys0.CATEGORIES_PKEY;
+	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.CategoryPropsRecord> CATEGORY_PROPS_PKEY = UniqueKeys0.CATEGORY_PROPS_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_PKEY = UniqueKeys0.TASKS_PKEY;
 
 	// -------------------------------------------------------------------------
@@ -45,6 +46,7 @@ public class Keys {
 
 	private static class UniqueKeys0 extends org.jooq.impl.AbstractKeys {
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.CategoriesRecord> CATEGORIES_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.Categories.CATEGORIES, com.sonicle.webtop.tasks.jooq.tables.Categories.CATEGORIES.CATEGORY_ID);
+		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.CategoryPropsRecord> CATEGORY_PROPS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.CategoryProps.CATEGORY_PROPS, com.sonicle.webtop.tasks.jooq.tables.CategoryProps.CATEGORY_PROPS.DOMAIN_ID, com.sonicle.webtop.tasks.jooq.tables.CategoryProps.CATEGORY_PROPS.USER_ID, com.sonicle.webtop.tasks.jooq.tables.CategoryProps.CATEGORY_PROPS.CATEGORY_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS, com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS.TASK_ID);
 	}
 }

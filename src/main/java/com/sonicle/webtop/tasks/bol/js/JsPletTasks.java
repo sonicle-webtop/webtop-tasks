@@ -33,10 +33,10 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.tasks.bol.model.MyCategoryRoot;
+import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryFolder;
-import com.sonicle.webtop.tasks.model.CategoryRoot;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
@@ -57,7 +57,7 @@ public class JsPletTasks {
 	public String _frights;
 	public String _erights;
 	
-	public JsPletTasks(CategoryRoot root, CategoryFolder folder, TaskEx task, DateTimeZone profileTz) {
+	public JsPletTasks(ShareRootCategory root, ShareFolderCategory folder, TaskEx task, DateTimeZone profileTz) {
 		final Category category = folder.getCategory();
 		
 		taskId = task.getTaskId();
@@ -68,7 +68,7 @@ public class JsPletTasks {
 		description = StringUtils.left(task.getDescription(), 250);
 		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
 		
-		_owner = (root instanceof MyCategoryRoot) ? "" : root.getDescription();
+		_owner = (root instanceof MyShareRootCategory) ? "" : root.getDescription();
 		_frights = folder.getPerms().toString();
 		_erights = folder.getElementsPerms().toString();
 	}

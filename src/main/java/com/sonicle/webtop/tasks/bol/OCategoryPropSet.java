@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Sonicle S.r.l.
+/*
+ * Copyright (C) 2018 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,22 +28,16 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2014 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2018 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks.bol.model;
+package com.sonicle.webtop.tasks.bol;
 
-import com.sonicle.webtop.tasks.model.CategoryRoot;
-import com.sonicle.webtop.core.model.SharePermsRoot;
-import com.sonicle.webtop.core.sdk.UserProfileId;
+import com.sonicle.webtop.tasks.jooq.tables.pojos.CategoryProps;
 
 /**
  *
  * @author malbinola
  */
-public class MyCategoryRoot extends CategoryRoot {
-	public static final String SHARE_ID = "0";
+public class OCategoryPropSet extends CategoryProps {
 	
-	public MyCategoryRoot(UserProfileId ownerId) {
-		super(SHARE_ID, SharePermsRoot.full(), ownerId, null);
-	}
 }

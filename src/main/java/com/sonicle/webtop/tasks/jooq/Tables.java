@@ -22,6 +22,11 @@ public class Tables {
 	public static final com.sonicle.webtop.tasks.jooq.tables.Categories CATEGORIES = com.sonicle.webtop.tasks.jooq.tables.Categories.CATEGORIES;
 
 	/**
+	 * The table tasks.category_props
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.CategoryProps CATEGORY_PROPS = com.sonicle.webtop.tasks.jooq.tables.CategoryProps.CATEGORY_PROPS;
+
+	/**
 	 * The table tasks.tasks
 	 */
 	public static final com.sonicle.webtop.tasks.jooq.tables.Tasks TASKS = com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS;

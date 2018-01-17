@@ -32,7 +32,7 @@
  */
 package com.sonicle.webtop.tasks.bol.model;
 
-import com.sonicle.webtop.tasks.model.CategoryFolder;
+import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.tasks.model.Category;
@@ -41,10 +41,9 @@ import com.sonicle.webtop.tasks.model.Category;
  *
  * @author malbinola
  */
-public class MyCategoryFolder extends CategoryFolder {
-	public static final String RIGHTS = "crud";
+public class MyShareFolderCategory extends ShareFolderCategory {
 
-	public MyCategoryFolder(String shareId, Category category) {
+	public MyShareFolderCategory(String shareId, Category category) {
 		super(shareId, SharePermsFolder.full(), SharePermsElements.full(), category);
 	}
 }

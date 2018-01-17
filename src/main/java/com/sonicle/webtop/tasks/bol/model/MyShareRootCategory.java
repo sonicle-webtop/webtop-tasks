@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (C) 2014 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -32,30 +32,18 @@
  */
 package com.sonicle.webtop.tasks.bol.model;
 
-import com.sonicle.commons.web.json.JsonResult;
+import com.sonicle.webtop.tasks.model.ShareRootCategory;
+import com.sonicle.webtop.core.model.SharePermsRoot;
+import com.sonicle.webtop.core.sdk.UserProfileId;
 
 /**
  *
  * @author malbinola
  */
-public class CategoryFolderData {
-	public Boolean hidden;
-	public String color;
+public class MyShareRootCategory extends ShareRootCategory {
+	public static final String SHARE_ID = "0";
 	
-	public void update(CategoryFolderData data) {
-		hidden = data.hidden;
-		color = data.color;
-	}
-	
-	public boolean isNull() {
-		return (hidden == null) && (color == null);
-	}
-
-	public static CategoryFolderData fromJson(String value) {
-		return JsonResult.gson.fromJson(value, CategoryFolderData.class);
-	}
-
-	public static String toJson(CategoryFolderData value) {
-		return JsonResult.gson.toJson(value, CategoryFolderData.class);
+	public MyShareRootCategory(UserProfileId ownerId) {
+		super(SHARE_ID, SharePermsRoot.full(), ownerId, null);
 	}
 }
