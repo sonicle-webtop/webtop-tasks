@@ -604,7 +604,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			listeners: {
 				beforeshow: function(s) {
 					var rec = s.menuData.folder,
-							mine = rec.getId().startsWith('0'),
+							mine = Ext.String.startsWith(rec.getId(), '0'),
 							rr = me.toRightsObj(rec.get('_rrights'));
 					me.getAct('addCategory').setDisabled(!rr.MANAGE);
 					me.getAct('editSharing').setDisabled(!rr.MANAGE);
@@ -649,7 +649,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			listeners: {
 				beforeshow: function(s) {
 					var rec = s.menuData.folder,
-							mine = rec.getId().startsWith('0'),
+							mine = Ext.String.startsWith(rec.getId(), '0'),
 							rr = me.toRightsObj(rec.get('_rrights')),
 							fr = me.toRightsObj(rec.get('_frights')),
 							er = me.toRightsObj(rec.get('_erights'));
