@@ -69,12 +69,8 @@
 		<version>@@webtop.service.version@@</version>
 		<buildDate>@@webtop.service.buildDate@@</buildDate>
 		
-		<controller name=".TasksController" />
-		<manager name=".TasksManager" />
-		<!--
-		<controllerClassName>TasksController</controllerClassName>
-		<managerClassName>TasksManager</managerClassName>
-		-->
+		<controller className=".TasksController" />
+		<manager className=".TasksManager" />
 		<serviceClassName>Service</serviceClassName>
 		<company>Sonicle S.r.l.</company>
 		<companyEmail>sonicle@sonicle.com</companyEmail>
