@@ -355,7 +355,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('refresh', {
 			text: '',
 			tooltip: WT.res('act-refresh.lbl'),
-			iconCls: 'wt-icon-refresh-xs',
+			iconCls: 'wt-icon-refresh',
 			handler: function() {
 				me.reloadTasks();
 			}
@@ -526,7 +526,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('deleteTask', {
 			text: WT.res('act-delete.lbl'),
 			tooltip: null,
-			iconCls: 'wt-icon-delete-xs',
+			iconCls: 'wt-icon-delete',
 			handler: function() {
 				var sel = me.getSelectedTasks();
 				if (sel.length > 0) me.deleteTaskSel(sel);
@@ -547,7 +547,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('printTask', {
 			text: WT.res('act-print.lbl'),
 			tooltip: null,
-			iconCls: 'wt-icon-print-xs',
+			iconCls: 'wt-icon-print',
 			handler: function() {
 				var sel = me.getSelectedTasks();
 				if (sel.length > 0) me.printTaskSel(sel);
@@ -556,7 +556,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('print', {
 			text: null,
 			tooltip: WT.res('act-print.lbl'),
-			iconCls: 'wt-icon-print-xs',
+			iconCls: 'wt-icon-print',
 			handler: function() {
 				me.getAct('printTask').execute();
 			}
@@ -564,7 +564,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('deleteTask2', {
 			text: null,
 			tooltip: WT.res('act-delete.lbl'),
-			iconCls: 'wt-icon-delete-xs',
+			iconCls: 'wt-icon-delete',
 			handler: function() {
 				me.getAct('deleteTask').execute();
 			}
