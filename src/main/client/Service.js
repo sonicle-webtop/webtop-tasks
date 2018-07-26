@@ -79,7 +79,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			items: [
 				'-',
 				me.getAct('refresh'),
-				me.getAct('print'),
+				me.getAct('printTask2'),
 				me.getAct('deleteTask2'),
 				'->',
 				{
@@ -96,11 +96,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					},
 					listeners: {
 						specialkey: function(s, e) {
-							if(e.getKey() === e.ENTER) me.queryTasks(s.getValue());
+							if (e.getKey() === e.ENTER) me.queryTasks(s.getValue());
 						}
 					},
 					width: 200
-				}
+				},
+				'->'
 			]
 		}));
 		
@@ -345,25 +346,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	initActions: function() {
-		var me = this;
+		var me = this,
+				hdscale = WT.getHeaderScale();
 		
 		me.addAct('new', 'newTask', {
+			ignoreSize: true,
 			handler: function() {
 				me.getAct('addTask').execute();
 			}
 		});
-		me.addAct('refresh', {
-			text: '',
-			tooltip: WT.res('act-refresh.lbl'),
-			iconCls: 'wt-icon-refresh',
-			handler: function() {
-				me.reloadTasks();
-			}
-		});
+		
 		me.addAct('editSharing', {
 			text: WT.res('sharing.tit'),
 			tooltip: null,
-			iconCls: WTF.cssIconCls(WT.XID, 'sharing', 'xs'),
+			iconCls: WTF.cssIconCls(WT.XID, 'sharing'),
 			handler: function() {
 				var node = me.getSelectedNode(me.trFolders());
 				if (node) me.editShare(node.getId());
@@ -384,6 +380,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('addCategory', {
+			ignoreSize: true,
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
@@ -391,6 +388,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('editCategory', {
+			ignoreSize: true,
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
@@ -398,6 +396,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('deleteCategory', {
+			ignoreSize: true,
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
@@ -471,7 +470,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('viewThisFolderOnly', {
 			tooltip: null,
-			iconCls: 'wt-icon-select-one-xs',
+			iconCls: 'wt-icon-select-one',
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
 				if(node) me.showOneF3FolderOnly(me.getSelectedRootFolder(me.trFolders()), node.getId());
@@ -479,7 +478,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('viewAllFolders', {
 			tooltip: null,
-			iconCls: 'wt-icon-select-all-xs',
+			iconCls: 'wt-icon-select-all',
 			handler: function() {
 				var node = me.getSelectedRootFolder(me.trFolders());
 				if (node) {
@@ -493,7 +492,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('viewNoneFolders', {
 			tooltip: null,
-			iconCls: 'wt-icon-select-none-xs',
+			iconCls: 'wt-icon-select-none',
 			handler: function() {
 				var node = me.getSelectedRootFolder(me.trFolders());
 				if (node) {
@@ -517,6 +516,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('addTask', {
+			ignoreSize: true,
 			tooltip: null,
 			handler: function() {
 				var node = me.getSelectedFolder(me.trFolders());
@@ -553,7 +553,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (sel.length > 0) me.printTaskSel(sel);
 			}
 		});
-		me.addAct('print', {
+		
+		me.addAct('refresh', {
+			scale: hdscale,
+			text: '',
+			tooltip: WT.res('act-refresh.lbl'),
+			iconCls: 'wt-icon-refresh',
+			handler: function() {
+				me.reloadTasks();
+			}
+		});
+		me.addAct('printTask2', {
+			scale: hdscale,
 			text: null,
 			tooltip: WT.res('act-print.lbl'),
 			iconCls: 'wt-icon-print',
@@ -562,6 +573,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('deleteTask2', {
+			scale: hdscale,
 			text: null,
 			tooltip: WT.res('act-delete.lbl'),
 			iconCls: 'wt-icon-delete',
@@ -570,9 +582,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		});
 		me.addAct('addTask2', {
+			scale: hdscale,
+			ignoreSize: true,
 			text: null,
 			tooltip: me.res('act-addTask.lbl'),
-			iconCls: me.cssIconCls('addTask', 'xs'),
+			iconCls: me.cssIconCls('addTask'),
 			handler: function() {
 				me.getAct('addTask').execute();
 			}
@@ -1109,7 +1123,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				dis = me.isDisabled(action);
 		
 		if(action === 'printTask') {
-			me.setActDisabled('print', dis);
+			me.setActDisabled('printTask2', dis);
 			me.setActDisabled(action, dis);
 		} else if (action === 'deleteTask') {
 			me.setActDisabled(action, dis);

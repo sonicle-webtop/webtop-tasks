@@ -46,7 +46,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	
 	dockableConfig: {
 		title: '{task.tit}',
-		iconCls: 'wttasks-icon-task-xs',
+		iconCls: 'wttasks-icon-task',
 		width: 700,
 		height: 480
 	},
