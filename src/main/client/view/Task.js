@@ -46,7 +46,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	
 	dockableConfig: {
 		title: '{task.tit}',
-		iconCls: 'wttasks-icon-task-xs',
+		iconCls: 'wttasks-icon-task',
 		width: 700,
 		height: 480
 	},
@@ -123,7 +123,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.addAct('delete', {
 					text: null,
 					tooltip: WT.res('act-delete.lbl'),
-					iconCls: 'wt-icon-delete-xs',
+					iconCls: 'wt-icon-delete',
 					handler: function() {
 						me.deleteTask();
 					}
@@ -132,7 +132,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.addAct('print', {
 					text: null,
 					tooltip: WT.res('act-print.lbl'),
-					iconCls: 'wt-icon-print-xs',
+					iconCls: 'wt-icon-print',
 					handler: function() {
 						//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
 						me.printTask(me.getModel().getId());

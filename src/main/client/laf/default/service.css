@@ -1,15 +1,16 @@
-.wttasks-icon-service-xs { background-image: url('service_16.png') !important; }
-.wttasks-icon-service-s { background-image: url('service_24.png') !important; }
-.wttasks-icon-service-m { background-image: url('service_32.png') !important; }
-.wttasks-icon-service-l { background-image: url('service_48.png') !important; }
-.wttasks-icon-root-my-xs { background-image: url('root-my_16.png') !important; }
-.wttasks-icon-root-incoming-xs { background-image: url('root-incoming_16.png') !important; }
-.wttasks-icon-category-xs { background-image: url('category_16.png') !important; }
-.wttasks-icon-addCategory-xs { background-image: url('category-add_16.png') !important; }
-.wttasks-icon-editCategory-xs { background-image: url('category-edit_16.png') !important; }
-.wttasks-icon-deleteCategory-xs { background-image: url('category-delete_16.png') !important; }
-.wttasks-icon-task-xs { background-image: url('task_16.png') !important; }
-.wttasks-icon-newTask-xs { background-image: url('task-new_16.png') !important; }
-.wttasks-icon-addTask-xs { background-image: url('task-add_16.png') !important; }
+.wttasks-icon-service { background-image: url('service_16.svg') !important; background-size: contain; }
+.wttasks-icon-service-xs { background-image: url('service_16.svg') !important; background-size: contain; }
+.wttasks-icon-service-s { background-image: url('service_16.svg') !important; background-size: contain; }
+.wttasks-icon-service-m { background-image: url('service_32.svg') !important; background-size: contain; }
+.wttasks-icon-service-l { background-image: url('service_32.svg') !important; background-size: contain; }
+.wttasks-icon-category { background-image: url('category_16.svg') !important; background-size: contain; }
+.wttasks-icon-categoryMy { background-image: url('category-my_16.svg') !important; background-size: contain; }
+.wttasks-icon-categoryIncoming { background-image: url('category-incoming_16.svg') !important; background-size: contain; }
+.wttasks-icon-addCategory { background-image: url('category-add_16.svg') !important; background-size: contain; }
+.wttasks-icon-editCategory { background-image: url('category-edit_16.svg') !important; background-size: contain; }
+.wttasks-icon-deleteCategory { background-image: url('category-delete_16.svg') !important; background-size: contain; }
+.wttasks-icon-task { background-image: url('task_16.svg') !important; background-size: contain; }
+.wttasks-icon-newTask { background-image: url('task-new_16.svg') !important; background-size: contain; }
+.wttasks-icon-addTask { background-image: url('task-add_16.svg') !important; background-size: contain; }
 .wttasks-row-completed { text-decoration: line-through; color: #808080; }
 .wttasks-row-expired { color: #E60D35; }
