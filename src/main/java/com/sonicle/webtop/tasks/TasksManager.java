@@ -47,6 +47,7 @@ import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
+import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.core.dal.DAOIntegrityViolationException;
 import com.sonicle.webtop.core.sdk.AbstractMapCache;
@@ -751,7 +752,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					tasDao.deleteByCategoryId(con, ocat.getCategoryId());
 				}
 			} else {
-				DateTime revTs = createRevisionTimestamp();
+				DateTime revTs = BaseDAO.createRevisionTimestamp();
 				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
 					tasDao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
 				}
@@ -865,7 +866,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				oatts.add(doTaskAttachmentInsert(con, otask.getTaskId(), (TaskAttachmentWithStream)att));
 			}
 		}			
-		tasDao.insert(con, otask, createRevisionTimestamp());
+		tasDao.insert(con, otask, BaseDAO.createRevisionTimestamp());
 		return new TaskResult(otask, oatts);
 	}
 	
@@ -875,7 +876,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		OTask otask = ManagerUtils.createOTask(task);
 		ManagerUtils.fillOTaskWithDefaults(otask, getTargetProfileId());
-		boolean ret = tasDao.update(con, otask, createRevisionTimestamp()) == 1;
+		boolean ret = tasDao.update(con, otask, BaseDAO.createRevisionTimestamp()) == 1;
 		
 		if (processAttachments) {
 			List<TaskAttachment> oldAtts = ManagerUtils.createTaskAttachmentList(attDao.selectByTask(con, task.getTaskId()));
@@ -898,21 +899,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private int doTaskDelete(Connection con, int taskId) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		return tasDao.logicDeleteById(con, taskId, createRevisionTimestamp());
+		return tasDao.logicDeleteById(con, taskId, BaseDAO.createRevisionTimestamp());
 	}
 	
 	private int doTaskDeleteByCategory(Connection con, int categoryId) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		return tasDao.logicDeleteByCategoryId(con, categoryId, createRevisionTimestamp());
+		return tasDao.logicDeleteByCategoryId(con, categoryId, BaseDAO.createRevisionTimestamp());
 	}
 	
 	private void doTaskMove(Connection con, boolean copy, Task task, int targetCategoryId) throws DAOException, IOException {
 		if (copy) {
 			task.setCategoryId(targetCategoryId);
+			//TODO: maybe add support to attachments copy
 			doTaskUpdate(con, task, false);
 		} else {
 			TaskDAO tasDao = TaskDAO.getInstance();
-			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, createRevisionTimestamp());
+			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, BaseDAO.createRevisionTimestamp());
 		}
 	}
 	
@@ -922,7 +924,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		OTaskAttachment oatt = ManagerUtils.createOTaskAttachment(attachment);
 		oatt.setTaskAttachmentId(IdentifierUtils.getUUIDTimeBased());
 		oatt.setTaskId(taskId);
-		attDao.insert(con, oatt, createRevisionTimestamp());
+		attDao.insert(con, oatt, BaseDAO.createRevisionTimestamp());
 		
 		InputStream is = attachment.getStream();
 		try {
@@ -938,7 +940,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
 		
 		OTaskAttachment oatt = ManagerUtils.createOTaskAttachment(attachment);
-		attDao.update(con, oatt, createRevisionTimestamp());
+		attDao.update(con, oatt, BaseDAO.createRevisionTimestamp());
 		
 		InputStream is = attachment.getStream();
 		try {
@@ -1063,10 +1065,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void storeAsSuggestion(CoreManager coreMgr, String context, String value) {
 		if (StringUtils.isBlank(value)) return;
 		coreMgr.addServiceStoreEntry(SERVICE_ID, context, value.toUpperCase(), value);
-	}
-    
-	private DateTime createRevisionTimestamp() {
-		return DateTime.now(DateTimeZone.UTC);
 	}
 	
 	private static class TaskResult {
