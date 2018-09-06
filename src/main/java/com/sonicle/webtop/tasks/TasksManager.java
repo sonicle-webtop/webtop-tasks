@@ -920,7 +920,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
 		
 		OTaskAttachment oatt = ManagerUtils.createOTaskAttachment(attachment);
-		oatt.setTaskAttachmentId(IdentifierUtils.getUUIDTimeBased(true));
+		oatt.setTaskAttachmentId(IdentifierUtils.getUUIDTimeBased());
 		oatt.setTaskId(taskId);
 		attDao.insert(con, oatt, createRevisionTimestamp());
 		
