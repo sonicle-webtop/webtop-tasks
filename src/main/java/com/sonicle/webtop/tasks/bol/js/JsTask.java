@@ -82,7 +82,7 @@ public class JsTask {
 		
 		attachments = new ArrayList<>();
 		for (TaskAttachment att : task.getAttachments()) {
-			Attachment jsatt = new Attachment(taskId);
+			Attachment jsatt = new Attachment();
 			jsatt.id = att.getAttachmentId();
 			//jsatt.lastModified = DateTimeUtils.printYmdHmsWithZone(att.getRevisionTimestamp(), profileTz);
 			jsatt.name = att.getFilename();
@@ -108,14 +108,10 @@ public class JsTask {
 		return item;
 	}
 	
-	public static class Attachment extends JsFkModel {
+	public static class Attachment {
 		public String id;
 		public String name;
 		public Long size;
 		public String _uplId;
-
-		public Attachment(Object _fk) {
-			super(_fk);
-		}
 	}
 }

@@ -36,7 +36,6 @@ Ext.define('Sonicle.webtop.tasks.model.TaskAttachment', {
 	identifier: 'negativestring',
 	idProperty: 'id',
 	fields: [
-		WTF.fkField('string'),
 		WTF.field('id', 'string', false),
 		//WTF.field('lastModified', 'date', false, {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.field('name', 'string', true),
