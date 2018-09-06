@@ -54,6 +54,7 @@ import com.sonicle.webtop.tasks.bol.model.MyShareFolderCategory;
 import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
+import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
 import com.sonicle.webtop.core.bol.js.JsSimple;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
@@ -74,9 +75,16 @@ import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
 import com.sonicle.webtop.tasks.model.Task;
+import com.sonicle.webtop.tasks.model.TaskAttachment;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -507,7 +515,7 @@ public class Service extends BaseService {
 			DateTimeZone ptz = getEnv().getProfile().getTimeZone();
 			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			if(crud.equals(Crud.READ)) {
+			if (crud.equals(Crud.READ)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
 				
 				int taskId = Integer.parseInt(id);
@@ -517,43 +525,102 @@ public class Service extends BaseService {
 				
 				new JsonResult(item).printTo(out);
 				
-			} else if(crud.equals(Crud.CREATE)) {
+			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
 				Task task = JsTask.createTask(pl.data, ptz);
+				for (JsTask.Attachment jsatt : pl.data.attachments) {
+					UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
+					TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
+					att.setAttachmentId(jsatt.id);
+					att.setFilename(upFile.getFilename());
+					att.setSize(upFile.getSize());
+					att.setMediaType(upFile.getMediaType());
+					task.getAttachments().add(att);
+				}
                 manager.addTask(task);
-				
 				new JsonResult().printTo(out);
 				
-			} else if(crud.equals(Crud.UPDATE)) {
+			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
 				Task task = JsTask.createTask(pl.data, ptz);
+				for (JsTask.Attachment jsatt : pl.data.attachments) {
+					if (!StringUtils.isBlank(jsatt._uplId)) {
+						UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
+						TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
+						att.setAttachmentId(jsatt.id);
+						att.setFilename(upFile.getFilename());
+						att.setSize(upFile.getSize());
+						att.setMediaType(upFile.getMediaType());
+						task.getAttachments().add(att);
+					} else {
+						TaskAttachment att = new TaskAttachment();
+						att.setAttachmentId(jsatt.id);
+						att.setFilename(jsatt.name);
+						att.setSize(jsatt.size);
+						task.getAttachments().add(att);
+					}
+				}
                 manager.updateTask(task);
-				
 				new JsonResult().printTo(out);
 				
-			} else if(crud.equals(Crud.DELETE)) {
+			} else if (crud.equals(Crud.DELETE)) {
 				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
 				
 				manager.deleteTask(ids);
-				
 				new JsonResult().printTo(out);
 				
-			} else if(crud.equals(Crud.MOVE)) {
+			} else if (crud.equals(Crud.MOVE)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
 				Integer categoryId = ServletUtils.getIntParameter(request, "targetCategoryId", true);
 				boolean copy = ServletUtils.getBooleanParameter(request, "copy", false);
 				
 				int taskId = Integer.parseInt(id);
 				manager.moveTask(copy, taskId, categoryId);
-				
 				new JsonResult().printTo(out);
+				
 			}
 			
-		} catch(Exception ex) {
-			logger.error("Error in ManageTasks", ex);
+		} catch(Throwable t) {
+			logger.error("Error in ManageTasks", t);
 			new JsonResult(false, "Error").printTo(out);	
+		}
+	}
+	
+	public void processDownloadTaskAttachment(HttpServletRequest request, HttpServletResponse response) {
+		
+		try {
+			boolean inline = ServletUtils.getBooleanParameter(request, "inline", false);
+			String attachmentId = ServletUtils.getStringParameter(request, "attachmentId", null);
+			
+			if (!StringUtils.isBlank(attachmentId)) {
+				Integer taskId = ServletUtils.getIntParameter(request, "taskId", true);
+				
+				TaskAttachmentWithBytes attData = manager.getTaskAttachment(taskId, attachmentId);
+				InputStream is = null;
+				try {
+					is = new ByteArrayInputStream(attData.getBytes());
+					ServletUtils.writeFileResponse(response, inline, attData.getFilename(), null, attData.getSize(), is);
+				} finally {
+					IOUtils.closeQuietly(is);
+				}
+			} else {
+				String uploadId = ServletUtils.getStringParameter(request, "uploadId", true);
+				
+				UploadedFile uplFile = getUploadedFileOrThrow(uploadId);
+				InputStream is = null;
+				try {
+					is = new FileInputStream(uplFile.getFile());
+					ServletUtils.writeFileResponse(response, inline, uplFile.getFilename(), null, uplFile.getSize(), is);
+				} finally {
+					IOUtils.closeQuietly(is);
+				}
+			}
+			
+		} catch(Throwable t) {
+			logger.error("Error in DownloadTaskAttachment", t);
+			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
 		}
 	}
 	

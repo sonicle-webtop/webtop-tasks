@@ -30,4 +30,14 @@ public class Tables {
 	 * The table tasks.tasks
 	 */
 	public static final com.sonicle.webtop.tasks.jooq.tables.Tasks TASKS = com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS;
+
+	/**
+	 * The table tasks.tasks_attachments
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.TasksAttachments TASKS_ATTACHMENTS = com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS;
+
+	/**
+	 * The table tasks.tasks_attachments_data
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData TASKS_ATTACHMENTS_DATA = com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA;
 }

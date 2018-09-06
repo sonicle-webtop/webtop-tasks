@@ -34,8 +34,11 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.webtop.core.bol.js.JsFkModel;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
+import com.sonicle.webtop.tasks.model.TaskAttachment;
+import java.util.ArrayList;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -57,9 +60,9 @@ public class JsTask {
 	public Short percentage;
 	public String reminderDate;
 	public String _profileId;
+	public ArrayList<Attachment> attachments;
 
-	public JsTask() {
-	}
+	public JsTask() {}
 
 	public JsTask(UserProfileId ownerId, Task task, DateTimeZone profileTz) {
 		taskId = task.getTaskId();
@@ -76,6 +79,16 @@ public class JsTask {
 		percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
 		_profileId = ownerId.toString();
+		
+		attachments = new ArrayList<>();
+		for (TaskAttachment att : task.getAttachments()) {
+			Attachment jsatt = new Attachment(taskId);
+			jsatt.id = att.getAttachmentId();
+			//jsatt.lastModified = DateTimeUtils.printYmdHmsWithZone(att.getRevisionTimestamp(), profileTz);
+			jsatt.name = att.getFilename();
+			jsatt.size = att.getSize();
+			attachments.add(jsatt);
+		}
 	}
 
 	public static Task createTask(JsTask js, DateTimeZone profileTz) {
@@ -93,5 +106,16 @@ public class JsTask {
 		item.setCompletionPercentage(js.percentage);
 		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
 		return item;
+	}
+	
+	public static class Attachment extends JsFkModel {
+		public String id;
+		public String name;
+		public Long size;
+		public String _uplId;
+
+		public Attachment(Object _fk) {
+			super(_fk);
+		}
 	}
 }
