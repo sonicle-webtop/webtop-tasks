@@ -422,19 +422,20 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	},
 	
 	openAttachmentUI: function(rec, download) {
-		var name = rec.get('name'),
+		var me = this,
+				name = rec.get('name'),
 				uploadId = rec.get('_uplId'),
 				url;
 		
 		if (!Ext.isEmpty(uploadId)) {
-			url = WTF.processBinUrl(this.mys.ID, 'DownloadTaskAttachment', {
+			url = WTF.processBinUrl(me.mys.ID, 'DownloadTaskAttachment', {
 				inline: !download,
 				uploadId: uploadId
 			});
 		} else {
-			url = WTF.processBinUrl(this.mys.ID, 'DownloadTaskAttachment', {
+			url = WTF.processBinUrl(me.mys.ID, 'DownloadTaskAttachment', {
 				inline: !download,
-				taskId: rec.get('_fk'),
+				taskId: me.getModel().getId(),
 				attachmentId: rec.get('id')
 			});
 		}

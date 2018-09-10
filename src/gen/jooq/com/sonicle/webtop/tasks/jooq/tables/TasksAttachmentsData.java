@@ -16,7 +16,7 @@ package com.sonicle.webtop.tasks.jooq.tables;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class TasksAttachmentsData extends org.jooq.impl.TableImpl<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord> {
 
-	private static final long serialVersionUID = -413710643;
+	private static final long serialVersionUID = -632229350;
 
 	/**
 	 * The reference instance of <code>tasks.tasks_attachments_data</code>
@@ -84,7 +84,7 @@ public class TasksAttachmentsData extends org.jooq.impl.TableImpl<com.sonicle.we
 	 */
 	@Override
 	public java.util.List<org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, ?>> getReferences() {
-		return java.util.Arrays.<org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, ?>>asList(com.sonicle.webtop.tasks.jooq.Keys.TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS);
+		return java.util.Arrays.<org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, ?>>asList(com.sonicle.webtop.tasks.jooq.Keys.TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY);
 	}
 
 	/**

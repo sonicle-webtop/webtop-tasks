@@ -34,7 +34,6 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.core.bol.js.JsFkModel;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
@@ -105,6 +104,8 @@ public class JsTask {
 		item.setStatus(EnumUtils.forSerializedName(js.status, Task.Status.class));
 		item.setCompletionPercentage(js.percentage);
 		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
+		
+		// Attachment needs to be treated outside this class in order to have complete access to their streams
 		return item;
 	}
 	

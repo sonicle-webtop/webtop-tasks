@@ -37,7 +37,8 @@ public class Keys {
 	// FOREIGN KEY definitions
 	// -------------------------------------------------------------------------
 
-	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS = ForeignKeys0.TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS;
+	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY = ForeignKeys0.TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY;
+	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY = ForeignKeys0.TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY;
 
 	// -------------------------------------------------------------------------
 	// [#1459] distribute members to avoid static initialisers > 64kb
@@ -56,6 +57,7 @@ public class Keys {
 	}
 
 	private static class ForeignKeys0 extends org.jooq.impl.AbstractKeys {
-		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_ATTACHMENTS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID);
+		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS.TASK_ID);
+		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_ATTACHMENTS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID);
 	}
 }
