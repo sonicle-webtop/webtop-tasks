@@ -277,6 +277,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				collapsible: true,
 				title: WT.res('word.preview'),
 				width: 200,
+				hidden: !WT.plTags.desktop,
 				defaults: {
 					labelAlign: 'top',
 					readOnly: true,
