@@ -206,10 +206,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					mode : 'MULTI'
 				},
 				columns: [{
+					xtype: 'soiconcolumn',
+					dataIndex: 'importance',
+					hideable: false,
+					header: WTF.headerWithGlyphIcon('fa fa-exclamation'),
+					getIconCls: function(v, rec) {
+						return ['wt-icon-priority3-low', '', 'wt-icon-priority3-high'][v];
+					},
+					getTip: function(v, rec) {
+						return me.res('gptasks.importance.lbl') + ': ' + me.res('store.importance.' + v);
+					},
+					iconSize: 16,
+					width: 40
+				}, {
 					dataIndex: 'subject',
 					header: me.res('gptasks.subject.lbl'),
 					flex: 2
-				}, {
+				}, /*{
 					dataIndex: 'importance',
 					header: me.res('gptasks.importance.lbl'),
 					renderer: WTF.resColRenderer({
@@ -217,7 +230,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						key: 'store.importance'
 					}),
 					flex: 1
-				}, {
+				},*/ {
 					dataIndex: 'dueDate',
 					header: me.res('gptasks.dueDate.lbl'),
 					xtype: 'datecolumn',
