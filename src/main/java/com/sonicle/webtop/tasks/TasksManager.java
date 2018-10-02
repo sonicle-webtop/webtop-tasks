@@ -32,12 +32,18 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.IdentifierUtils;
+import com.sonicle.commons.LangUtils;
+import com.sonicle.commons.LangUtils.CollectionChangeSet;
 import com.sonicle.commons.db.DbUtils;
+import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.CompositeId;
+import com.sonicle.commons.web.json.MapItem;
+import com.sonicle.commons.web.json.MapItemList;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.util.EmailNotification;
 import com.sonicle.webtop.core.bol.OShare;
 import com.sonicle.webtop.core.bol.Owner;
 import com.sonicle.webtop.core.model.IncomingShareRoot;
@@ -45,8 +51,10 @@ import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
+import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.core.dal.DAOIntegrityViolationException;
+import com.sonicle.webtop.core.model.ProfileI18n;
 import com.sonicle.webtop.core.sdk.AbstractMapCache;
 import com.sonicle.webtop.core.sdk.AbstractShareCache;
 import com.sonicle.webtop.core.sdk.AuthException;
@@ -58,10 +66,12 @@ import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
-import com.sonicle.webtop.core.util.IdentifierUtils;
+import com.sonicle.webtop.core.util.NotificationHelper;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
+import com.sonicle.webtop.tasks.bol.OTaskAttachment;
+import com.sonicle.webtop.tasks.bol.OTaskAttachmentData;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
@@ -69,11 +79,18 @@ import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.dal.CategoryDAO;
 import com.sonicle.webtop.tasks.dal.CategoryPropsDAO;
+import com.sonicle.webtop.tasks.dal.TaskAttachmentDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.FolderTasks;
+import com.sonicle.webtop.tasks.model.TaskAttachment;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
 import com.sonicle.webtop.tasks.model.TaskEx;
+import freemarker.template.TemplateException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -84,10 +101,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import org.apache.commons.codec.digest.DigestUtils;
+import javax.mail.internet.AddressException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 
 /**
@@ -214,12 +233,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-				items.add(createCategory(ocat));
+				items.add(ManagerUtils.createCategory(ocat));
 			}
 			return items;
 			
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -235,11 +254,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			con = WT.getConnection(SERVICE_ID);
 			OCategory ocat = catDao.selectById(con, categoryId);
+			return ManagerUtils.createCategory(ocat);
 			
-			return createCategory(ocat);
-			
-		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+		} catch(SQLException | DAOException | WTException ex) {
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -253,14 +271,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			OCategory ocat = catDao.selectBuiltInByProfile(con, getTargetProfileId().getDomainId(), getTargetProfileId().getUserId());
-			if(ocat == null) return null;
+			if (ocat == null) return null;
 			
 			checkRightsOnCategoryFolder(ocat.getCategoryId(), "READ");
 			
-			return createCategory(ocat);
+			return ManagerUtils.createCategory(ocat);
 			
-		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+		} catch(SQLException | DAOException | WTException ex) {
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -275,18 +293,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			con = WT.getConnection(SERVICE_ID, false);
 			category.setBuiltIn(false);
-			category = doCategoryUpdate(true, con, category);
+			category = doCategoryInsert(con, category);
 			DbUtils.commitQuietly(con);
 			writeLog("CATEGORY_INSERT", String.valueOf(category.getCategoryId()));
 			
 			return category;
 			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -312,43 +327,37 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			cat.setName(WT.getPlatformName());
 			cat.setDescription("");
 			cat.setIsDefault(true);
-			cat = doCategoryUpdate(true, con, cat);
+			cat = doCategoryInsert(con, cat);
 			DbUtils.commitQuietly(con);
 			writeLog("CATEGORY_INSERT", String.valueOf(cat.getCategoryId()));
 			
 			return cat;
 			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
 	
 	@Override
-	public Category updateCategory(Category cat) throws Exception {
+	public void updateCategory(Category cat) throws Exception {
 		Connection con = null;
 		
 		try {
-			checkRightsOnCategoryFolder(cat.getCategoryId(), "UPDATE");
+			int categoryId = cat.getCategoryId();
+			checkRightsOnCategoryFolder(categoryId, "UPDATE");
 			
 			con = WT.getConnection(SERVICE_ID, false);
-			cat = doCategoryUpdate(false, con, cat);
+			boolean updated = doCategoryUpdate(con, cat);
+			if (!updated) throw new WTException("Category not found [{}]", categoryId);
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_UPDATE", String.valueOf(cat.getCategoryId()));
+			writeLog("CATEGORY_UPDATE", String.valueOf(categoryId));
 			
-			return cat;
-			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -370,7 +379,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			int ret = catDao.deleteById(con, categoryId);
 			psetDao.deleteByCategory(con, categoryId);
-			doDeleteTasksByCategory(con, categoryId);
+			doTaskDeleteByCategory(con, categoryId);
 			
 			// Cleanup sharing, if necessary
 			if ((sharing != null) && !sharing.getRights().isEmpty()) {
@@ -387,12 +396,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			return ret == 1;
 			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -410,10 +416,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			OCategoryPropSet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
-			return (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset);
+			return (opset == null) ? new CategoryPropSet() : ManagerUtils.createCategoryPropSet(opset);
 			
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -424,7 +430,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return getCategoryCustomProps(getTargetProfileId(), categoryIds);
 	}
 	
-	public Map<Integer, CategoryPropSet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
+	private Map<Integer, CategoryPropSet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
 		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
@@ -434,7 +440,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			Map<Integer, OCategoryPropSet> map = psetDao.selectByProfileCategoryIn(con, profileId.getDomainId(), profileId.getUserId(), categoryIds);
 			for (Integer categoryId : categoryIds) {
 				OCategoryPropSet opset = map.get(categoryId);
-				psets.put(categoryId, (opset == null) ? new CategoryPropSet() : createCategoryPropSet(opset));
+				psets.put(categoryId, (opset == null) ? new CategoryPropSet() : ManagerUtils.createCategoryPropSet(opset));
 			}
 			return psets;
 			
@@ -456,7 +462,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		Connection con = null;
 		
 		try {
-			OCategoryPropSet opset = createOCategoryPropSet(propertySet);
+			OCategoryPropSet opset = ManagerUtils.createOCategoryPropSet(propertySet);
 			opset.setDomainId(profileId.getDomainId());
 			opset.setUserId(profileId.getUserId());
 			opset.setCategoryId(categoryId);
@@ -470,7 +476,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return propertySet;
 			
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -494,14 +500,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				final List<VTask> vtasks = tasDao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
 				final ArrayList<TaskEx> tasks = new ArrayList<>();
 				for (VTask vtask : vtasks) {
-					tasks.add(fillTaskEx(new TaskEx(), vtask));
+					tasks.add(ManagerUtils.fillTaskEx(new TaskEx(), vtask));
 				}
-				foTasks.add(new FolderTasks(createCategory(ocat), tasks));
+				foTasks.add(new FolderTasks(ManagerUtils.createCategory(ocat), tasks));
 			}
 			return foTasks;
 			
-		} catch (SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+		} catch(SQLException | DAOException ex) {
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -527,13 +533,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			ArrayList<TaskEx> items = new ArrayList<>();
 			List<VTask> vtasks = tasDao.viewUpcomingByCategoriesPattern(con, validIds, pattern);
 			for(VTask vtask : vtasks) {
-				items.add(fillTaskEx(new TaskEx(), vtask));
+				items.add(ManagerUtils.fillTaskEx(new TaskEx(), vtask));
 			}
 			
 			return items;
 			
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -541,48 +547,70 @@ public class TasksManager extends BaseManager implements ITasksManager {
     
 	@Override
 	public Task getTask(int taskId) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
+			Task task = doTaskGet(con, taskId);
+			if (task == null) return null;
+			checkRightsOnCategoryFolder(task.getCategoryId(), "READ");
 			
-			OTask otask = tasdao.selectById(con, taskId);
-			if (otask == null) return null;
-			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ");
-			
-			return createTask(otask);
+			return task;
 		
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
-		} catch(WTException ex) {
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
 	
 	@Override
-	public void addTask(Task task) throws WTException {
+	public TaskAttachmentWithBytes getTaskAttachment(int taskId, String attachmentId) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			OTask otask = tasDao.selectById(con, taskId);
+			if (otask == null) return null;
+			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ");
+			
+			OTaskAttachment oatt = attDao.selectByIdTask(con, attachmentId, taskId);
+			if (oatt == null) return null;
+			
+			OTaskAttachmentData oattData = attDao.selectBytesById(con, attachmentId);
+			return ManagerUtils.fillTaskAttachment(new TaskAttachmentWithBytes(oattData.getBytes()), oatt);
+		
+		} catch(SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Task addTask(Task task) throws WTException {
 		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
 		Connection con = null;
 		
 		try {
-			checkRightsOnCategoryElements(task.getCategoryId(), "CREATE"); // Rights check!
+			checkRightsOnCategoryElements(task.getCategoryId(), "CREATE");
 			
 			con = WT.getConnection(SERVICE_ID, false);
-			OTask otask = doUpdateTask(true, con, task);
+			TaskResult result = doTaskInsert(con, task, true);
 			DbUtils.commitQuietly(con);
-			writeLog("TASK_INSERT", String.valueOf(otask.getTaskId()));
 			
-			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, task.getSubject());
+			writeLog("TASK_INSERT", String.valueOf(result.otask.getTaskId()));
+			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
 			
-		} catch(SQLException | DAOException ex) {
+			Task newTask = ManagerUtils.createTask(result.otask);
+			newTask.setAttachments(ManagerUtils.createTaskAttachmentList(result.oattachments));
+			return newTask;
+			
+		} catch(SQLException | DAOException | IOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -595,19 +623,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		//TODO: gestire i suggerimenti (soggetto)
 
 		try {
-			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE"); // Rights check!
+			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE");
 
 			con = WT.getConnection(SERVICE_ID, false);
-			doUpdateTask(false, con, task);
+			boolean updated = doTaskUpdate(con, task, true);
+			if (!updated) throw new WTException("Task not updated [{}]", task.getTaskId());
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
 
-		} catch (SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | IOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch (Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -615,27 +641,23 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void deleteTask(int taskId) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 
 		try {
-			con = WT.getConnection(SERVICE_ID);
+			con = WT.getConnection(SERVICE_ID, false);
 
-			OTask cont = tasdao.selectById(con, taskId);
-			if (cont == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
-			checkRightsOnCategoryElements(cont.getCategoryId(), "DELETE"); // Rights check!
+			OTask otask = tasDao.selectById(con, taskId);
+			if (otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
+			checkRightsOnCategoryElements(otask.getCategoryId(), "DELETE");
 
-			con.setAutoCommit(false);
-			doDeleteTask(con, taskId);
+			doTaskDelete(con, taskId);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_DELETE", String.valueOf(taskId));
 
-		} catch (SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch (Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -643,31 +665,27 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void deleteTask(ArrayList<Integer> taskIds) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
-			con = WT.getConnection(SERVICE_ID);
-			con.setAutoCommit(false);
+			con = WT.getConnection(SERVICE_ID, false);
 			
 			for(Integer taskId : taskIds) {
 				if (taskId == null) continue;
-				OTask task = tasdao.selectById(con, taskId);
+				OTask task = tasDao.selectById(con, taskId);
 				if (task == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
 				checkRightsOnCategoryElements(task.getCategoryId(), "DELETE"); // Rights check!
 				
-				doDeleteTask(con, taskId);
+				doTaskDelete(con, taskId);
 			}
 			
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_DELETE", "*");
 			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -681,18 +699,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			checkRightsOnCategoryElements(categoryId, "DELETE");
 
 			con = WT.getConnection(SERVICE_ID, false);
-			int ret = doDeleteTasksByCategory(con, categoryId);
+			int ret = doTaskDeleteByCategory(con, categoryId);
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_DELETE", "*");
 			
 			return ret;
 
-		} catch (SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch (Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -700,12 +715,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void moveTask(boolean copy, int taskId, int targetCategoryId) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
+		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
-			con = WT.getConnection(SERVICE_ID);
-			OTask otask = tasdao.selectById(con, taskId);
+			con = WT.getConnection(SERVICE_ID, false);
+			
+			OTask otask = tasDao.selectById(con, taskId);
 			if (otask == null) throw new WTException("Unable to retrieve task [{0}]", taskId);
 			checkRightsOnCategoryFolder(otask.getCategoryId(), "READ");
 			
@@ -713,20 +729,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				checkRightsOnCategoryElements(targetCategoryId, "CREATE");
 				if (!copy) checkRightsOnCategoryElements(otask.getCategoryId(), "DELETE");
 				
-				Task task = createTask(otask);
-
-				con.setAutoCommit(false);
-				doMoveTask(con, copy, task, targetCategoryId);
+				Task task = ManagerUtils.createTask(otask);
+				doTaskMove(con, copy, task, targetCategoryId);
 				DbUtils.commitQuietly(con);
 				writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
 			}
 			
-		} catch(SQLException | DAOException ex) {
+		} catch(SQLException | DAOException | IOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -750,7 +761,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					tasDao.deleteByCategoryId(con, ocat.getCategoryId());
 				}
 			} else {
-				DateTime revTs = createRevisionTimestamp();
+				DateTime revTs = BaseDAO.createRevisionTimestamp();
 				for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
 					tasDao.logicDeleteByCategoryId(con, ocat.getCategoryId(), revTs);
 				}
@@ -764,10 +775,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 		} catch(SQLException | DAOException ex) {
 			DbUtils.rollbackQuietly(con);
-			throw new WTException(ex, "DB error");
-		} catch(Exception ex) {
-			DbUtils.rollbackQuietly(con);
-			throw ex;
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -786,26 +794,25 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DateTime now12 = now.plusHours(14);
 			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now12);
 			DateTime profileNow = null, profileReminderDate = null;
-			for(VTask task : tasks) {
+			for (VTask task : tasks) {
 				UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
 				profileNow = now.withZone(ud.getTimeZone());
 				profileReminderDate = task.getReminderDate().withZone(DateTimeZone.UTC).withZoneRetainFields(ud.getTimeZone());
-				if(profileReminderDate.isAfter(profileNow)) continue;
+				if (profileReminderDate.isAfter(profileNow)) continue;
 				
-				if(!byEmailCache.containsKey(task.getCategoryProfileId())) {
+				if (!byEmailCache.containsKey(task.getCategoryProfileId())) {
 					TasksUserSettings us = new TasksUserSettings(SERVICE_ID, task.getCategoryProfileId());
 					boolean bool = us.getTaskReminderDelivery().equals(TasksSettings.TASK_REMINDER_DELIVERY_EMAIL);
 					byEmailCache.put(task.getCategoryProfileId(), bool);
 				}
 
 				int ret = dao.updateRemindedOn(con, task.getTaskId(), now);
-				if(ret != 1) continue;
+				if (ret != 1) continue;
 				
-				if(byEmailCache.get(task.getCategoryProfileId())) {
-					//UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
-					alerts.add(createTaskReminderAlertEmail(ud.getLocale(), task));
+				if (byEmailCache.get(task.getCategoryProfileId())) {
+					alerts.add(createTaskReminderAlertEmail(ud.toProfileI18n(), task, ud.getPersonalEmailAddress()));
 				} else {
-					alerts.add(createTaskReminderAlertWeb(task, profileReminderDate, ud.getTimeZone()));
+					alerts.add(createTaskReminderAlertWeb(ud.toProfileI18n(), task, profileReminderDate));
 				}
 			}
 			DbUtils.commitQuietly(con);
@@ -818,69 +825,137 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return alerts;
 	}
 	
-	private Category doCategoryUpdate(boolean insert, Connection con, Category cat) throws WTException {
+	private Category doCategoryInsert(Connection con, Category cat) throws DAOException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		
-		OCategory ocat = createOCategory(cat);
-		if (insert) {
-			ocat.setCategoryId(catDao.getSequence(con).intValue());
-		}
-		fillOCategoryWithDefaults(ocat);
+		OCategory ocat = ManagerUtils.createOCategory(cat);
+		ocat.setCategoryId(catDao.getSequence(con).intValue());
+		ManagerUtils.fillOCategoryWithDefaults(ocat, getTargetProfileId(), getServiceSettings());
 		if (ocat.getIsDefault()) catDao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
-		if (insert) {
-			catDao.insert(con, ocat);
-		} else {
-			catDao.update(con, ocat);
-		}
 		
-		return createCategory(ocat);
+		catDao.insert(con, ocat);
+		return ManagerUtils.createCategory(ocat);
 	}
 	
-	private String buildTaskUid(int taskId, String internetName) {
-		return buildTaskUid(IdentifierUtils.getUUIDTimeBased(true), taskId, internetName);
+	private boolean doCategoryUpdate(Connection con, Category cat) throws DAOException {
+		CategoryDAO catDao = CategoryDAO.getInstance();
+		
+		OCategory ocat = ManagerUtils.createOCategory(cat);
+		ManagerUtils.fillOCategoryWithDefaults(ocat, getTargetProfileId(), getServiceSettings());
+		if (ocat.getIsDefault()) catDao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
+		
+		return catDao.update(con, ocat) == 1;
 	}
 	
-	private String buildTaskUid(String timeBasedPart, int taskId, String internetName) {
-		return buildTaskUid(timeBasedPart, DigestUtils.md5Hex(String.valueOf(taskId)), internetName);
+	private Task doTaskGet(Connection con, int taskId) throws DAOException, WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		
+		OTask otask = tasDao.selectById(con, taskId);
+		if (otask == null) return null;
+		List<OTaskAttachment> oatts = attDao.selectByTask(con, taskId);
+		
+		Task task = ManagerUtils.createTask(otask);
+		task.setAttachments(ManagerUtils.createTaskAttachmentList(oatts));
+		return task;
 	}
 	
-	private String buildTaskUid(String timeBasedPart, String taskPart, String internetName) {
-		return timeBasedPart + "." + taskPart + "@" + internetName;
-	}
-	
-	private OTask doUpdateTask(boolean insert, Connection con, Task task) throws WTException {
+	private TaskResult doTaskInsert(Connection con, Task task, boolean processAttachments) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		
-		OTask otask = createOTask(task);
-		if (insert) {
-			otask.setTaskId(tasDao.getSequence(con).intValue());
+		OTask otask = ManagerUtils.createOTask(task);
+		otask.setTaskId(tasDao.getSequence(con).intValue());
+		ManagerUtils.fillOTaskWithDefaults(otask, getTargetProfileId());
+		
+		ArrayList<OTaskAttachment> oatts = new ArrayList<>();
+		if (processAttachments) {
+			for (TaskAttachment att : task.getAttachments()) {
+				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");
+				oatts.add(doTaskAttachmentInsert(con, otask.getTaskId(), (TaskAttachmentWithStream)att));
+			}
+		}			
+		tasDao.insert(con, otask, BaseDAO.createRevisionTimestamp());
+		return new TaskResult(otask, oatts);
+	}
+	
+	private boolean doTaskUpdate(Connection con, Task task, boolean processAttachments) throws DAOException, IOException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		
+		OTask otask = ManagerUtils.createOTask(task);
+		ManagerUtils.fillOTaskWithDefaults(otask, getTargetProfileId());
+		boolean ret = tasDao.update(con, otask, BaseDAO.createRevisionTimestamp()) == 1;
+		
+		if (processAttachments) {
+			List<TaskAttachment> oldAtts = ManagerUtils.createTaskAttachmentList(attDao.selectByTask(con, task.getTaskId()));
+			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAtts, task.getAttachments());
+
+			for (TaskAttachment att : changeSet.inserted) {
+				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");
+				doTaskAttachmentInsert(con, otask.getTaskId(), (TaskAttachmentWithStream)att);
+			}
+			for (TaskAttachment att : changeSet.updated) {
+				if (!(att instanceof TaskAttachmentWithStream)) continue;
+				doTaskAttachmentUpdate(con, (TaskAttachmentWithStream)att);
+			}
+			for (TaskAttachment att : changeSet.deleted) {
+				attDao.delete(con, att.getAttachmentId());
+			}
 		}
-		fillOTaskWithDefaults(otask);
-		if (insert) {
-			tasDao.insert(con, otask, createRevisionTimestamp());
-		} else {
-			tasDao.update(con, otask, createRevisionTimestamp());
-		}
-		return otask;
+		return ret;
 	}
 	
-	private int doDeleteTask(Connection con, int taskId) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
-		return tasdao.logicDeleteById(con, taskId, createRevisionTimestamp());
+	private int doTaskDelete(Connection con, int taskId) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		return tasDao.logicDeleteById(con, taskId, BaseDAO.createRevisionTimestamp());
 	}
 	
-	private int doDeleteTasksByCategory(Connection con, int categoryId) throws WTException {
-		TaskDAO tasdao = TaskDAO.getInstance();
-		return tasdao.logicDeleteByCategoryId(con, categoryId, createRevisionTimestamp());
+	private int doTaskDeleteByCategory(Connection con, int categoryId) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		return tasDao.logicDeleteByCategoryId(con, categoryId, BaseDAO.createRevisionTimestamp());
 	}
 	
-	private void doMoveTask(Connection con, boolean copy, Task task, int targetCategoryId) throws WTException {
-		if(copy) {
+	private void doTaskMove(Connection con, boolean copy, Task task, int targetCategoryId) throws DAOException, IOException {
+		if (copy) {
 			task.setCategoryId(targetCategoryId);
-			doUpdateTask(true, con, task);
+			//TODO: maybe add support to attachments copy
+			doTaskUpdate(con, task, false);
 		} else {
 			TaskDAO tasDao = TaskDAO.getInstance();
-			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, createRevisionTimestamp());
+			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, BaseDAO.createRevisionTimestamp());
+		}
+	}
+	
+	private OTaskAttachment doTaskAttachmentInsert(Connection con, int taskId, TaskAttachmentWithStream attachment) throws DAOException, IOException {
+		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		
+		OTaskAttachment oatt = ManagerUtils.createOTaskAttachment(attachment);
+		oatt.setTaskAttachmentId(IdentifierUtils.getUUIDTimeBased());
+		oatt.setTaskId(taskId);
+		attDao.insert(con, oatt, BaseDAO.createRevisionTimestamp());
+		
+		InputStream is = attachment.getStream();
+		try {
+			attDao.insertBytes(con, oatt.getTaskAttachmentId(), IOUtils.toByteArray(is));
+		} finally {
+			IOUtils.closeQuietly(is);
+		}
+		
+		return oatt;
+	}
+	
+	private boolean doTaskAttachmentUpdate(Connection con, TaskAttachmentWithStream attachment) throws DAOException, IOException {
+		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		
+		OTaskAttachment oatt = ManagerUtils.createOTaskAttachment(attachment);
+		attDao.update(con, oatt, BaseDAO.createRevisionTimestamp());
+		
+		InputStream is = attachment.getStream();
+		try {
+			attDao.deleteBytesById(con, oatt.getTaskAttachmentId());
+			return attDao.insertBytes(con, oatt.getTaskAttachmentId(), IOUtils.toByteArray(is)) == 1;
+		} finally {
+			IOUtils.closeQuietly(is);
 		}
 	}
 	
@@ -981,170 +1056,32 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
 	
-	private Category createCategory(OCategory with) {
-		return fillCategory(new Category(), with);
-	}
-	
-	private Category fillCategory(Category fill, OCategory with) {
-		if ((fill != null) && (with != null)) {
-			fill.setCategoryId(with.getCategoryId());
-			fill.setDomainId(with.getDomainId());
-			fill.setUserId(with.getUserId());
-			fill.setBuiltIn(with.getBuiltIn());
-			fill.setName(with.getName());
-			fill.setDescription(with.getDescription());
-			fill.setColor(with.getColor());
-			fill.setSync(EnumUtils.forSerializedName(with.getSync(), Category.Sync.class));
-			fill.setIsPrivate(with.getIsPrivate());
-			fill.setIsDefault(with.getIsDefault());
-		}
-		return fill;
-	}
-	
-	private OCategory createOCategory(Category with) {
-		return fillOCategory(new OCategory(), with);
-	}
-	
-	private OCategory fillOCategory(OCategory fill, Category with) {
-		if ((fill != null) && (with != null)) {
-			fill.setCategoryId(with.getCategoryId());
-			fill.setDomainId(with.getDomainId());
-			fill.setUserId(with.getUserId());
-			fill.setBuiltIn(with.getBuiltIn());
-			fill.setName(with.getName());
-			fill.setDescription(with.getDescription());
-			fill.setColor(with.getColor());
-			fill.setSync(EnumUtils.toSerializedName(with.getSync()));
-			fill.setIsPrivate(with.getIsPrivate());
-			fill.setIsDefault(with.getIsDefault());
-		}
-		return fill;
-	}
-	
-	private OCategory fillOCategoryWithDefaults(OCategory fill) {
-		if (fill != null) {
-			TasksServiceSettings ss = getServiceSettings();
-			if (fill.getDomainId() == null) fill.setDomainId(getTargetProfileId().getDomainId());
-			if (fill.getUserId() == null) fill.setUserId(getTargetProfileId().getUserId());
-			if (fill.getBuiltIn() == null) fill.setBuiltIn(false);
-			if (StringUtils.isBlank(fill.getColor())) fill.setColor("#FFFFFF");
-			if (StringUtils.isBlank(fill.getSync())) fill.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
-			if (fill.getIsDefault() == null) fill.setIsDefault(false);
-			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
-		}
-		return fill;
-	}
-	
-	private CategoryPropSet createCategoryPropSet(OCategoryPropSet with) {
-		return fillCategoryPropSet(new CategoryPropSet(), with);
-	}
-	
-	private CategoryPropSet fillCategoryPropSet(CategoryPropSet fill, OCategoryPropSet with) {
-		if ((fill != null) && (with != null)) {
-			fill.setHidden(with.getHidden());
-			fill.setColor(with.getColor());
-			fill.setSync(EnumUtils.forSerializedName(with.getSync(), Category.Sync.class));
-		}
-		return fill;
-	}
-	
-	private OCategoryPropSet createOCategoryPropSet(CategoryPropSet with) {
-		return fillOCategoryPropSet(new OCategoryPropSet(), with);
-	}
-	
-	private OCategoryPropSet fillOCategoryPropSet(OCategoryPropSet fill, CategoryPropSet with) {
-		if ((fill != null) && (with != null)) {
-			fill.setHidden(with.getHidden());
-			fill.setColor(with.getColor());
-			fill.setSync(EnumUtils.toSerializedName(with.getSync()));
-		}
-		return fill;
-	}
-	
-	private Task createTask(OTask with) {
-		return fillTask(new Task(), with);
-	}
-	
-	private Task fillTask(Task fill, OTask with) {
-		if ((fill != null) && (with != null)) {
-			fill.setTaskId(with.getTaskId());
-			fill.setCategoryId(with.getCategoryId());
-			fill.setRevisionStatus(EnumUtils.forSerializedName(with.getRevisionStatus(), Task.RevisionStatus.class));
-			fill.setRevisionTimestamp(with.getRevisionTimestamp());
-			fill.setPublicUid(with.getPublicUid());
-			fill.setSubject(with.getSubject());
-			fill.setDescription(with.getDescription());
-			fill.setStartDate(with.getStartDate());
-			fill.setDueDate(with.getDueDate());
-			fill.setCompletedDate(with.getCompletedDate());
-			fill.setImportance(with.getImportance());
-			fill.setIsPrivate(with.getIsPrivate());
-			fill.setStatus(EnumUtils.forSerializedName(with.getStatus(), Task.Status.class));
-			fill.setCompletionPercentage(with.getCompletionPercentage());
-			fill.setReminderDate(with.getReminderDate());
-			fill.setRemindedOn(with.getRemindedOn());
-		}
-		return fill;
-	}
-	
-	private OTask createOTask(Task with) {
-		return fillOTask(new OTask(), with);
-	}
-	
-	private OTask fillOTask(OTask fill, Task with) {
-		if ((fill != null) && (with != null)) {
-			fill.setTaskId(with.getTaskId());
-			fill.setCategoryId(with.getCategoryId());
-			fill.setRevisionStatus(EnumUtils.toSerializedName(with.getRevisionStatus()));
-			fill.setRevisionTimestamp(with.getRevisionTimestamp());
-			fill.setPublicUid(with.getPublicUid());
-			fill.setSubject(with.getSubject());
-			fill.setDescription(with.getDescription());
-			fill.setStartDate(with.getStartDate());
-			fill.setDueDate(with.getDueDate());
-			fill.setCompletedDate(with.getCompletedDate());
-			fill.setImportance(with.getImportance());
-			fill.setIsPrivate(with.getIsPrivate());
-			fill.setStatus(EnumUtils.toSerializedName(with.getStatus()));
-			fill.setCompletionPercentage(with.getCompletionPercentage());
-			fill.setReminderDate(with.getReminderDate());
-			fill.setRemindedOn(with.getRemindedOn());
-		}
-		return fill;
-	}
-	
-	private OTask fillOTaskWithDefaults(OTask fill) {
-		if (fill != null) {
-			if (StringUtils.isBlank(fill.getPublicUid())) {
-				fill.setPublicUid(buildTaskUid(fill.getTaskId(), WT.getDomainInternetName(getTargetProfileId().getDomainId())));
-			}
-			if (fill.getImportance() == null) fill.setImportance((short)0);
-			if (fill.getIsPrivate() == null) fill.setIsPrivate(false);
-			if (fill.getStatus() == null) fill.setStatus(EnumUtils.toSerializedName(Task.Status.NOT_STARTED));
-		}
-		return fill;
-	}
-	
-	private TaskEx fillTaskEx(TaskEx fill, VTask with) {
-		if ((fill != null) && (with != null)) {
-			fillTask(fill, with);
-			fill.setCategoryDomainId(with.getCategoryDomainId());
-			fill.setCategoryUserId(with.getCategoryUserId());
-		}
-		return fill;
-	}
-	
-	private ReminderInApp createTaskReminderAlertWeb(VTask task, DateTime profileReminderDate, DateTimeZone profileTz) {
+	private ReminderInApp createTaskReminderAlertWeb(ProfileI18n profileI18n, VTask task, DateTime reminderDate) {
 		ReminderInApp alert = new ReminderInApp(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
 		alert.setTitle(task.getSubject());
-		alert.setDate(profileReminderDate);
-		alert.setTimezone(profileTz.getID());
+		alert.setDate(reminderDate);
+		alert.setTimezone(profileI18n.getTimezone().getID());
 		return alert;
 	}
 	
-	private ReminderEmail createTaskReminderAlertEmail(Locale locale, VTask task) {
+	private ReminderEmail createTaskReminderAlertEmail(ProfileI18n profileI18n, VTask task, String recipientEmail) throws WTException {
 		ReminderEmail alert = new ReminderEmail(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
-		//TODO: completare email
+		
+		try {
+			String source = NotificationHelper.buildSource(profileI18n.getLocale(), SERVICE_ID);
+			String because = lookupResource(profileI18n.getLocale(), TasksLocale.EMAIL_REMINDER_FOOTER_BECAUSE);
+			String customBodyHtml = TplHelper.buildTplTaskReminderBody(profileI18n, task);
+			
+			String subject = TplHelper.buildTaskReminderSubject(profileI18n, task);
+			String html = TplHelper.buildTaskReminderHtml(profileI18n.getLocale(), task.getSubject(), customBodyHtml, source, because, recipientEmail);
+			
+			alert.setSubject(EmailNotification.buildSubject(profileI18n.getLocale(), SERVICE_ID, subject));
+			alert.setBody(html);
+			
+		} catch(IOException | TemplateException | AddressException ex) {
+			throw new WTException(ex);
+		}
+		
 		return alert;
 	}
 	
@@ -1152,9 +1089,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (StringUtils.isBlank(value)) return;
 		coreMgr.addServiceStoreEntry(SERVICE_ID, context, value.toUpperCase(), value);
 	}
-    
-	private DateTime createRevisionTimestamp() {
-		return DateTime.now(DateTimeZone.UTC);
+	
+	private static class TaskResult {
+		public final OTask otask;
+		public final List<OTaskAttachment> oattachments;
+		
+		public TaskResult(OTask otask, List<OTaskAttachment> oattachments) {
+			this.otask = otask;
+			this.oattachments = oattachments;
+		}
 	}
 	
 	private class OwnerCache extends AbstractMapCache<Integer, UserProfileId> {

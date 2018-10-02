@@ -206,10 +206,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					mode : 'MULTI'
 				},
 				columns: [{
+					xtype: 'soiconcolumn',
+					dataIndex: 'importance',
+					hideable: false,
+					header: WTF.headerWithGlyphIcon('fa fa-exclamation'),
+					getIconCls: function(v, rec) {
+						return ['wt-icon-priority3-low', '', 'wt-icon-priority3-high'][v];
+					},
+					getTip: function(v, rec) {
+						return me.res('gptasks.importance.lbl') + ': ' + me.res('store.importance.' + v);
+					},
+					iconSize: 16,
+					width: 40
+				}, {
 					dataIndex: 'subject',
 					header: me.res('gptasks.subject.lbl'),
 					flex: 2
-				}, {
+				}, /*{
 					dataIndex: 'importance',
 					header: me.res('gptasks.importance.lbl'),
 					renderer: WTF.resColRenderer({
@@ -217,7 +230,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						key: 'store.importance'
 					}),
 					flex: 1
-				}, {
+				},*/ {
 					dataIndex: 'dueDate',
 					header: me.res('gptasks.dueDate.lbl'),
 					xtype: 'datecolumn',
@@ -277,6 +290,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				collapsible: true,
 				title: WT.res('word.preview'),
 				width: 200,
+				hidden: !WT.plTags.desktop,
 				defaults: {
 					labelAlign: 'top',
 					readOnly: true,
@@ -932,10 +946,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	editShare: function(id) {
 		var me = this,
-				vct = WT.createView(me.ID, 'view.Sharing');
+				vw = WT.createView(me.ID, 'view.Sharing', {swapReturn: true});
 		
-		vct.show(false, function() {
-			vct.getView().begin('edit', {
+		vw.showView(function() {
+			vw.begin('edit', {
 				data: {
 					id: id
 				}
@@ -946,13 +960,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addCategory: function(domainId, userId, opts) {
 		opts = opts || {};
 		var me = this,
-				vct = WT.createView(me.ID, 'view.Category');
+				vw = WT.createView(me.ID, 'view.Category', {swapReturn: true});
 		
-		vct.getView().on('viewsave', function(s, success, model) {
+		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
 		});
-		vct.show(false, function() {
-			vct.getView().begin('new', {
+		vw.showView(function() {
+			vw.begin('new', {
 				data: {
 					domainId: domainId,
 					userId: userId,
@@ -965,13 +979,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	editCategory: function(categoryId, opts) {
 		opts = opts || {};
 		var me = this,
-				vct = WT.createView(me.ID, 'view.Category');
+				vw = WT.createView(me.ID, 'view.Category', {swapReturn: true});
 		
-		vct.getView().on('viewsave', function(s, success, model) {
+		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
 		});
-		vct.show(false, function() {
-			vct.getView().begin('edit', {
+		vw.showView(function() {
+			vw.begin('edit', {
 				data: {
 					categoryId: categoryId
 				}
@@ -1039,13 +1053,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addTask: function(ownerId, categoryId, opts) {
 		opts = opts || {};
 		var me = this,
-				vct = WT.createView(me.ID, 'view.Task');
+				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
 		
-		vct.getView().on('viewsave', function(s, success, model) {
+		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
 		});
-		vct.show(false, function() {
-			vct.getView().begin('new', {
+		vw.showView(function() {
+			vw.begin('new', {
 				data: {
 					_profileId: ownerId,
 					categoryId: categoryId
@@ -1061,14 +1075,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	openTask: function(edit, taskId, opts) {
 		opts = opts || {};
 		var me = this,
-				vct = WT.createView(me.ID, 'view.Task'),
+				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true}),
 				mode = edit ? 'edit' : 'view';
 		
-		vct.getView().on('viewsave', function(s, success, model) {
+		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
 		});
-		vct.show(false, function() {
-			vct.getView().begin(mode, {
+		vw.showView(function() {
+			vw.begin(mode, {
 				data: {
 					taskId: taskId
 				}

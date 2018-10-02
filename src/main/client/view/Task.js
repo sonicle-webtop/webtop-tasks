@@ -35,9 +35,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.form.field.ColorComboBox',
+		'Sonicle.plugin.FileDrop',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.ValueModel',
 		'WTA.ux.field.SuggestCombo',
+		'WTA.ux.grid.Attachments',
 		'Sonicle.webtop.tasks.store.Importance',
 		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.Task',
@@ -116,7 +118,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					tooltip: null,
 					iconCls: 'wt-icon-saveClose-xs',
 					handler: function() {
-						me.saveTask();
+						me.saveView(true);
 					}
 				}),
 				'-',
@@ -173,163 +175,205 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				})
 			]
 		});
+		me.plugins = me.plugins || [];
+		me.plugins.push({
+			ptype: 'sofiledrop',
+			text: WT.res('sofiledrop.text')
+		});
 		me.callParent(arguments);
 		
 		me.add({
 			region: 'center',
-			xtype: 'wtform',
-			modelValidation: true,
-			defaults: {
-				labelWidth: 100
-			},
+			xtype: 'wttabpanel',
+			deferredRender: false,
 			items: [{
-				xtype: 'wtsuggestcombo',
-				reference: 'fldsubject',
-				bind: '{record.subject}',
-				sid: me.mys.ID,
-				suggestionContext: 'tasksubject',
-				fieldLabel: me.mys.res('task.fld-subject.lbl'),
-				anchor: '100%',
-				listeners: {
-					enterkey: function() {
-						me.getAct('saveClose').execute();
+				xtype: 'wtform',
+				title: me.mys.res('task.main.tit'),
+				modelValidation: true,
+				defaults: {
+					labelWidth: 100
+				},
+				items: [{
+					xtype: 'wtsuggestcombo',
+					reference: 'fldsubject',
+					bind: '{record.subject}',
+					sid: me.mys.ID,
+					suggestionContext: 'tasksubject',
+					fieldLabel: me.mys.res('task.fld-subject.lbl'),
+					anchor: '100%',
+					listeners: {
+						enterkey: function() {
+							me.getAct('saveClose').execute();
+						}
 					}
-				}
-			}, {
-				xtype: 'textareafield',
-				bind: '{record.description}',
-				fieldLabel: me.mys.res('task.fld-description.lbl'),
-				height: 100,
-				anchor: '100%'
-			}, {
-				xtype: 'formseparator'
-			}, {
-				xtype: 'container',
-				layout: 'column',
-				defaults: {
-					xtype: 'wtform',
-					style: 'width:50%'
-				},
-				items: [{
-					items: [
-						WTF.lookupCombo('id', 'desc', {
-							bind: '{record.importance}',
-							store: Ext.create(me.mys.preNs('store.Importance'), {
-								autoLoad: true
-							}),
-							fieldLabel: me.mys.res('task.fld-importance.lbl')
-						})
-					]
 				}, {
-					items: [{
-						xtype: 'checkbox',
-						bind: '{isPrivate}',
-						hideEmptyLabel: true,
-						boxLabel: me.mys.res('task.fld-private.lbl')
-					}]
-				}]
-			}, {
-				xtype: 'formseparator'
-			}, {
-				xtype: 'container',
-				layout: 'column',
-				defaults: {
-					xtype: 'wtform',
-					style: 'width:50%'
-				},
-				items: [{
-					items: [{
-						xtype: 'datefield',
-						bind: '{startDate}',
-						startDay: WT.getStartDay(),
-						format: WT.getShortDateFmt(),
-						triggers: {
-							clear: WTF.clearTrigger()
-						},
-						fieldLabel: me.mys.res('task.fld-startDate.lbl')
+					xtype: 'textareafield',
+					bind: '{record.description}',
+					fieldLabel: me.mys.res('task.fld-description.lbl'),
+					height: 100,
+					anchor: '100%'
+				}, {
+					xtype: 'formseparator'
+				}, {
+					xtype: 'container',
+					layout: 'column',
+					defaults: {
+						xtype: 'wtform',
+						style: 'width:50%'
 					},
-						WTF.lookupCombo('id', 'desc', {
-							bind: '{record.status}',
-							store: Ext.create(me.mys.preNs('store.Status'), {
-								autoLoad: true
-							}),
-							fieldLabel: me.mys.res('task.fld-status.lbl'),
+					items: [{
+						items: [
+							WTF.lookupCombo('id', 'desc', {
+								bind: '{record.importance}',
+								store: Ext.create(me.mys.preNs('store.Importance'), {
+									autoLoad: true
+								}),
+								fieldLabel: me.mys.res('task.fld-importance.lbl')
+							})
+						]
+					}, {
+						items: [{
+							xtype: 'checkbox',
+							bind: '{isPrivate}',
+							hideEmptyLabel: true,
+							boxLabel: me.mys.res('task.fld-private.lbl')
+						}]
+					}]
+				}, {
+					xtype: 'formseparator'
+				}, {
+					xtype: 'container',
+					layout: 'column',
+					defaults: {
+						xtype: 'wtform',
+						style: 'width:50%'
+					},
+					items: [{
+						items: [{
+							xtype: 'datefield',
+							bind: '{startDate}',
+							startDay: WT.getStartDay(),
+							format: WT.getShortDateFmt(),
+							triggers: {
+								clear: WTF.clearTrigger()
+							},
+							fieldLabel: me.mys.res('task.fld-startDate.lbl')
+						},
+							WTF.lookupCombo('id', 'desc', {
+								bind: '{record.status}',
+								store: Ext.create(me.mys.preNs('store.Status'), {
+									autoLoad: true
+								}),
+								fieldLabel: me.mys.res('task.fld-status.lbl'),
+								listeners: {
+									select: function(s, rec) {
+										if(rec.get('id') === 'notstarted') me.getModel().set('percentage', 0);
+										if(rec.get('id') === 'completed') me.getModel().set('percentage', 100);
+									}
+								}
+							})
+						]
+					}, {
+						items: [{
+							xtype: 'datefield',
+							bind: '{dueDate}',
+							startDay: WT.getStartDay(),
+							format: WT.getShortDateFmt(),
+							triggers: {
+								clear: WTF.clearTrigger()
+							},
+							fieldLabel: me.mys.res('task.fld-dueDate.lbl'),
+							labelWidth: 120
+						}, {
+							xtype: 'numberfield',
+							step: 25,
+							minValue: 0,
+							maxValue: 100,
+							allowDecimal: false,
+							bind: '{record.percentage}',
+							fieldLabel: me.mys.res('task.fld-percentage.lbl'),
+							labelWidth: 120,
 							listeners: {
-								select: function(s, rec) {
-									if(rec.get('id') === 'notstarted') me.getModel().set('percentage', 0);
-									if(rec.get('id') === 'completed') me.getModel().set('percentage', 100);
+								blur: function(s) {
+									var nv = s.getValue();
+									if (nv === 100) me.getModel().set('status','completed');
+									if (nv === 0) me.getModel().set('status','notstarted');
 								}
 							}
-						})
-					]
+						}]
+					}]
 				}, {
+					xtype: 'formseparator'
+				}, {
+					xtype: 'fieldcontainer',
+					layout: 'hbox',
+					defaults: {
+						labelWidth: 120,
+						margin: '0 10 0 0'
+					},
 					items: [{
+						width: 100,
+						xtype: 'checkbox',
+						reference: 'fldhasreminder',
+						bind: '{hasReminder}',
+						hideEmptyLabel: true,
+						boxLabel: me.mys.res('task.fld-reminderDate.lbl')
+					},{
 						xtype: 'datefield',
-						bind: '{dueDate}',
+						bind: {
+							value: '{reminderDate}',
+							disabled: '{!fldhasreminder.checked}'
+						},
 						startDay: WT.getStartDay(),
 						format: WT.getShortDateFmt(),
-						triggers: {
-							clear: WTF.clearTrigger()
-						},
-						fieldLabel: me.mys.res('task.fld-dueDate.lbl'),
-						labelWidth: 120
+						margin: '0 5 0 0',
+						width: 120
 					}, {
-						xtype: 'numberfield',
-						step: 25,
-						minValue: 0,
-						maxValue: 100,
-						allowDecimal: false,
-						bind: '{record.percentage}',
-						fieldLabel: me.mys.res('task.fld-percentage.lbl'),
-						labelWidth: 120,
-						listeners: {
-							blur: function(s) {
-								var nv = s.getValue();
-								if (nv === 100) me.getModel().set('status','completed');
-								if (nv === 0) me.getModel().set('status','notstarted');
-							}
-						}
+						xtype: 'timefield',
+						bind: {
+							value: '{reminderTime}',
+							disabled: '{!fldhasreminder.checked}'
+						},
+						format: WT.getShortTimeFmt(),
+						margin: '0 5 0 0',
+						width: 90
 					}]
 				}]
 			}, {
-				xtype: 'formseparator'
-			}, {
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				defaults: {
-					labelWidth: 120,
-					margin: '0 10 0 0'
+				xtype: 'wtattachmentsgrid',
+				title: me.mys.res('task.attachments.tit'),
+				bind: {
+					store: '{record.attachments}'
 				},
-				items: [{
-					width: 100,
-					xtype: 'checkbox',
-					reference: 'fldhasreminder',
-					bind: '{hasReminder}',
-					hideEmptyLabel: true,
-					boxLabel: me.mys.res('task.fld-reminderDate.lbl')
-				},{
-					xtype: 'datefield',
-					bind: {
-						value: '{reminderDate}',
-						disabled: '{!fldhasreminder.checked}'
+				sid: me.mys.ID,
+				uploadContext: 'TaskAttachment',
+				uploadTag: WT.uiid(me.getId()),
+				dropElementId: me.getId(),
+				typeField: 'ext',
+				listeners: {
+					attachmentlinkclick: function(s, rec) {
+						me.openAttachmentUI(rec, false);
 					},
-					startDay: WT.getStartDay(),
-					format: WT.getShortDateFmt(),
-					margin: '0 5 0 0',
-					width: 120
-				}, {
-					xtype: 'timefield',
-					bind: {
-						value: '{reminderTime}',
-						disabled: '{!fldhasreminder.checked}'
+					attachmentdownloadclick: function(s, rec) {
+						me.openAttachmentUI(rec, true);
 					},
-					format: WT.getShortTimeFmt(),
-					margin: '0 5 0 0',
-					width: 90
-				}]
+					attachmentdeleteclick: function(s, rec) {
+						s.getStore().remove(rec);
+					},
+					attachmentuploaded: function(s, uploadId, file) {
+						var sto = s.getStore();
+						sto.add(sto.createModel({
+							name: file.name,
+							size: file.size,
+							_uplId: uploadId
+						}));
+						me.getComponent(0).getLayout().setActiveItem(s);
+					}
+				}
 			}]
 		});
 		me.on('viewload', me.onViewLoad);
+		me.on('viewclose', me.onViewClose);
 	},
 	
 	onViewLoad: function(s, success) {
@@ -349,6 +393,10 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			owner.setDisabled(true);
 		}
 		me.lref('fldsubject').focus(true);
+	},
+	
+	onViewClose: function(s) {
+		s.mys.cleanupUploadedFiles(WT.uiid(s.getId()));
 	},
 	
 	updateCategoryFilters: function() {
@@ -373,9 +421,29 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		me.callParent(arguments);
 	},
 	
-	saveTask: function() {
-		var me = this;
-		me.saveView(true);
+	openAttachmentUI: function(rec, download) {
+		var me = this,
+				name = rec.get('name'),
+				uploadId = rec.get('_uplId'),
+				url;
+		
+		if (!Ext.isEmpty(uploadId)) {
+			url = WTF.processBinUrl(me.mys.ID, 'DownloadTaskAttachment', {
+				inline: !download,
+				uploadId: uploadId
+			});
+		} else {
+			url = WTF.processBinUrl(me.mys.ID, 'DownloadTaskAttachment', {
+				inline: !download,
+				taskId: me.getModel().getId(),
+				attachmentId: rec.get('id')
+			});
+		}
+		if (download) {
+			Sonicle.URLMgr.downloadFile(url, {filename: name});
+		} else {
+			Sonicle.URLMgr.openFile(url, {filename: name});
+		}
 	},
 	
 	deleteTask: function() {

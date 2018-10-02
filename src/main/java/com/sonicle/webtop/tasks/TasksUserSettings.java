@@ -52,7 +52,7 @@ public class TasksUserSettings extends BaseUserSettings {
 	
 	public String getTaskReminderDelivery() {
 		String value = getString(TASK_REMINDER_DELIVERY, null);
-		if(value != null) return value;
+		if (value != null) return value;
 		return ss.getDefaultTaskReminderDelivery();
 	}
 	
