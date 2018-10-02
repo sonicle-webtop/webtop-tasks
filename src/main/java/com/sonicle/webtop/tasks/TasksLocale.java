@@ -39,5 +39,20 @@ package com.sonicle.webtop.tasks;
 public class TasksLocale {
 	public static final String SERVICE_NAME = "service.name";
 	public static final String SERVICE_DESCRIPTION = "service.description";
-	public static final String CATEGORIES_MY = "categories.my";    
+	public static final String CATEGORIES_MY = "categories.my";
+	
+	public static final String EMAIL_REMINDER_SUBJECT = "email.task.reminder.subject";
+	public static final String EMAIL_REMINDER_FOOTER_BECAUSE = "email.task.reminder.footer.because";
+	
+	public static final String TPL_EMAIL_TASK_BODY_WHENSTART = "tpl.email.task.body.whenstart";
+	public static final String TPL_EMAIL_TASK_BODY_WHENDUE = "tpl.email.task.body.whendue";
+	public static final String TPL_EMAIL_TASK_BODY_WHENCOMPLETED = "tpl.email.task.body.whencompleted";
+	public static final String TPL_EMAIL_TASK_BODY_STATUS = "tpl.email.task.body.status";
+	public static final String TPL_EMAIL_TASK_BODY_STATUS_X = "tpl.email.task.body.status.{0}";
+	//public static final String TPL_EMAIL_TASK_BODY_STATUS_NOTSTARTED = "tpl.email.task.body.status.notstarted";
+	//public static final String TPL_EMAIL_TASK_BODY_STATUS_INPROGRESS = "tpl.email.task.body.status.inprogress";
+	//public static final String TPL_EMAIL_TASK_BODY_STATUS_COMPLETED = "tpl.email.task.body.status.completed";
+	//public static final String TPL_EMAIL_TASK_BODY_STATUS_WAITING = "tpl.email.task.body.status.waiting";
+	//public static final String TPL_EMAIL_TASK_BODY_STATUS_DEFERRED = "tpl.email.task.body.status.deferred";
+	public static final String TPL_EMAIL_TASK_BODY_COMPLETION = "tpl.email.task.body.completion";
 }

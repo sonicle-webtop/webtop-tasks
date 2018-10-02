@@ -1,0 +1,39 @@
+<#if task.description??>
+<div style="padding-bottom:15px;font-size:13px;color:#222;white-space:pre-wrap!important;white-space:-moz-pre-wrap!important;white-space:-pre-wrap!important;white-space:-o-pre-wrap!important;white-space:pre;word-wrap:break-word">
+    <span>${task.description}</span>
+</div>
+</#if>
+<table cellpadding="0" cellspacing="0" border="0" summary="">
+    <tr>
+        <td style="padding:0 1em 10px 0;font-family:Arial,Sans-serif;font-size:13px;color:#888;white-space:nowrap" valign="top">
+            <div><i style="font-style:normal">${i18n.whenStart}</i></div>
+        </td>
+        <td style="padding-bottom:10px;font-family:Arial,Sans-serif;font-size:13px;color:#222" valign="top">
+            ${task.startDate}
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:0 1em 10px 0;font-family:Arial,Sans-serif;font-size:13px;color:#888;white-space:nowrap" valign="top">
+            <div><i style="font-style:normal">${i18n.whenDue}</i></div>
+        </td>
+        <td style="padding-bottom:10px;font-family:Arial,Sans-serif;font-size:13px;color:#222" valign="top">
+            ${task.dueDate}
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:0 1em 10px 0;font-family:Arial,Sans-serif;font-size:13px;color:#888;white-space:nowrap" valign="top">
+            <div><i style="font-style:normal">${i18n.status}</i></div>
+        </td>
+        <td style="padding-bottom:10px;font-family:Arial,Sans-serif;font-size:13px;color:#222" valign="top">
+            ${task.status}
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:0 1em 10px 0;font-family:Arial,Sans-serif;font-size:13px;color:#888;white-space:nowrap" valign="top">
+            <div><i style="font-style:normal">${i18n.completion}</i></div>
+        </td>
+        <td style="padding-bottom:10px;font-family:Arial,Sans-serif;font-size:13px;color:#222" valign="top">
+            ${task.completion}
+        </td>
+    </tr>
+</table>

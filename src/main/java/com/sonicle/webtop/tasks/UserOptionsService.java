@@ -74,7 +74,7 @@ public class UserOptionsService extends BaseUserOptionsService {
 				Payload<MapItem, JsUserOptions> pl = ServletUtils.getPayload(payload, JsUserOptions.class);
 				
 				// Main
-				if(pl.map.has("anniversaryReminderDelivery")) tus.setTaskReminderDelivery(pl.data.taskReminderDelivery);
+				if (pl.map.has("taskReminderDelivery")) tus.setTaskReminderDelivery(pl.data.taskReminderDelivery);
 				
 				new JsonResult().printTo(out);
 			}

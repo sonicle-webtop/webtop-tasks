@@ -36,10 +36,14 @@ import com.sonicle.commons.IdentifierUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.LangUtils.CollectionChangeSet;
 import com.sonicle.commons.db.DbUtils;
+import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.CompositeId;
+import com.sonicle.commons.web.json.MapItem;
+import com.sonicle.commons.web.json.MapItemList;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.util.EmailNotification;
 import com.sonicle.webtop.core.bol.OShare;
 import com.sonicle.webtop.core.bol.Owner;
 import com.sonicle.webtop.core.model.IncomingShareRoot;
@@ -50,6 +54,7 @@ import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.core.dal.DAOIntegrityViolationException;
+import com.sonicle.webtop.core.model.ProfileI18n;
 import com.sonicle.webtop.core.sdk.AbstractMapCache;
 import com.sonicle.webtop.core.sdk.AbstractShareCache;
 import com.sonicle.webtop.core.sdk.AuthException;
@@ -61,6 +66,7 @@ import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.sdk.WTRuntimeException;
+import com.sonicle.webtop.core.util.NotificationHelper;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
@@ -82,6 +88,7 @@ import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
 import com.sonicle.webtop.tasks.model.TaskEx;
+import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -94,10 +101,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.mail.internet.AddressException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 
 /**
@@ -785,26 +794,25 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DateTime now12 = now.plusHours(14);
 			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now12);
 			DateTime profileNow = null, profileReminderDate = null;
-			for(VTask task : tasks) {
+			for (VTask task : tasks) {
 				UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
 				profileNow = now.withZone(ud.getTimeZone());
 				profileReminderDate = task.getReminderDate().withZone(DateTimeZone.UTC).withZoneRetainFields(ud.getTimeZone());
-				if(profileReminderDate.isAfter(profileNow)) continue;
+				if (profileReminderDate.isAfter(profileNow)) continue;
 				
-				if(!byEmailCache.containsKey(task.getCategoryProfileId())) {
+				if (!byEmailCache.containsKey(task.getCategoryProfileId())) {
 					TasksUserSettings us = new TasksUserSettings(SERVICE_ID, task.getCategoryProfileId());
 					boolean bool = us.getTaskReminderDelivery().equals(TasksSettings.TASK_REMINDER_DELIVERY_EMAIL);
 					byEmailCache.put(task.getCategoryProfileId(), bool);
 				}
 
 				int ret = dao.updateRemindedOn(con, task.getTaskId(), now);
-				if(ret != 1) continue;
+				if (ret != 1) continue;
 				
-				if(byEmailCache.get(task.getCategoryProfileId())) {
-					//UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
-					alerts.add(createTaskReminderAlertEmail(ud.getLocale(), task));
+				if (byEmailCache.get(task.getCategoryProfileId())) {
+					alerts.add(createTaskReminderAlertEmail(ud.toProfileI18n(), task, ud.getPersonalEmailAddress()));
 				} else {
-					alerts.add(createTaskReminderAlertWeb(task, profileReminderDate, ud.getTimeZone()));
+					alerts.add(createTaskReminderAlertWeb(ud.toProfileI18n(), task, profileReminderDate));
 				}
 			}
 			DbUtils.commitQuietly(con);
@@ -1048,17 +1056,32 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		throw new AuthException("Action not allowed on folderEls share [{0}, {1}, {2}, {3}]", shareId, action, GROUPNAME_CATEGORY, targetPid.toString());
 	}
 	
-	private ReminderInApp createTaskReminderAlertWeb(VTask task, DateTime profileReminderDate, DateTimeZone profileTz) {
+	private ReminderInApp createTaskReminderAlertWeb(ProfileI18n profileI18n, VTask task, DateTime reminderDate) {
 		ReminderInApp alert = new ReminderInApp(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
 		alert.setTitle(task.getSubject());
-		alert.setDate(profileReminderDate);
-		alert.setTimezone(profileTz.getID());
+		alert.setDate(reminderDate);
+		alert.setTimezone(profileI18n.getTimezone().getID());
 		return alert;
 	}
 	
-	private ReminderEmail createTaskReminderAlertEmail(Locale locale, VTask task) {
+	private ReminderEmail createTaskReminderAlertEmail(ProfileI18n profileI18n, VTask task, String recipientEmail) throws WTException {
 		ReminderEmail alert = new ReminderEmail(SERVICE_ID, task.getCategoryProfileId(), "task", String.valueOf(task.getTaskId()));
-		//TODO: completare email
+		
+		try {
+			String source = NotificationHelper.buildSource(profileI18n.getLocale(), SERVICE_ID);
+			String because = lookupResource(profileI18n.getLocale(), TasksLocale.EMAIL_REMINDER_FOOTER_BECAUSE);
+			String customBodyHtml = TplHelper.buildTplTaskReminderBody(profileI18n, task);
+			
+			String subject = TplHelper.buildTaskReminderSubject(profileI18n, task);
+			String html = TplHelper.buildTaskReminderHtml(profileI18n.getLocale(), task.getSubject(), customBodyHtml, source, because, recipientEmail);
+			
+			alert.setSubject(EmailNotification.buildSubject(profileI18n.getLocale(), SERVICE_ID, subject));
+			alert.setBody(html);
+			
+		} catch(IOException | TemplateException | AddressException ex) {
+			throw new WTException(ex);
+		}
+		
 		return alert;
 	}
 	
