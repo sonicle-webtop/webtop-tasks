@@ -919,7 +919,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (copy) {
 			task.setCategoryId(targetCategoryId);
 			//TODO: maybe add support to attachments copy
-			doTaskUpdate(con, task, false);
+			doTaskInsert(con, task, false);
 		} else {
 			TaskDAO tasDao = TaskDAO.getInstance();
 			tasDao.updateCategory(con, task.getTaskId(), targetCategoryId, BaseDAO.createRevisionTimestamp());
