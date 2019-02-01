@@ -16,7 +16,7 @@ package com.sonicle.webtop.tasks.jooq.tables.pojos;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tasks implements java.io.Serializable {
 
-	private static final long serialVersionUID = 1164066746;
+	private static final long serialVersionUID = 21027860;
 
 	private java.lang.Integer      taskId;
 	private java.lang.Integer      categoryId;
@@ -35,6 +35,9 @@ public class Tasks implements java.io.Serializable {
 	private org.joda.time.DateTime reminderDate;
 	private org.joda.time.DateTime remindedOn;
 	private java.lang.Integer      revisionSequence;
+	private java.lang.String       href;
+	private java.lang.String       etag;
+	private org.joda.time.DateTime creationTimestamp;
 
 	public Tasks() {}
 
@@ -55,7 +58,10 @@ public class Tasks implements java.io.Serializable {
 		java.lang.Short        completionPercentage,
 		org.joda.time.DateTime reminderDate,
 		org.joda.time.DateTime remindedOn,
-		java.lang.Integer      revisionSequence
+		java.lang.Integer      revisionSequence,
+		java.lang.String       href,
+		java.lang.String       etag,
+		org.joda.time.DateTime creationTimestamp
 	) {
 		this.taskId = taskId;
 		this.categoryId = categoryId;
@@ -74,6 +80,9 @@ public class Tasks implements java.io.Serializable {
 		this.reminderDate = reminderDate;
 		this.remindedOn = remindedOn;
 		this.revisionSequence = revisionSequence;
+		this.href = href;
+		this.etag = etag;
+		this.creationTimestamp = creationTimestamp;
 	}
 
 	public java.lang.Integer getTaskId() {
@@ -210,5 +219,29 @@ public class Tasks implements java.io.Serializable {
 
 	public void setRevisionSequence(java.lang.Integer revisionSequence) {
 		this.revisionSequence = revisionSequence;
+	}
+
+	public java.lang.String getHref() {
+		return this.href;
+	}
+
+	public void setHref(java.lang.String href) {
+		this.href = href;
+	}
+
+	public java.lang.String getEtag() {
+		return this.etag;
+	}
+
+	public void setEtag(java.lang.String etag) {
+		this.etag = etag;
+	}
+
+	public org.joda.time.DateTime getCreationTimestamp() {
+		return this.creationTimestamp;
+	}
+
+	public void setCreationTimestamp(org.joda.time.DateTime creationTimestamp) {
+		this.creationTimestamp = creationTimestamp;
 	}
 }

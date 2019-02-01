@@ -39,16 +39,22 @@ import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.VTaskObject;
+import com.sonicle.webtop.tasks.bol.VTaskCalObjectChanged;
+import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
+import static com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
 import com.sonicle.webtop.tasks.model.Task;
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 
 /**
@@ -65,102 +71,6 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		Long nextID = dsl.nextval(SEQ_TASKS);
 		return nextID;
-	}
-
-	public List<VTask> viewByCategoryPattern(Connection con, int categoryId, String pattern) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		
-		Condition patternCndt = DSL.trueCondition();
-		if (!StringUtils.isBlank(pattern)) {
-			patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
-				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
-		}
-		
-		return dsl
-			.select(
-				TASKS.TASK_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.START_DATE,
-				TASKS.DUE_DATE,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.STATUS,
-				TASKS.COMPLETION_PERCENTAGE,
-				TASKS.REMINDER_DATE
-			)
-			.select(
-				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
-				CATEGORIES.USER_ID.as("category_user_id")
-			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
-				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
-				)
-				.and(
-					patternCndt
-				)
-			)
-			.orderBy(
-				TASKS.SUBJECT.asc()
-			)
-			.fetchInto(VTask.class);
-	}
-	
-	public List<VTask> viewUpcomingByCategoriesPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		
-		Condition patternCndt = DSL.trueCondition();
-		if (!StringUtils.isBlank(pattern)) {
-			patternCndt = TASKS.SUBJECT.likeIgnoreCase(pattern)
-				.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
-		}
-		
-		return dsl
-			.select(
-				TASKS.TASK_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.START_DATE,
-				TASKS.DUE_DATE,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.STATUS,
-				TASKS.COMPLETION_PERCENTAGE,
-				TASKS.REMINDER_DATE
-			)
-			.select(
-				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
-				CATEGORIES.USER_ID.as("category_user_id")
-			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
-				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
-				)
-				.and(
-					TASKS.DUE_DATE.isNotNull()
-					.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.DEFERRED)))
-				)
-				.and(
-					patternCndt
-				)
-			)
-			.orderBy(
-				TASKS.DUE_DATE.asc()
-			)
-			.fetchInto(VTask.class);
 	}
 
 	public List<VTask> viewExpridedForUpdateByUntil(Connection con, DateTime until) throws DAOException {
@@ -200,6 +110,289 @@ public class TaskDAO extends BaseDAO {
 			.fetchInto(VTask.class);
 	}
 	
+	public VTaskObject viewTaskObjectById(Connection con, int categoryId, int taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		// New field: has icalendar
+		Field<Boolean> hasICalendar = DSL.nvl2(TASKS_ICALENDARS.TASK_ID, true, false).as("has_icalendar");
+		
+		return dsl
+			.select(
+				TASKS.fields()
+			)
+			.select(
+				hasICalendar
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_ICALENDARS).on(
+				TASKS.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID)
+			)
+			.where(
+				TASKS.TASK_ID.equal(taskId)
+				.and(TASKS.CATEGORY_ID.equal(categoryId))
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+			)
+			.fetchOneInto(VTaskObject.class);
+	}
+	
+	public Map<String, List<VTaskObject>> viewTaskObjectsByCategory(Connection con, int categoryId) throws DAOException {
+		return viewTaskObjectsByCategoryHrefsSince(con, categoryId, null, null);
+	}
+	
+	public Map<String, List<VTaskObject>> viewTaskObjectsByCategoryHrefs(Connection con, int categoryId, Collection<String> hrefs) throws DAOException {
+		return viewTaskObjectsByCategoryHrefsSince(con, categoryId, hrefs, null);
+	}
+	
+	public Map<String, List<VTaskObject>> viewTaskObjectsByCategorySince(Connection con, int categoryId, DateTime since) throws DAOException {
+		return viewTaskObjectsByCategoryHrefsSince(con, categoryId, null, since);
+	}
+	
+	public Map<String, List<VTaskObject>> viewTaskObjectsByCategoryHrefsSince(Connection con, int categoryId, Collection<String> hrefs, DateTime since) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		// New field: has icalendar
+		Field<Boolean> hasICalendar = DSL.nvl2(TASKS_ICALENDARS.TASK_ID, true, false).as("has_icalendar");
+	
+		Condition inHrefsCndt = DSL.trueCondition();
+		if (hrefs != null) {
+			inHrefsCndt = TASKS.HREF.in(hrefs);
+		}
+		
+		Condition rangeCndt = null;
+		/*
+		if (since != null) {
+			rangeCndt = TASKS.END_DATE.greaterOrEqual(since)
+				.or(RECURRENCES.RECURRENCE_ID.isNotNull()
+					.and(RECURRENCES.UNTIL_DATE.greaterOrEqual(since).or(RECURRENCES.UNTIL_DATE.isNull()))	
+				);
+		}
+		*/
+		
+		if (rangeCndt == null) {
+			return dsl
+				.select(
+					TASKS.fields()
+				)
+				.select(
+					hasICalendar
+				)
+				.from(TASKS)
+				.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+				.leftOuterJoin(TASKS_ICALENDARS).on(
+					TASKS.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID)
+				)
+				.where(
+					TASKS.CATEGORY_ID.equal(categoryId)
+					.and(
+						TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+						.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					)
+					.and(inHrefsCndt)
+				)
+				.orderBy(
+					TASKS.TASK_ID.asc()
+				)
+				.fetchGroups(TASKS.HREF, VTaskObject.class);
+		} else {
+			return dsl
+				.select(
+					TASKS.fields()
+				)
+				.select(
+					hasICalendar
+				)
+				.from(TASKS)
+				.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+				//.leftOuterJoin(RECURRENCES).on(EVENTS.RECURRENCE_ID.equal(RECURRENCES.RECURRENCE_ID))
+				.leftOuterJoin(TASKS_ICALENDARS).on(
+					TASKS.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID)
+				)
+				.where(
+					TASKS.CATEGORY_ID.equal(categoryId)
+					.and(
+						TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+						.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					)
+					.and(inHrefsCndt)
+					.and(rangeCndt)
+				)
+				.orderBy(
+					TASKS.TASK_ID.asc()
+				)
+				.fetchGroups(TASKS.HREF, VTaskObject.class);
+		}
+	}
+	
+	public List<VTaskCalObjectChanged> viewChangedLiveTaskObjectsByCategory(Connection con, int categoryId, int limit) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.REVISION_STATUS,
+				TASKS.REVISION_TIMESTAMP,
+				TASKS.CREATION_TIMESTAMP,
+				TASKS.HREF
+			)
+			.from(TASKS)
+			.where(
+				TASKS.CATEGORY_ID.equal(categoryId)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+			)
+			.orderBy(
+				TASKS.TASK_ID.asc()
+			)
+			.limit(limit)
+			.fetchInto(VTaskCalObjectChanged.class);
+	}
+	
+	public List<VTaskCalObjectChanged> viewChangedTaskObjectsByCategorySince(Connection con, int categoryId, DateTime since, int limit) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.REVISION_STATUS,
+				TASKS.REVISION_TIMESTAMP,
+				TASKS.CREATION_TIMESTAMP,
+				TASKS.HREF
+			)
+			.from(TASKS)
+			.where(
+				TASKS.CATEGORY_ID.equal(categoryId)
+				.and(TASKS.REVISION_TIMESTAMP.greaterThan(since))
+			)
+			.orderBy(
+				TASKS.CREATION_TIMESTAMP.asc()
+			)
+			.limit(limit)
+			.fetchInto(VTaskCalObjectChanged.class);
+	}
+	
+	public int countByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition patternCndt = toSearchPatternCondition(pattern);
+		
+		return dsl
+			.selectCount()
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(
+					patternCndt
+				)
+			)
+			.fetchOne(0, Integer.class);
+	}
+	
+	public List<VTaskLookup> viewByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern, int limit, int offset) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition patternCndt = toSearchPatternCondition(pattern);
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.PUBLIC_UID,
+				TASKS.CATEGORY_ID,
+				TASKS.REVISION_STATUS,
+				TASKS.REVISION_TIMESTAMP,
+				TASKS.CREATION_TIMESTAMP,
+				TASKS.SUBJECT,
+				TASKS.DESCRIPTION,
+				TASKS.START_DATE,
+				TASKS.DUE_DATE,
+				TASKS.IMPORTANCE,
+				TASKS.IS_PRIVATE,
+				TASKS.STATUS,
+				TASKS.COMPLETION_PERCENTAGE,
+				TASKS.REMINDER_DATE
+			)
+			.select(
+				CATEGORIES.NAME.as("category_name"),
+				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
+				CATEGORIES.USER_ID.as("category_user_id")
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(
+					patternCndt
+				)
+			)
+			.orderBy(
+				TASKS.SUBJECT.asc()
+			)
+			.limit(limit)
+			.offset(offset)
+			.fetchInto(VTaskLookup.class);
+	}
+	
+	public List<VTaskLookup> viewUpcomingByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition patternCndt = toSearchPatternCondition(pattern);
+		
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.PUBLIC_UID,
+				TASKS.CATEGORY_ID,
+				TASKS.REVISION_STATUS,
+				TASKS.REVISION_TIMESTAMP,
+				TASKS.CREATION_TIMESTAMP,
+				TASKS.SUBJECT,
+				TASKS.DESCRIPTION,
+				TASKS.START_DATE,
+				TASKS.DUE_DATE,
+				TASKS.IMPORTANCE,
+				TASKS.IS_PRIVATE,
+				TASKS.STATUS,
+				TASKS.COMPLETION_PERCENTAGE,
+				TASKS.REMINDER_DATE
+			)
+			.select(
+				CATEGORIES.NAME.as("category_name"),
+				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
+				CATEGORIES.USER_ID.as("category_user_id")
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(
+					TASKS.DUE_DATE.isNotNull()
+					.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.DEFERRED)))
+				)
+				.and(
+					patternCndt
+				)
+			)
+			.orderBy(
+				TASKS.DUE_DATE.asc()
+			)
+			.fetchInto(VTaskLookup.class);
+	}
+	
 	public int updateRemindedOn(Connection con, int taskId, DateTime remindedOn) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
@@ -219,6 +412,23 @@ public class TaskDAO extends BaseDAO {
 			.from(TASKS)
 			.where(TASKS.TASK_ID.equal(taskId))
 			.fetchOneInto(OTask.class);
+	}
+	
+	public Map<Integer, DateTime> selectMaxRevTimestampByCategories(Connection con, Collection<Integer> categoryIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.CATEGORY_ID,
+				DSL.max(TASKS.REVISION_TIMESTAMP)
+			)
+			.from(TASKS)
+			.where(
+				TASKS.CATEGORY_ID.in(categoryIds)
+			)
+			.groupBy(
+				TASKS.CATEGORY_ID
+			)
+			.fetchMap(TASKS.CATEGORY_ID, DSL.max(TASKS.REVISION_TIMESTAMP));
 	}
 	
 	public int insert(Connection con, OTask item, DateTime revisionTimestamp) throws DAOException {
@@ -330,5 +540,14 @@ public class TaskDAO extends BaseDAO {
 				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
 			)
 			.execute();
+	}
+	
+	private Condition toSearchPatternCondition(String pattern) {
+		Condition cndt = DSL.trueCondition();
+		if (!StringUtils.isBlank(pattern)) {
+			return TASKS.SUBJECT.likeIgnoreCase(pattern)
+					.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+		}
+		return cndt;
 	}
 }

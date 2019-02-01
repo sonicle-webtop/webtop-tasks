@@ -40,11 +40,15 @@ import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.VTaskLookup;
+import com.sonicle.webtop.tasks.bol.VTaskObject;
+import com.sonicle.webtop.tasks.model.BaseTask;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
-import com.sonicle.webtop.tasks.model.TaskEx;
+import com.sonicle.webtop.tasks.model.TaskObject;
+import com.sonicle.webtop.tasks.model.TaskLookup;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
@@ -138,6 +142,64 @@ public class ManagerUtils {
 		return tgt;
 	}
 	
+	static TaskObject fillTaskObject(TaskObject tgt, Task src) {
+		if ((tgt != null) && (src != null)) {
+			tgt.setTaskId(src.getTaskId());
+			tgt.setCategoryId(src.getCategoryId());
+			tgt.setRevisionStatus(src.getRevisionStatus());
+			tgt.setRevisionTimestamp(src.getRevisionTimestamp());
+			tgt.setPublicUid(src.getPublicUid());
+			tgt.setHref(src.getHref());
+		}
+		return tgt;
+	}
+	
+	static <T extends TaskObject> T fillTaskObject(T tgt, VTaskObject src) {
+		if ((tgt != null) && (src != null)) {
+			tgt.setTaskId(src.getTaskId());
+			tgt.setCategoryId(src.getCategoryId());
+			tgt.setRevisionStatus(EnumUtils.forSerializedName(src.getRevisionStatus(), Task.RevisionStatus.class));
+			tgt.setRevisionTimestamp(src.getRevisionTimestamp());
+			tgt.setPublicUid(src.getPublicUid());
+			tgt.setHref(src.getHref());
+		}
+		return tgt;
+	}
+	
+	static <T extends TaskLookup, S extends VTaskLookup> T fillTaskLookup(T tgt, S src) {
+		if ((tgt != null) && (src != null)) {
+			fillBaseTask(tgt, src);
+			tgt.setCategoryName(src.getCategoryName());
+			tgt.setCategoryDomainId(src.getCategoryDomainId());
+			tgt.setCategoryUserId(src.getCategoryUserId());
+			tgt.setDescription(src.getDescription());
+		}
+		return tgt;
+	}
+	
+	static <T extends BaseTask, S extends OTask> T fillBaseTask(T tgt, S src) {
+		if ((tgt != null) && (src != null)) {
+			tgt.setTaskId(src.getTaskId());
+			tgt.setPublicUid(src.getPublicUid());
+			tgt.setCategoryId(src.getCategoryId());
+			tgt.setRevisionStatus(EnumUtils.forSerializedName(src.getRevisionStatus(), BaseTask.RevisionStatus.class));
+			tgt.setRevisionTimestamp(src.getRevisionTimestamp());
+			tgt.setCreationTimestamp(src.getCreationTimestamp());
+			tgt.setSubject(src.getSubject());
+			tgt.setStartDate(src.getStartDate());
+			tgt.setDueDate(src.getDueDate());
+			tgt.setCompletedDate(src.getCompletedDate());
+			tgt.setImportance(src.getImportance());
+			tgt.setIsPrivate(src.getIsPrivate());
+			tgt.setStatus(EnumUtils.forSerializedName(src.getStatus(), BaseTask.Status.class));
+			tgt.setCompletionPercentage(src.getCompletionPercentage());
+			tgt.setReminderDate(src.getReminderDate());
+		}
+		return tgt;
+	}
+	
+	
+	
 	static Task createTask(OTask src) {
 		if (src == null) return null;
 		return fillTask(new Task(), src);
@@ -160,7 +222,6 @@ public class ManagerUtils {
 			tgt.setStatus(EnumUtils.forSerializedName(src.getStatus(), Task.Status.class));
 			tgt.setCompletionPercentage(src.getCompletionPercentage());
 			tgt.setReminderDate(src.getReminderDate());
-			tgt.setRemindedOn(src.getRemindedOn());
 		}
 		return tgt;
 	}
@@ -187,7 +248,6 @@ public class ManagerUtils {
 			tgt.setStatus(EnumUtils.toSerializedName(src.getStatus()));
 			tgt.setCompletionPercentage(src.getCompletionPercentage());
 			tgt.setReminderDate(src.getReminderDate());
-			tgt.setRemindedOn(src.getRemindedOn());
 		}
 		return tgt;
 	}
@@ -200,15 +260,6 @@ public class ManagerUtils {
 			if (tgt.getImportance() == null) tgt.setImportance((short)0);
 			if (tgt.getIsPrivate() == null) tgt.setIsPrivate(false);
 			if (tgt.getStatus() == null) tgt.setStatus(EnumUtils.toSerializedName(Task.Status.NOT_STARTED));
-		}
-		return tgt;
-	}
-	
-	static TaskEx fillTaskEx(TaskEx tgt, VTask src) {
-		if ((tgt != null) && (src != null)) {
-			fillTask(tgt, src);
-			tgt.setCategoryDomainId(src.getCategoryDomainId());
-			tgt.setCategoryUserId(src.getCategoryUserId());
 		}
 		return tgt;
 	}

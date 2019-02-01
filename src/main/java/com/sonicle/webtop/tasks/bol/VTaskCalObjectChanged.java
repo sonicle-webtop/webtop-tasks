@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Sonicle S.r.l.
+ * Copyright (C) 2019 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,49 +28,60 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2014 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2019 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks.bol.js;
+package com.sonicle.webtop.tasks.bol;
 
-import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
-import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
-import com.sonicle.webtop.tasks.model.TaskLookup;
-import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTimeZone;
+import org.joda.time.DateTime;
 
 /**
  *
  * @author malbinola
  */
-public class JsPletTasks {
-	public Integer taskId;
-	public Integer categoryId;
-	public String categoryName;
-    public String categoryColor;
-	public String subject;
-	public String description;
-	public String dueDate;
-	public String _owner;
-	public String _frights;
-	public String _erights;
+public class VTaskCalObjectChanged {
+	protected Integer taskId;
+	protected String revisionStatus;
+	protected DateTime revisionTimestamp;
+	protected DateTime creationTimestamp;
+	protected String href;
+
+	public Integer getTaskId() {
+		return taskId;
+	}
+
+	public void setTaskId(Integer taskId) {
+		this.taskId = taskId;
+	}
+
+	public String getRevisionStatus() {
+		return revisionStatus;
+	}
+
+	public void setRevisionStatus(String revisionStatus) {
+		this.revisionStatus = revisionStatus;
+	}
+
+	public DateTime getRevisionTimestamp() {
+		return revisionTimestamp;
+	}
+
+	public void setRevisionTimestamp(DateTime revisionTimestamp) {
+		this.revisionTimestamp = revisionTimestamp;
+	}
 	
-	public JsPletTasks(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet pset, TaskLookup task, DateTimeZone profileTz) {
-		final Category category = folder.getCategory();
-		
-		taskId = task.getTaskId();
-		categoryId = task.getCategoryId();
-		categoryName = category.getName();
-		categoryColor = category.getColor();
-		subject = task.getSubject();
-		description = StringUtils.left(task.getDescription(), 250);
-		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
-		
-		_owner = (root instanceof MyShareRootCategory) ? "" : root.getDescription();
-		_frights = folder.getPerms().toString();
-		_erights = folder.getElementsPerms().toString();
+	public DateTime getCreationTimestamp() {
+		return creationTimestamp;
+	}
+
+	public void setCreationTimestamp(DateTime creationTimestamp) {
+		this.creationTimestamp = creationTimestamp;
+	}
+
+	public String getHref() {
+		return href;
+	}
+
+	public void setHref(String href) {
+		this.href = href;
 	}
 }
