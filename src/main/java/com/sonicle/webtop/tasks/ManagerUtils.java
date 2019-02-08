@@ -39,7 +39,6 @@ import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
-import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.model.BaseTask;
@@ -58,6 +57,10 @@ import org.apache.commons.lang3.StringUtils;
  * @author malbinola
  */
 public class ManagerUtils {
+	
+	static int toOffset(int page, int limit) {
+		return limit * (page-1);
+	}
 	
 	static Category createCategory(OCategory src) {
 		if (src == null) return null;

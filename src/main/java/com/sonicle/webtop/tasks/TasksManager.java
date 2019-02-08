@@ -72,7 +72,7 @@ import com.sonicle.webtop.tasks.bol.OTaskAttachment;
 import com.sonicle.webtop.tasks.bol.OTaskAttachmentData;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.VTaskObject;
-import com.sonicle.webtop.tasks.bol.VTaskCalObjectChanged;
+import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
@@ -498,8 +498,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			checkRightsOnCategoryFolder(categoryId, "READ");
 			
 			ArrayList<TaskObject> items = new ArrayList<>();
-			Map<String, List<VTaskObject>> vtaskMap = tasDao.viewTaskObjectsByCategory(con, categoryId);
-			for (List<VTaskObject> vtasks : vtaskMap.values()) {
+			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategory(con, categoryId);
+			for (List<VTaskObject> vtasks : map.values()) {
 				if (vtasks.isEmpty()) continue;
 				VTaskObject vtask = vtasks.get(vtasks.size()-1);
 				if (vtasks.size() > 1) {
@@ -533,13 +533,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			if (limit == null) limit = Integer.MAX_VALUE;
 			if (since == null) {
-				List<VTaskCalObjectChanged> vtasks = tasDao.viewChangedLiveTaskObjectsByCategory(con, categoryId, limit);
-				for (VTaskCalObjectChanged vtask : vtasks) {
+				List<VTaskObjectChanged> vtasks = tasDao.viewLiveTaskObjectsChangedByCategory(con, categoryId, limit);
+				for (VTaskObjectChanged vtask : vtasks) {
 					inserted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
 				}
 			} else {
-				List<VTaskCalObjectChanged> vtasks = tasDao.viewChangedTaskObjectsByCategorySince(con, categoryId, since, limit);
-				for (VTaskCalObjectChanged vtask : vtasks) {
+				List<VTaskObjectChanged> vtasks = tasDao.viewTaskObjectsChangedByCategorySince(con, categoryId, since, limit);
+				for (VTaskObjectChanged vtask : vtasks) {
 					Task.RevisionStatus revStatus = EnumUtils.forSerializedName(vtask.getRevisionStatus(), Task.RevisionStatus.class);
 					if (Task.RevisionStatus.DELETED.equals(revStatus)) {
 						deleted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
@@ -579,9 +579,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			checkRightsOnCategoryFolder(categoryId, "READ");
 			
 			ArrayList<TaskObjectWithICalendar> items = new ArrayList<>();
-			Map<String, List<VTaskObject>> vcontMap = tasDao.viewTaskObjectsByCategoryHrefs(con, categoryId, hrefs);
+			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategoryHrefs(con, categoryId, hrefs);
 			for (String href : hrefs) {
-				List<VTaskObject> vtasks = vcontMap.get(href);
+				List<VTaskObject> vtasks = map.get(href);
 				if (vtasks == null) continue;
 				if (vtasks.isEmpty()) continue;
 				VTaskObject vtask = vtasks.get(vtasks.size()-1);
@@ -620,35 +620,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private TaskObject doTaskObjectPrepare(Connection con, VTaskObject vtask, TaskObjectOutputType outputType) throws WTException {
-		if (TaskObjectOutputType.STAT.equals(outputType)) {
-			return ManagerUtils.fillTaskObject(new TaskObject(), vtask);
-			
-		} else {
-			Task tas = ManagerUtils.fillTask(new Task(), vtask);
-			
-			if (TaskObjectOutputType.ICALENDAR.equals(outputType)) {
-				throw new WTRuntimeException("ICalendar output not supported yet!");
-				/*
-				TaskCalObjectWithICalendar co = ManagerUtils.fillTaskCalObject(new TaskCalObjectWithICalendar(), vtask);
-				
-				//ICalendarOutput out = new ICalendarOutput(ICalendarUtils.buildProdId(ManagerUtils.getProductName()));
-				//ICalendar iCalendar = out.toICalendar(tas);
-				if (vtask.getHasIcalendar()) {
-					//TODO: in order to be fully compliant, merge generated vcard with the original one in db table!
-				}
-				co.setIcalendar(out.write(iCalendar));
-				return co;
-				*/
-				
-			} else {
-				TaskObjectWithBean co = ManagerUtils.fillTaskObject(new TaskObjectWithBean(), vtask);
-				co.setTask(tas);
-				return co;
-			}
-		}
-	}
-	
 	@Override
 	public ListTasksResult listTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
 		return listTasks(categoryIds, pattern, 1, Integer.MAX_VALUE, false);
@@ -660,7 +631,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		Connection con = null;
 		
 		try {
-			int offset = toOffset(page, limit);
+			int offset = ManagerUtils.toOffset(page, limit);
 			List<Integer> okCategoryIds = categoryIds.stream()
 					.filter(categoryId -> quietlyCheckRightsOnCategoryFolder(categoryId, "READ"))
 					.collect(Collectors.toList());
@@ -1021,6 +992,35 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return catDao.update(con, ocat) == 1;
 	}
 	
+	private TaskObject doTaskObjectPrepare(Connection con, VTaskObject vtask, TaskObjectOutputType outputType) throws WTException {
+		if (TaskObjectOutputType.STAT.equals(outputType)) {
+			return ManagerUtils.fillTaskObject(new TaskObject(), vtask);
+			
+		} else {
+			Task tas = ManagerUtils.fillTask(new Task(), vtask);
+			
+			if (TaskObjectOutputType.ICALENDAR.equals(outputType)) {
+				throw new WTRuntimeException("ICalendar output not supported yet!");
+				/*
+				TaskCalObjectWithICalendar co = ManagerUtils.fillTaskCalObject(new TaskCalObjectWithICalendar(), vtask);
+				
+				//ICalendarOutput out = new ICalendarOutput(ICalendarUtils.buildProdId(ManagerUtils.getProductName()));
+				//ICalendar iCalendar = out.toICalendar(tas);
+				if (vtask.getHasIcalendar()) {
+					//TODO: in order to be fully compliant, merge generated vcard with the original one in db table!
+				}
+				co.setIcalendar(out.write(iCalendar));
+				return co;
+				*/
+				
+			} else {
+				TaskObjectWithBean co = ManagerUtils.fillTaskObject(new TaskObjectWithBean(), vtask);
+				co.setTask(tas);
+				return co;
+			}
+		}
+	}
+	
 	private Task doTaskGet(Connection con, int taskId) throws DAOException, WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
@@ -1262,10 +1262,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private void storeAsSuggestion(CoreManager coreMgr, String context, String value) {
 		if (StringUtils.isBlank(value)) return;
 		coreMgr.addServiceStoreEntry(SERVICE_ID, context, value.toUpperCase(), value);
-	}
-	
-	private int toOffset(int page, int limit) {
-		return limit * (page-1);
 	}
 	
 	private static class TaskResult {

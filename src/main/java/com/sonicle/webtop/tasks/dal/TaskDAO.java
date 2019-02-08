@@ -40,7 +40,7 @@ import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.bol.VTaskObject;
-import com.sonicle.webtop.tasks.bol.VTaskCalObjectChanged;
+import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
 import static com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;
@@ -227,7 +227,7 @@ public class TaskDAO extends BaseDAO {
 		}
 	}
 	
-	public List<VTaskCalObjectChanged> viewChangedLiveTaskObjectsByCategory(Connection con, int categoryId, int limit) throws DAOException {
+	public List<VTaskObjectChanged> viewLiveTaskObjectsChangedByCategory(Connection con, int categoryId, int limit) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
 		return dsl
@@ -250,10 +250,10 @@ public class TaskDAO extends BaseDAO {
 				TASKS.TASK_ID.asc()
 			)
 			.limit(limit)
-			.fetchInto(VTaskCalObjectChanged.class);
+			.fetchInto(VTaskObjectChanged.class);
 	}
 	
-	public List<VTaskCalObjectChanged> viewChangedTaskObjectsByCategorySince(Connection con, int categoryId, DateTime since, int limit) throws DAOException {
+	public List<VTaskObjectChanged> viewTaskObjectsChangedByCategorySince(Connection con, int categoryId, DateTime since, int limit) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
 		return dsl
@@ -273,7 +273,7 @@ public class TaskDAO extends BaseDAO {
 				TASKS.CREATION_TIMESTAMP.asc()
 			)
 			.limit(limit)
-			.fetchInto(VTaskCalObjectChanged.class);
+			.fetchInto(VTaskObjectChanged.class);
 	}
 	
 	public int countByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {

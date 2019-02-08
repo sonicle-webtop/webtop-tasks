@@ -38,7 +38,7 @@ import org.joda.time.DateTime;
  *
  * @author malbinola
  */
-public class VTaskCalObjectChanged {
+public class VTaskObjectChanged {
 	protected Integer taskId;
 	protected String revisionStatus;
 	protected DateTime revisionTimestamp;
