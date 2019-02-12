@@ -59,6 +59,7 @@ CREATE TABLE "tasks"."tasks" (
 "revision_status" varchar(1) NOT NULL,
 "revision_timestamp" timestamptz(6) NOT NULL,
 "revision_sequence" int4 DEFAULT 0 NOT NULL,
+"creation_timestamp" timestamptz DEFAULT now() NOT NULL,
 "public_uid" varchar(255) NOT NULL,
 "subject" varchar(100) NOT NULL,
 "description" text,
@@ -70,7 +71,9 @@ CREATE TABLE "tasks"."tasks" (
 "status" varchar(15) NOT NULL,
 "completion_percentage" int2 NOT NULL,
 "reminder_date" timestamptz(6),
-"reminded_on" timestamptz(6)
+"reminded_on" timestamptz(6),
+"href" varchar(2048),
+"etag" varchar(2048)
 )
 WITH (OIDS=FALSE)
 
@@ -106,6 +109,17 @@ WITH (OIDS=FALSE)
 ;
 
 -- ----------------------------
+-- Table structure for tasks_icalendars
+-- ----------------------------
+CREATE TABLE "tasks"."tasks_icalendars" (
+"task_id" int4 NOT NULL,
+"raw_data" text
+)
+WITH (OIDS=FALSE)
+
+;
+
+-- ----------------------------
 -- Indexes structure for table categories
 -- ----------------------------
 CREATE INDEX "categories_ak1" ON "tasks"."categories" USING btree ("domain_id", "user_id", "built_in");
@@ -130,6 +144,7 @@ ALTER TABLE "tasks"."category_props" ADD PRIMARY KEY ("domain_id", "user_id", "c
 -- Indexes structure for table tasks
 -- ----------------------------
 CREATE INDEX "tasks_ak1" ON "tasks"."tasks" USING btree ("category_id", "revision_status", "revision_timestamp");
+CREATE INDEX "tasks_ak2" ON "tasks"."tasks" USING btree ("category_id", "revision_status", "href");
 
 -- ----------------------------
 -- Primary Key structure for table tasks
@@ -162,8 +177,13 @@ ALTER TABLE "tasks"."tasks_attachments_data" ADD PRIMARY KEY ("task_attachment_i
 ALTER TABLE "tasks"."tasks_attachments_data" ADD FOREIGN KEY ("task_attachment_id") REFERENCES "tasks"."tasks_attachments" ("task_attachment_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ----------------------------
+-- Primary Key structure for table tasks_icalendars
+-- ----------------------------
+ALTER TABLE "tasks"."tasks_icalendars" ADD PRIMARY KEY ("task_id");
+
+-- ----------------------------
 -- Align service version
 -- ----------------------------
 @DataSource[default@com.sonicle.webtop.core]
 DELETE FROM "core"."settings" WHERE ("settings"."service_id" = 'com.sonicle.webtop.tasks') AND ("settings"."key" = 'manifest.version');
-INSERT INTO "core"."settings" ("service_id", "key", "value") VALUES ('com.sonicle.webtop.tasks', 'manifest.version', '5.2.0');
+INSERT INTO "core"."settings" ("service_id", "key", "value") VALUES ('com.sonicle.webtop.tasks', 'manifest.version', '5.3.0');
