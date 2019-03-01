@@ -40,4 +40,9 @@ public class Tables {
 	 * The table tasks.tasks_attachments_data
 	 */
 	public static final com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData TASKS_ATTACHMENTS_DATA = com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA;
+
+	/**
+	 * The table tasks.tasks_icalendars
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars TASKS_ICALENDARS = com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;
 }

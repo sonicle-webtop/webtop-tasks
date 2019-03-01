@@ -32,14 +32,12 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.IdentifierUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.LangUtils.CollectionChangeSet;
 import com.sonicle.commons.db.DbUtils;
-import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.CompositeId;
-import com.sonicle.commons.web.json.MapItem;
-import com.sonicle.commons.web.json.MapItemList;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
@@ -73,6 +71,9 @@ import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
 import com.sonicle.webtop.tasks.bol.OTaskAttachmentData;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.bol.VTaskObject;
+import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
+import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.ShareRootCategory;
@@ -83,30 +84,34 @@ import com.sonicle.webtop.tasks.dal.TaskAttachmentDAO;
 import com.sonicle.webtop.tasks.dal.TaskDAO;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.FolderTasks;
+import com.sonicle.webtop.tasks.model.ListTasksResult;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
-import com.sonicle.webtop.tasks.model.TaskEx;
+import com.sonicle.webtop.tasks.model.TaskObject;
+import com.sonicle.webtop.tasks.model.TaskObjectChanged;
+import com.sonicle.webtop.tasks.model.TaskObjectWithBean;
+import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
+import com.sonicle.webtop.tasks.model.TaskLookup;
 import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.mail.internet.AddressException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 
 /**
@@ -208,11 +213,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public List<Integer> listCategoryIds() throws WTException {
-		ArrayList<Integer> ids = new ArrayList<>();
-		for (Category category : listCategories()) {
-			ids.add(category.getCategoryId());
-		}
-		return ids;
+		return new ArrayList<>(listCategories().keySet());
 	}
 	
 	@Override
@@ -221,21 +222,41 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<Category> listCategories() throws WTException {
+	public Map<Integer, Category> listCategories() throws WTException {
 		return listCategories(getTargetProfileId());
 	}
 	
-	private List<Category> listCategories(UserProfileId pid) throws WTException {
+	private Map<Integer, Category> listCategories(UserProfileId pid) throws WTException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
-		ArrayList<Category> items = new ArrayList<>();
+		LinkedHashMap<Integer, Category> items = new LinkedHashMap<>();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			for (OCategory ocat : catDao.selectByProfile(con, pid.getDomainId(), pid.getUserId())) {
-				items.add(ManagerUtils.createCategory(ocat));
+				items.put(ocat.getCategoryId(), ManagerUtils.createCategory(ocat));
 			}
 			return items;
+			
+		} catch(SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Map<Integer, DateTime> getCategoriesLastRevision(Collection<Integer> categoryIds) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			List<Integer> okCategoryIds = categoryIds.stream()
+					.filter(categoryId -> quietlyCheckRightsOnCategoryFolder(categoryId, "READ"))
+					.collect(Collectors.toList());
+			
+			con = WT.getConnection(SERVICE_ID);
+			return tasDao.selectMaxRevTimestampByCategories(con, okCategoryIds);
 			
 		} catch(SQLException | DAOException ex) {
 			throw wrapException(ex);
@@ -406,31 +427,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public CategoryPropSet getCategoryCustomProps(int categoryId) throws WTException {
-		return getCategoryCustomProps(getTargetProfileId(), categoryId);
-	}
-	
-	private CategoryPropSet getCategoryCustomProps(UserProfileId profileId, int categoryId) throws WTException {
-		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
-		Connection con = null;
-		
-		try {
-			con = WT.getConnection(SERVICE_ID);
-			OCategoryPropSet opset = psetDao.selectByProfileCategory(con, profileId.getDomainId(), profileId.getUserId(), categoryId);
-			return (opset == null) ? new CategoryPropSet() : ManagerUtils.createCategoryPropSet(opset);
-			
-		} catch(SQLException | DAOException ex) {
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
+		return getCategoriesCustomProps(getTargetProfileId(), Arrays.asList(categoryId)).get(categoryId);
 	}
 	
 	@Override
-	public Map<Integer, CategoryPropSet> getCategoryCustomProps(Collection<Integer> categoryIds) throws WTException {
-		return getCategoryCustomProps(getTargetProfileId(), categoryIds);
+	public Map<Integer, CategoryPropSet> getCategoriesCustomProps(Collection<Integer> categoryIds) throws WTException {
+		return getCategoriesCustomProps(getTargetProfileId(), categoryIds);
 	}
 	
-	private Map<Integer, CategoryPropSet> getCategoryCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
+	private Map<Integer, CategoryPropSet> getCategoriesCustomProps(UserProfileId profileId, Collection<Integer> categoryIds) throws WTException {
 		CategoryPropsDAO psetDao = CategoryPropsDAO.getInstance();
 		Connection con = null;
 		
@@ -445,7 +450,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return psets;
 			
 		} catch(SQLException | DAOException ex) {
-			throw new WTException(ex, "DB error");
+			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -483,62 +488,197 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<FolderTasks> listFolderTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
-		CategoryDAO catDao = CategoryDAO.getInstance();
+	public List<TaskObject> listTaskObjects(int categoryId, TaskObjectOutputType outputType) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			
-			// TODO: implementare filtro task privati
-			ArrayList<FolderTasks> foTasks = new ArrayList<>();
-			List<OCategory> ocats = catDao.selectByDomainIn(con, getTargetProfileId().getDomainId(), categoryIds);
-			for (OCategory ocat : ocats) {
-				if (!quietlyCheckRightsOnCategoryFolder(ocat.getCategoryId(), "READ")) continue;
-				
-				final List<VTask> vtasks = tasDao.viewByCategoryPattern(con, ocat.getCategoryId(), pattern);
-				final ArrayList<TaskEx> tasks = new ArrayList<>();
-				for (VTask vtask : vtasks) {
-					tasks.add(ManagerUtils.fillTaskEx(new TaskEx(), vtask));
-				}
-				foTasks.add(new FolderTasks(ManagerUtils.createCategory(ocat), tasks));
-			}
-			return foTasks;
+			checkRightsOnCategoryFolder(categoryId, "READ");
 			
-		} catch(SQLException | DAOException ex) {
+			ArrayList<TaskObject> items = new ArrayList<>();
+			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategory(con, categoryId);
+			for (List<VTaskObject> vtasks : map.values()) {
+				if (vtasks.isEmpty()) continue;
+				VTaskObject vtask = vtasks.get(vtasks.size()-1);
+				if (vtasks.size() > 1) {
+					logger.trace("Many tasks ({}) found for same href [{} -> {}]", vtasks.size(), vtask.getHref(), vtask.getTaskId());
+				}
+				
+				items.add(doTaskObjectPrepare(con, vtask, outputType));
+			}
+			return items;
+			
+		} catch (SQLException | DAOException ex) {
 			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
 	
-	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds) throws WTException {
-		return listUpcomingTasks(categoryFolderIds, null);
-	}
-	
-	public List<TaskEx> listUpcomingTasks(Collection<Integer> categoryFolderIds, String pattern) throws WTException {
+	@Override
+	public CollectionChangeSet<TaskObjectChanged> listTaskObjectsChanges(int categoryId, DateTime since, Integer limit) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			
-			ArrayList<Integer> validIds = new ArrayList<>();
-			for(Integer catId : categoryFolderIds) {
-				if (!quietlyCheckRightsOnCategoryFolder(catId, "READ")) continue;
-				validIds.add(catId);
+			checkRightsOnCategoryFolder(categoryId, "READ");
+			
+			ArrayList<TaskObjectChanged> inserted = new ArrayList<>();
+			ArrayList<TaskObjectChanged> updated = new ArrayList<>();
+			ArrayList<TaskObjectChanged> deleted = new ArrayList<>();
+			
+			if (limit == null) limit = Integer.MAX_VALUE;
+			if (since == null) {
+				List<VTaskObjectChanged> vtasks = tasDao.viewLiveTaskObjectsChangedByCategory(con, categoryId, limit);
+				for (VTaskObjectChanged vtask : vtasks) {
+					inserted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
+				}
+			} else {
+				List<VTaskObjectChanged> vtasks = tasDao.viewTaskObjectsChangedByCategorySince(con, categoryId, since, limit);
+				for (VTaskObjectChanged vtask : vtasks) {
+					Task.RevisionStatus revStatus = EnumUtils.forSerializedName(vtask.getRevisionStatus(), Task.RevisionStatus.class);
+					if (Task.RevisionStatus.DELETED.equals(revStatus)) {
+						deleted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
+					} else {
+						if (Task.RevisionStatus.NEW.equals(revStatus) || (vtask.getCreationTimestamp().compareTo(since) >= 0)) {
+							inserted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
+						} else {
+							updated.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
+						}
+					}
+				}
 			}
 			
-			ArrayList<TaskEx> items = new ArrayList<>();
-			List<VTask> vtasks = tasDao.viewUpcomingByCategoriesPattern(con, validIds, pattern);
-			for(VTask vtask : vtasks) {
-				items.add(ManagerUtils.fillTaskEx(new TaskEx(), vtask));
+			return new CollectionChangeSet<>(inserted, updated, deleted);
+			
+		} catch (SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public TaskObjectWithICalendar getTaskObjectWithICalendar(int categoryId, String href) throws WTException {
+		List<TaskObjectWithICalendar> ccs = getTaskObjectsWithICalendar(categoryId, Arrays.asList(href));
+		return ccs.isEmpty() ? null : ccs.get(0);
+	}
+	
+	@Override
+	public List<TaskObjectWithICalendar> getTaskObjectsWithICalendar(int categoryId, Collection<String> hrefs) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			checkRightsOnCategoryFolder(categoryId, "READ");
+			
+			ArrayList<TaskObjectWithICalendar> items = new ArrayList<>();
+			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategoryHrefs(con, categoryId, hrefs);
+			for (String href : hrefs) {
+				List<VTaskObject> vtasks = map.get(href);
+				if (vtasks == null) continue;
+				if (vtasks.isEmpty()) continue;
+				VTaskObject vtask = vtasks.get(vtasks.size()-1);
+				if (vtasks.size() > 1) {
+					logger.trace("Many tasks ({}) found for same href [{} -> {}]", vtasks.size(), vtask.getHref(), vtask.getTaskId());
+				}
+				
+				items.add((TaskObjectWithICalendar)doTaskObjectPrepare(con, vtask, TaskObjectOutputType.ICALENDAR));
+			}
+			return items;
+			
+		} catch (SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public TaskObject getTaskObject(int categoryId, int taskId, TaskObjectOutputType outputType) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			checkRightsOnCategoryFolder(categoryId, "READ");
+			
+			VTaskObject vtask = tasDao.viewTaskObjectById(con, categoryId, taskId);
+			return (vtask == null) ? null : doTaskObjectPrepare(con, vtask, outputType);
+			
+		} catch (SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public ListTasksResult listTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
+		return listTasks(categoryIds, pattern, 1, Integer.MAX_VALUE, false);
+	}
+	
+	@Override
+	public ListTasksResult listTasks(Collection<Integer> categoryIds, String pattern, int page, int limit, boolean returnFullCount) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			int offset = ManagerUtils.toOffset(page, limit);
+			List<Integer> okCategoryIds = categoryIds.stream()
+					.filter(categoryId -> quietlyCheckRightsOnCategoryFolder(categoryId, "READ"))
+					.collect(Collectors.toList());
+			
+			con = WT.getConnection(SERVICE_ID);
+			
+			Integer fullCount = null;
+			if (returnFullCount) fullCount = tasDao.countByCategoryPattern(con, okCategoryIds, pattern);
+			ArrayList<TaskLookup> items = new ArrayList<>();
+			for (VTaskLookup vcont : tasDao.viewByCategoryPattern(con, okCategoryIds, pattern, limit, offset)) {
+				items.add(ManagerUtils.fillTaskLookup(new TaskLookup(), vcont));
+			}
+			
+			return new ListTasksResult(items, fullCount);
+			
+		} catch (SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public List<TaskLookup> listUpcomingTasks(Collection<Integer> categoryIds) throws WTException {
+		return listUpcomingTasks(categoryIds, null);
+	}
+	
+	@Override
+	public List<TaskLookup> listUpcomingTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			List<Integer> okCategoryIds = categoryIds.stream()
+					.filter(categoryId -> quietlyCheckRightsOnCategoryFolder(categoryId, "READ"))
+					.collect(Collectors.toList());
+			
+			con = WT.getConnection(SERVICE_ID);
+			
+			ArrayList<TaskLookup> items = new ArrayList<>();
+			for (VTaskLookup vcont : tasDao.viewUpcomingByCategoryPattern(con, okCategoryIds, pattern)) {
+				items.add(ManagerUtils.fillTaskLookup(new TaskLookup(), vcont));
 			}
 			
 			return items;
 			
-		} catch(SQLException | DAOException ex) {
+		} catch (SQLException | DAOException ex) {
 			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
@@ -618,18 +758,23 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void updateTask(Task task) throws WTException {
+		updateTask(task, true);
+	}
+	
+	@Override
+	public void updateTask(Task task, boolean processAttachments) throws WTException {
 		Connection con = null;
 		
-		//TODO: gestire i suggerimenti (soggetto)
-
 		try {
 			checkRightsOnCategoryElements(task.getCategoryId(), "UPDATE");
-
 			con = WT.getConnection(SERVICE_ID, false);
-			boolean updated = doTaskUpdate(con, task, true);
+			
+			boolean updated = doTaskUpdate(con, task, processAttachments);
 			if (!updated) throw new WTException("Task not updated [{}]", task.getTaskId());
 			DbUtils.commitQuietly(con);
 			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
+			
+			//TODO: handle subject suggestions
 
 		} catch(SQLException | DAOException | IOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -845,6 +990,35 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (ocat.getIsDefault()) catDao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
 		
 		return catDao.update(con, ocat) == 1;
+	}
+	
+	private TaskObject doTaskObjectPrepare(Connection con, VTaskObject vtask, TaskObjectOutputType outputType) throws WTException {
+		if (TaskObjectOutputType.STAT.equals(outputType)) {
+			return ManagerUtils.fillTaskObject(new TaskObject(), vtask);
+			
+		} else {
+			Task tas = ManagerUtils.fillTask(new Task(), vtask);
+			
+			if (TaskObjectOutputType.ICALENDAR.equals(outputType)) {
+				throw new WTRuntimeException("ICalendar output not supported yet!");
+				/*
+				TaskCalObjectWithICalendar co = ManagerUtils.fillTaskCalObject(new TaskCalObjectWithICalendar(), vtask);
+				
+				//ICalendarOutput out = new ICalendarOutput(ICalendarUtils.buildProdId(ManagerUtils.getProductName()));
+				//ICalendar iCalendar = out.toICalendar(tas);
+				if (vtask.getHasIcalendar()) {
+					//TODO: in order to be fully compliant, merge generated vcard with the original one in db table!
+				}
+				co.setIcalendar(out.write(iCalendar));
+				return co;
+				*/
+				
+			} else {
+				TaskObjectWithBean co = ManagerUtils.fillTaskObject(new TaskObjectWithBean(), vtask);
+				co.setTask(tas);
+				return co;
+			}
+		}
 	}
 	
 	private Task doTaskGet(Connection con, int taskId) throws DAOException, WTException {
@@ -1130,7 +1304,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						if (folder.hasWildcard()) {
 							final UserProfileId ownerPid = coreMgr.userUidToProfileId(folder.getUserUid());
 							ownerToWildcardShareFolder.put(ownerPid, folder.getShareId().toString());
-							for (Category category : listCategories(ownerPid)) {
+							for (Category category : listCategories(ownerPid).values()) {
 								folderTo.add(category.getCategoryId());
 								rootShareToFolderShare.put(root.getShareId(), category.getCategoryId());
 								folderToWildcardShareFolder.put(category.getCategoryId(), folder.getShareId().toString());

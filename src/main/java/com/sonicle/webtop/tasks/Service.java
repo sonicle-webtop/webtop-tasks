@@ -73,17 +73,16 @@ import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.FolderTasks;
+import com.sonicle.webtop.tasks.model.ListTasksResult;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
-import com.sonicle.webtop.tasks.model.TaskEx;
+import com.sonicle.webtop.tasks.model.TaskLookup;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -91,7 +90,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
@@ -191,7 +189,7 @@ public class Service extends BaseService {
 			for(ShareRootCategory root : roots.values()) {
 				foldersByRoot.put(root.getShareId(), new ArrayList<ShareFolderCategory>());
 				if(root instanceof MyShareRootCategory) {
-					for(Category cat : manager.listCategories()) {
+					for(Category cat : manager.listCategories().values()) {
 						final MyShareFolderCategory fold = new MyShareFolderCategory(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
@@ -226,7 +224,7 @@ public class Service extends BaseService {
 					ShareRootCategory root = roots.get(node);
 					
 					if (root instanceof MyShareRootCategory) {
-						for (Category cal : manager.listCategories()) {
+						for (Category cal : manager.listCategories().values()) {
 							MyShareFolderCategory folder = new MyShareFolderCategory(node, cal);
 							children.add(createFolderNode(folder, null, root.getPerms()));
 						}
@@ -486,18 +484,20 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				String query = ServletUtils.getStringParameter(request, "query", null);
-				String pattern = (query == null) ? null : ("%" + query.toLowerCase() + "%");
+				//int page = ServletUtils.getIntParameter(request, "page", true);
+				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
+				String pattern = StringUtils.isBlank(query) ? null : "%" + query + "%";
 				List<Integer> visibleCategoryIds = getVisibleFolderIds(true);
-				List<FolderTasks> foTasksObjs = manager.listFolderTasks(visibleCategoryIds, pattern);
-				for (FolderTasks foTasksObj : foTasksObjs) {
-					final int categoryId = foTasksObj.folder.getCategoryId();
-					final ShareFolderCategory fold = folders.get(categoryId);
+				ListTasksResult result = manager.listTasks(visibleCategoryIds, pattern);
+				for (TaskLookup item : result.items) {
+					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
+					if (root == null) continue;
+					final ShareFolderCategory fold = folders.get(item.getCategoryId());
 					if (fold == null) continue;
 					
-					for (TaskEx te : foTasksObj.tasks) {
-						items.add(new JsGridTask(fold, folderProps.get(categoryId), te, DateTimeZone.UTC));
-					}
+					CategoryPropSet pset = folderProps.get(item.getCategoryId());
+					items.add(new JsGridTask(fold, pset, item, DateTimeZone.UTC));
 				}
 				new JsonResult("tasks", items).printTo(out);
 			}
@@ -668,24 +668,25 @@ public class Service extends BaseService {
 			if (query == null) {
 				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
 				final List<Integer> ids = manager.listCategoryIds();
-				for (TaskEx task : manager.listUpcomingTasks(ids)) {
-					final ShareFolderCategory folder = folders.get(task.getCategoryId());
+				for (TaskLookup item : manager.listUpcomingTasks(ids)) {
+					final ShareFolderCategory folder = folders.get(item.getCategoryId());
 					if (folder == null) continue;
 					
-					items.add(new JsPletTasks(root, folder, task, DateTimeZone.UTC));
+					CategoryPropSet pset = folderProps.get(item.getCategoryId());
+					items.add(new JsPletTasks(root, folder, pset, item, DateTimeZone.UTC));
 				}
+				
 			} else {
-				final Set<Integer> ids = folders.keySet();
-				final String pattern = LangUtils.patternizeWords(query);
-				for (FolderTasks foTaskObj : manager.listFolderTasks(ids, pattern)) {
-					final ShareRootCategory root = rootByFolder.get(foTaskObj.folder.getCategoryId());
+				String pattern = LangUtils.patternizeWords(query);
+				ListTasksResult result = manager.listTasks(folders.keySet(), pattern);
+				for (TaskLookup item : result.items) {
+					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
-					final ShareFolderCategory folder = folders.get(foTaskObj.folder.getCategoryId());
-					if (folder == null) continue;
+					final ShareFolderCategory fold = folders.get(item.getCategoryId());
+					if (fold == null) continue;
 					
-					for (TaskEx task : foTaskObj.tasks) {
-						items.add(new JsPletTasks(root, folder, task, DateTimeZone.UTC));
-					}
+					CategoryPropSet pset = folderProps.get(item.getCategoryId());
+					items.add(new JsPletTasks(root, fold, pset, item, DateTimeZone.UTC));
 				}
 			}
 			

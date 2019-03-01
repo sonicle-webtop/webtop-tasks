@@ -1,0 +1,371 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "version" : "v1",
+    "title" : "WebTop Tasks",
+    "contact" : {
+      "email" : "dev-team@sonicle.com"
+    }
+  },
+  "security" : [ {
+    "Basic authentication" : [ ]
+  } ],
+  "paths" : {
+    "/eas/folders" : {
+      "get" : {
+        "tags" : [ "eas-folders" ],
+        "summary" : "List all folders",
+        "operationId" : "getFolders",
+        "produces" : [ "application/json" ],
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/SyncFolder"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eas/folders/{folderId}/messages-stats" : {
+      "get" : {
+        "tags" : [ "eas-messages" ],
+        "summary" : "List all messages for a specific folder",
+        "operationId" : "getMessagesStats",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "folderId",
+          "in" : "path",
+          "description" : "Folder ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "name" : "cutoffDate",
+          "in" : "query",
+          "description" : "Cut-off date (ISO date/time YYYYMMDD'T'HHMMSS'Z')",
+          "required" : false,
+          "type" : "string",
+          "x-example" : "20150912T000000Z"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/SyncTaskStat"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid parameter"
+          }
+        }
+      }
+    },
+    "/eas/folders/{folderId}/messages" : {
+      "post" : {
+        "tags" : [ "eas-messages" ],
+        "summary" : "Adds a message",
+        "operationId" : "addMessage",
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "folderId",
+          "in" : "path",
+          "description" : "Folder ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/SyncTaskUpdate"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/SyncTaskStat"
+            }
+          }
+        }
+      }
+    },
+    "/eas/folders/{folderId}/messages/{id}" : {
+      "get" : {
+        "tags" : [ "eas-messages" ],
+        "summary" : "Get a single message",
+        "operationId" : "getMessage",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "folderId",
+          "in" : "path",
+          "description" : "Folder ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Message ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/SyncTask"
+            }
+          },
+          "400" : {
+            "description" : "Invalid parameter"
+          },
+          "404" : {
+            "description" : "Message not found"
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "eas-messages" ],
+        "summary" : "Updates a message",
+        "operationId" : "updateMessage",
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "folderId",
+          "in" : "path",
+          "description" : "Folder ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Message ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/SyncTaskUpdate"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/SyncTaskStat"
+            }
+          },
+          "400" : {
+            "description" : "Invalid parameter"
+          },
+          "404" : {
+            "description" : "Message not found"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "eas-messages" ],
+        "summary" : "Deletes a message",
+        "operationId" : "deleteMessage",
+        "parameters" : [ {
+          "name" : "folderId",
+          "in" : "path",
+          "description" : "Folder ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Message ID",
+          "required" : true,
+          "type" : "integer",
+          "x-example" : 1234
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Invalid parameter"
+          },
+          "404" : {
+            "description" : "Message not found"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions" : {
+    "Basic authentication" : {
+      "type" : "basic"
+    }
+  },
+  "definitions" : {
+    "ApiError" : {
+      "type" : "object",
+      "required" : [ "code" ],
+      "properties" : {
+        "code" : {
+          "type" : "integer",
+          "minimum" : 400,
+          "maximum" : 599
+        },
+        "description" : {
+          "type" : "string",
+          "example" : "Bad query parameter [$size]: Invalid integer value [abc]"
+        }
+      },
+      "description" : "This general detailed error structure is used throughout this API.",
+      "example" : "{\n  \"code\": 400,\n  \"description\": \"Bad query parameter [$size]: Invalid integer value [abc]\"\n}"
+    },
+    "SyncFolder" : {
+      "type" : "object",
+      "required" : [ "deflt", "displayName", "elAcl", "etag", "foAcl", "id", "ownerId" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "Category ID (internal)"
+        },
+        "displayName" : {
+          "type" : "string",
+          "description" : "Display name"
+        },
+        "etag" : {
+          "type" : "string",
+          "description" : "Revision tag"
+        },
+        "deflt" : {
+          "type" : "boolean",
+          "description" : "Specifies if marked as predefined folder"
+        },
+        "foAcl" : {
+          "type" : "string",
+          "description" : "ACL info for folder itself"
+        },
+        "elAcl" : {
+          "type" : "string",
+          "description" : "ACL info for folder elements"
+        },
+        "ownerId" : {
+          "type" : "string",
+          "description" : "The owner profile ID"
+        }
+      },
+      "description" : "Bean for carry category’s fields"
+    },
+    "SyncTaskStat" : {
+      "type" : "object",
+      "required" : [ "etag", "id" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "Task ID (internal)"
+        },
+        "etag" : {
+          "type" : "string",
+          "description" : "Revision tag"
+        }
+      },
+      "description" : "Bean for carry task's stat fields"
+    },
+    "SyncTask" : {
+      "type" : "object",
+      "required" : [ "etag", "id", "impo", "prvt", "status" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "Task ID (internal)"
+        },
+        "etag" : {
+          "type" : "string",
+          "description" : "Revision tag"
+        },
+        "subject" : {
+          "type" : "string",
+          "description" : "Subject"
+        },
+        "start" : {
+          "type" : "string",
+          "description" : "Start date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+        },
+        "due" : {
+          "type" : "string",
+          "description" : "Due date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+        },
+        "status" : {
+          "type" : "string",
+          "description" : "Completion status"
+        },
+        "complOn" : {
+          "type" : "string",
+          "description" : "Completed date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+        },
+        "impo" : {
+          "type" : "integer",
+          "description" : "Priority flag (0=low, 1=normal, 2=high)"
+        },
+        "prvt" : {
+          "type" : "boolean",
+          "description" : "Private flag"
+        },
+        "notes" : {
+          "type" : "string",
+          "description" : "Description"
+        }
+      },
+      "description" : "Bean for carry task's fields"
+    },
+    "SyncTaskUpdate" : {
+      "type" : "object",
+      "required" : [ "impo", "prvt" ],
+      "properties" : {
+        "subject" : {
+          "type" : "string",
+          "description" : "Subject"
+        },
+        "start" : {
+          "type" : "string",
+          "description" : "Start date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+        },
+        "due" : {
+          "type" : "string",
+          "description" : "Due date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+        },
+        "complOn" : {
+          "type" : "string",
+          "description" : "Completed date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+        },
+        "impo" : {
+          "type" : "integer",
+          "description" : "Priority flag (0=low, 1=normal, 2=high)"
+        },
+        "prvt" : {
+          "type" : "boolean",
+          "description" : "Private flag"
+        },
+        "notes" : {
+          "type" : "string",
+          "description" : "Description"
+        }
+      },
+      "description" : "Bean for carry task's updateable fields"
+    }
+  }
+}

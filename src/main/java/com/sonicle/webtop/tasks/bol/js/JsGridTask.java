@@ -37,8 +37,7 @@ import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.TaskEx;
-import org.apache.commons.lang3.StringUtils;
+import com.sonicle.webtop.tasks.model.TaskLookup;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -67,7 +66,7 @@ public class JsGridTask {
 	
 	public JsGridTask() {}
 	
-	public JsGridTask(ShareFolderCategory folder, CategoryPropSet folderProps, TaskEx task, DateTimeZone profileTz) {
+	public JsGridTask(ShareFolderCategory folder, CategoryPropSet folderProps, TaskLookup task, DateTimeZone profileTz) {
 		Category category = folder.getCategory();
 		
 		taskId = task.getTaskId();
@@ -81,7 +80,6 @@ public class JsGridTask {
         status = EnumUtils.toSerializedName(task.getStatus());
         percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
-        //publicUid;
         categoryId = task.getCategoryId();
         categoryName = category.getName();
 		categoryColor = category.getColor();

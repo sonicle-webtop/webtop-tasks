@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sonicle.webtop</groupId>
 	<artifactId>webtop-tasks</artifactId>
-	<version>5.2.2</version>
+	<version>5.3.0</version>
 	<packaging>jar</packaging>
 	<name>webtop-tasks</name>
 	
@@ -24,6 +24,7 @@
 		<webtop.service.i18n.languages>en,it,es,de,hr</webtop.service.i18n.languages>
 		<webtop.service.i18n.tx.push.languages>it</webtop.service.i18n.tx.push.languages>
 		<webtop.service.i18n.tx.pull.languages>es,de,hr</webtop.service.i18n.tx.pull.languages>
+		<webtop.service.restApi.oas>openapi-v1.json</webtop.service.restApi.oas>
 	</properties>
 	
 	<dependencies>

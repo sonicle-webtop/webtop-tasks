@@ -64,7 +64,7 @@ public class RestApi extends BaseRestApiEndpoint {
 		TasksManager manager = getManager();
 		
 		List<Integer> incCatIds = manager.listIncomingCategoryIds();
-		Map<Integer, CategoryPropSet> psets = manager.getCategoryCustomProps(incCatIds);
+		Map<Integer, CategoryPropSet> psets = manager.getCategoriesCustomProps(incCatIds);
 		
 		ArrayList<JsIncomingCategory> items = new ArrayList<>();
 		for (ShareRootCategory root : manager.listIncomingCategoryRoots()) {
