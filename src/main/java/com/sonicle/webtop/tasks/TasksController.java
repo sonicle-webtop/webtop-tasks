@@ -34,13 +34,14 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.sdk.interfaces.IControllerRemindersHooks;
+import com.sonicle.webtop.core.app.sdk.interfaces.IControllerServiceHooks;
+import com.sonicle.webtop.core.app.sdk.interfaces.IControllerUserEvents;
 import com.sonicle.webtop.core.sdk.BaseController;
 import com.sonicle.webtop.core.sdk.BaseReminder;
 import com.sonicle.webtop.core.sdk.ServiceVersion;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesProfiles;
-import com.sonicle.webtop.core.sdk.interfaces.IControllerHandlesReminders;
 import com.sonicle.webtop.tasks.model.Category;
 import java.util.List;
 import org.joda.time.DateTime;
@@ -50,7 +51,7 @@ import org.slf4j.Logger;
  *
  * @author malbinola
  */
-public class TasksController extends BaseController implements IControllerHandlesProfiles, IControllerHandlesReminders {
+public class TasksController extends BaseController implements IControllerServiceHooks, IControllerUserEvents, IControllerRemindersHooks {
 	public static final Logger logger = WT.getLogger(TasksController.class);
 
 	public TasksController() {
@@ -58,7 +59,7 @@ public class TasksController extends BaseController implements IControllerHandle
 	}
 
 	@Override
-	public void addProfile(UserProfileId profileId) throws WTException {
+	public void initProfile(ServiceVersion current, UserProfileId profileId) throws WTException {
 		TasksManager manager = new TasksManager(true, profileId);
 
 		// Adds built-in category
@@ -69,16 +70,17 @@ public class TasksController extends BaseController implements IControllerHandle
 			throw ex;
 		}
 	}
-
-	@Override
-	public void removeProfile(UserProfileId profileId, boolean deep) throws WTException {
-		TasksManager manager = new TasksManager(false, profileId);
-		manager.eraseData(deep);
-	}
 	
 	@Override
-	public void upgradeProfile(UserProfileId profileId, ServiceVersion current, ServiceVersion lastSeen) throws WTException {
-		
+	public void upgradeProfile(ServiceVersion current, UserProfileId profileId, ServiceVersion profileLastSeen) throws WTException {}
+	
+	@Override
+	public void onUserAdded(UserProfileId profileId) throws WTException {}
+
+	@Override
+	public void onUserRemoved(UserProfileId profileId) throws WTException {
+		TasksManager manager = new TasksManager(false, profileId);
+		manager.eraseData(true);
 	}
 
 	@Override
