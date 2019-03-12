@@ -43,7 +43,7 @@ Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 		WTF.roField('_catId', 'string'),
 		WTF.roField('_builtIn', 'boolean'),
 		WTF.roField('_default', 'boolean'),
-		WTF.field('_visible', 'boolean', false), // Same as checked
+		WTF.field('_active', 'boolean', true), // Same as checked
 		WTF.roField('_color', 'string'),
 		WTF.roField('_sync', 'string'),
 		WTF.calcField('_domainId', 'string', '_pid', function(v, rec) {
@@ -52,5 +52,51 @@ Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 		WTF.calcField('_userId', 'string', '_pid', function(v, rec) {
 			return (rec.get('_pid')) ? rec.get('_pid').split('@')[0] : null;
 		})
-	]
+	],
+	
+	isFolderRoot: function() {
+		return this.get('_type') === 'root';
+	},
+	
+	isFolder: function() {
+		return this.get('_type') === 'folder';
+	},
+	
+	hasProfile: function(profileId) {
+		return this.get('_pid') === profileId;
+	},
+	
+	refreshActive: function() {
+		this.set('_active', this.get('checked') === true);
+	},
+	
+	setActive: function(active) {
+		var me = this;
+		me.beginEdit();
+		me.set('checked', active);
+		me.set('_active', active);
+		me.endEdit();
+	},
+	
+	isActive: function() {
+		return this.get('_active') === true;
+	},
+	
+	getFolderNode: function() {
+		return this.isFolder() ? this : null;
+	},
+	
+	getFolderRootNode: function() {
+		return this.isFolderRoot() ? this : this.parentNode;
+	},
+	
+	isPersonalNode: function() {
+		return this.self.isNodePersonal(this.getId());
+	},
+	
+	statics: {
+		isNodePersonal: function(nodeId) {
+			return (nodeId === '0') || Ext.String.startsWith(nodeId, '0|');
+		}
+	}
 });

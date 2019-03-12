@@ -56,22 +56,15 @@ public class TasksSettings {
 	
 	/**
 	 * [user]
-	 * [string]
-	 * Selected folder root node.
-	 */
-	public static final String SELECTED_ROOT = "roots.selected";
-	
-	/**
-	 * [user]
 	 * [string[]]
-	 * List of checked (or visible) folder root nodes.
+	 * List of deactivated folder root nodes.
 	 */
-	public static final String CHECKED_CATEGORY_ROOTS = "category.roots.checked";
+	public static final String INACTIVE_CATEGORY_ROOTS = "category.roots.inactive";
 	
 	/**
 	 * [user]
 	 * [int[]]
-	 * List of checked (or visible) folders (groups).
+	 * List of deactivated folders (groups).
 	 */
-	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
+	public static final String INACTIVE_CATEGORY_FOLDERS = "category.folders.inactive";
 }

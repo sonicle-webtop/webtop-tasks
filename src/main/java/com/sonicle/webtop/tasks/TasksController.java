@@ -42,7 +42,6 @@ import com.sonicle.webtop.core.sdk.BaseReminder;
 import com.sonicle.webtop.core.sdk.ServiceVersion;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.tasks.model.Category;
 import java.util.List;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -64,8 +63,7 @@ public class TasksController extends BaseController implements IControllerServic
 
 		// Adds built-in category
 		try {
-			Category cat = manager.addBuiltInCategory();
-			if (cat != null) setCategoryCheckedState(profileId, cat.getCategoryId(), true);
+			manager.addBuiltInCategory();
 		} catch (WTException ex) {
 			throw ex;
 		}
@@ -87,16 +85,5 @@ public class TasksController extends BaseController implements IControllerServic
 	public List<BaseReminder> returnReminders(DateTime now) {
 		TasksManager manager = new TasksManager(true, RunContext.getRunProfileId());
 		return manager.getRemindersToBeNotified(now);
-	}
-	
-	private void setCategoryCheckedState(UserProfileId profileId, int categoryId, boolean checked) {
-		TasksUserSettings tus = new TasksUserSettings(SERVICE_ID, profileId);
-		TasksUserSettings.CheckedFolders cf = tus.getCheckedCategoryFolders();
-		if (checked) {
-			cf.add(categoryId);
-		} else {
-			cf.remove(categoryId);
-		}
-		tus.setCheckedCategoryFolders(cf);
 	}
 }

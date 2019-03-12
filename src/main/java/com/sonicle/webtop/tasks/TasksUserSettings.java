@@ -60,55 +60,47 @@ public class TasksUserSettings extends BaseUserSettings {
 		return setString(TASK_REMINDER_DELIVERY, value);
 	}
 	
-	public String getSelectedRoot() {
-		return getString(SELECTED_ROOT, null);
+	public InactiveRoots getInactiveCategoryRoots() {
+		return getObject(INACTIVE_CATEGORY_ROOTS, new InactiveRoots(), InactiveRoots.class);
 	}
 	
-	public boolean setSelectedRoot(String value) {
-		return setString(SELECTED_ROOT, value);
+	public boolean setInactiveCategoryRoots(InactiveRoots value) {
+		return setObject(INACTIVE_CATEGORY_ROOTS, value, InactiveRoots.class);
 	}
 	
-	public CheckedRoots getCheckedCategoryRoots() {
-		return getObject(CHECKED_CATEGORY_ROOTS, new CheckedRoots(), CheckedRoots.class);
+	public InactiveFolders getInactiveCategoryFolders() {
+		return getObject(INACTIVE_CATEGORY_FOLDERS, new InactiveFolders(), InactiveFolders.class);
 	}
 	
-	public boolean setCheckedCategoryRoots(CheckedRoots value) {
-		return setObject(CHECKED_CATEGORY_ROOTS, value, CheckedRoots.class);
+	public boolean setInactiveCategoryFolders(InactiveFolders value) {
+		return setObject(INACTIVE_CATEGORY_FOLDERS, value, InactiveFolders.class);
 	}
 	
-	public CheckedFolders getCheckedCategoryFolders() {
-		return getObject(CHECKED_CATEGORY_FOLDERS, new CheckedFolders(), CheckedFolders.class);
-	}
-	
-	public boolean setCheckedCategoryFolders(CheckedFolders value) {
-		return setObject(CHECKED_CATEGORY_FOLDERS, value, CheckedFolders.class);
-	}
-	
-	public static class CheckedRoots extends HashSet<String> {
-		public CheckedRoots() {
+	public static class InactiveRoots extends HashSet<String> {
+		public InactiveRoots() {
 			super();
 		}
 		
-		public static CheckedRoots fromJson(String value) {
-			return JsonResult.gson.fromJson(value, CheckedRoots.class);
+		public static InactiveRoots fromJson(String value) {
+			return JsonResult.gson.fromJson(value, InactiveRoots.class);
 		}
 		
-		public static String toJson(CheckedRoots value) {
-			return JsonResult.gson.toJson(value, CheckedRoots.class);
+		public static String toJson(InactiveRoots value) {
+			return JsonResult.gson.toJson(value, InactiveRoots.class);
 		}
 	}
 	
-	public static class CheckedFolders extends HashSet<Integer> {
-		public CheckedFolders() {
+	public static class InactiveFolders extends HashSet<Integer> {
+		public InactiveFolders() {
 			super();
 		}
 		
-		public static CheckedFolders fromJson(String value) {
-			return JsonResult.gson.fromJson(value, CheckedFolders.class);
+		public static InactiveFolders fromJson(String value) {
+			return JsonResult.gson.fromJson(value, InactiveFolders.class);
 		}
 		
-		public static String toJson(CheckedFolders value) {
-			return JsonResult.gson.toJson(value, CheckedFolders.class);
+		public static String toJson(InactiveFolders value) {
+			return JsonResult.gson.toJson(value, InactiveFolders.class);
 		}
 	}
 }

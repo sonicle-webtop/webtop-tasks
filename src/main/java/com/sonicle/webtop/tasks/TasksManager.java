@@ -363,7 +363,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public void updateCategory(Category cat) throws Exception {
+	public void updateCategory(Category cat) throws WTException {
 		Connection con = null;
 		
 		try {
