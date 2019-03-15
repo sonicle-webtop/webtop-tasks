@@ -38,6 +38,16 @@ package com.sonicle.webtop.tasks;
  */
 public class TasksSettings {
 	
+	/**************************************************************************/
+	/**
+	 * @deprecated
+	 * Remove when transition (CheckedCategoryRoots -> InactiveCategoryRoots) is completed
+	 * Remove when transition (CheckedCategoryFolders -> InactiveCategoryFolders) is completed
+	 */
+	public static final String CHECKED_CATEGORY_ROOTS = "category.roots.checked";
+	public static final String CHECKED_CATEGORY_FOLDERS = "category.folders.checked";
+	/**************************************************************************/
+	
 	/**
 	 * [system+domain][default-only]
 	 * [enum]

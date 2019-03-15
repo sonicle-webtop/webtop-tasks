@@ -42,10 +42,10 @@ import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.commons.web.json.Payload;
+import com.sonicle.commons.web.json.bean.IntegerSet;
+import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
 import com.sonicle.webtop.core.CoreUserSettings;
-import com.sonicle.webtop.tasks.TasksUserSettings.InactiveFolders;
-import com.sonicle.webtop.tasks.TasksUserSettings.InactiveRoots;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
@@ -117,8 +117,8 @@ public class Service extends BaseService {
 	private final HashMap<String, ArrayList<ShareFolderCategory>> foldersByRoot = new HashMap<>();
 	private final HashMap<Integer, ShareRootCategory> rootByFolder = new HashMap<>();
 	
-	private InactiveRoots inactiveRoots = null;
-	private InactiveFolders inactiveFolders = null;
+	private StringSet inactiveRoots = null;
+	private IntegerSet inactiveFolders = null;
 	
 	@Override
 	public void initialize() throws Exception {
@@ -160,15 +160,40 @@ public class Service extends BaseService {
 		synchronized(roots) {
 			updateRootFoldersCache();
 			updateFoldersCache();
-			inactiveRoots = us.getInactiveCategoryRoots();
-			inactiveFolders = us.getInactiveCategoryFolders();
 			
-			// Clean-up orphans
-			if (inactiveRoots.removeIf(shareId -> !roots.containsKey(shareId))) {
+			// HANDLE TRANSITION: cleanup code when process is completed!
+			StringSet checkedRoots = us.getCheckedCategoryRoots();
+			if (checkedRoots != null) { // Migration code... (remove after migration)
+				List<String> toInactive = roots.keySet().stream()
+						.filter(shareId -> !checkedRoots.contains(shareId))
+						.collect(Collectors.toList());
+				inactiveRoots = new StringSet(toInactive);
 				us.setInactiveCategoryRoots(inactiveRoots);
+				us.clearCheckedCategoryRoots();
+				
+			} else { // New code... (keep after migrarion)
+				inactiveRoots = us.getInactiveCategoryRoots();
+				// Clean-up orphans
+				if (inactiveRoots.removeIf(shareId -> !roots.containsKey(shareId))) {
+					us.setInactiveCategoryRoots(inactiveRoots);
+				}
 			}
-			if (inactiveFolders.removeIf(categoryId -> !folders.containsKey(categoryId))) {
+			
+			IntegerSet checkedFolders = us.getCheckedCategoryFolders();
+			if (checkedFolders != null) { // Migration code... (remove after migration)
+				List<Integer> toInactive = folders.keySet().stream()
+						.filter(categoryId -> !checkedFolders.contains(categoryId))
+						.collect(Collectors.toList());
+				inactiveFolders = new IntegerSet(toInactive);
 				us.setInactiveCategoryFolders(inactiveFolders);
+				us.clearCheckedCategoryFolders();
+				
+			} else { // New code... (keep after migrarion)
+				inactiveFolders = us.getInactiveCategoryFolders();
+				// Clean-up orphans
+				if (inactiveFolders.removeIf(categoryId -> !folders.containsKey(categoryId))) {
+					us.setInactiveCategoryFolders(inactiveFolders);
+				}
 			}
 		}
 	}
