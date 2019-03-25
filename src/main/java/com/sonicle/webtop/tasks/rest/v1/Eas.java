@@ -108,11 +108,11 @@ public class Eas extends EasApi {
 				Map<Integer, CategoryPropSet> props = manager.getCategoriesCustomProps(folders.keySet());
 				
 				for (ShareFolderCategory folder : folders.values()) {
-					Category cal = folder.getCategory();
-					CategoryPropSet catProps = props.get(cal.getCategoryId());
+					Category cat = folder.getCategory();
+					CategoryPropSet catProps = props.get(cat.getCategoryId());
 					if (Category.Sync.OFF.equals(catProps.getSyncOrDefault(Category.Sync.OFF))) continue;
 					
-					items.add(createSyncFolder(currentProfileId, cal, revisions.get(cal.getCategoryId()), folder.getPerms(), folder.getRealElementsPerms(cal.getSync())));
+					items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), folder.getPerms(), folder.getRealElementsPerms(catProps.getSync())));
 				}
 			}
 			
