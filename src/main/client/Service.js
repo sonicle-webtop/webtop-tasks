@@ -550,8 +550,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('addTask', {
 			ignoreSize: true,
 			tooltip: null,
-			handler: function() {
-				var node = WTA.util.FoldersTree.getTargetFolder(me.trFolders());
+			handler: function(s, e) {
+				var node = (e && e.menuData) ? e.menuData.node : WTA.util.FoldersTree.getTargetFolder(me.trFolders());
 				if (node) me.addTaskUI(node.get('_pid'), node.get('_catId'));
 			}
 		});
