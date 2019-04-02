@@ -931,25 +931,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	moveTasksSel: function(copy, sel) {
 		var me = this,
-				id = sel[0].get('taskId'),
-				pid = sel[0].get('_profileId'),
-				cat = sel[0].get('categoryId');
+				id = sel[0].get('taskId');
 		
-		me.confirmMoveTask(copy, id, pid, cat, {
+		me.confirmMoveTask(copy, id, {
 			callback: function() {
 				me.reloadTasks();
 			}
 		});
 	},
 	
-	confirmMoveTask: function(copy, id, ownerId, catId, opts) {
+	confirmMoveTask: function(copy, id, opts) {
 		var me = this,
-				vct = me.createCategoryChooser(copy, ownerId, catId);
+				vct = me.createCategoryChooser(copy);
 		
-		vct.getView().on('viewok', function(s) {
-			me.moveTask(copy, id, s.getVMData().categoryId, opts);
+		vct.on('viewok', function(s, categoryId) {
+			me.moveTask(copy, id, categoryId, opts);
 		});
-		vct.show();
+		vct.showView();
 	},
 	
 	printTasksDetail: function(taskIds) {
@@ -1236,16 +1234,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	/**
 	 * @private
 	 */
-	createCategoryChooser: function(copy, ownerId, catId) {
-		var me = this;
-		return WT.createView(me.ID, 'view.CategoryChooser', {
-			viewCfg: {
-				dockableConfig: {
-					title: me.res(copy ? 'act-copyTask.lbl' : 'act-moveTask.lbl')
-				},
-				ownerId: ownerId,
-				categoryId: catId
-			}
-		});
-	}
+	
+	createCategoryChooser: function(copy) {
+			var me = this;
+			return WT.createView(me.ID, 'view.CategoryChooser', {
+				swapReturn: true,
+				viewCfg: {
+					dockableConfig: {
+						title: me.res(copy ? 'act-copyTask.lbl' : 'act-moveTask.lbl')
+					},
+					writableOnly: true
+				}
+			});
+		}
 });

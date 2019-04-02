@@ -243,10 +243,11 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				String node = ServletUtils.getStringParameter(request, "node", true);
+				boolean chooser = ServletUtils.getBooleanParameter(request, "chooser", false);
 				
 				if (node.equals("root")) { // Node: root -> list roots
 					for (ShareRootCategory root : roots.values()) {
-						children.add(createRootNode(root));
+						children.add(createRootNode(chooser, root));
 					}
 				} else { // Node: folder -> list folders (categories)
 					boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
@@ -257,7 +258,7 @@ public class Service extends BaseService {
 							MyShareFolderCategory folder = new MyShareFolderCategory(node, cat);
 							if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
 							
-							children.add(createFolderNode(folder, null, root.getPerms()));
+							children.add(createFolderNode(chooser, folder, null, root.getPerms()));
 						}
 					} else {
 						if (foldersByRoot.containsKey(root.getShareId())) {
@@ -265,7 +266,7 @@ public class Service extends BaseService {
 								if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
 								
 								final CategoryPropSet pset = folderProps.get(folder.getCategory().getCategoryId());
-								final ExtTreeNode etn = createFolderNode(folder, pset, root.getPerms());
+								final ExtTreeNode etn = createFolderNode(chooser, folder, pset, root.getPerms());
 								if (etn != null) children.add(etn);
 							}
 						}
@@ -852,17 +853,17 @@ public class Service extends BaseService {
 		}
 	}
 	
-	private ExtTreeNode createRootNode(ShareRootCategory root) {
+	private ExtTreeNode createRootNode(boolean chooser, ShareRootCategory root) {
 		if(root instanceof MyShareRootCategory) {
-			return createRootNode(root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), lookupResource(TasksLocale.CATEGORIES_MY), false, "wttasks-icon-categoryMy")
+			return createRootNode(chooser, root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), lookupResource(TasksLocale.CATEGORIES_MY), false, "wttasks-icon-categoryMy")
 					.setExpanded(true);
 		} else {
-			return createRootNode(root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), root.getDescription(), false, "wttasks-icon-categoryIncoming")
+			return createRootNode(chooser, root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), root.getDescription(), false, "wttasks-icon-categoryIncoming")
 					.setExpanded(true);
 		}
 	}
 	
-	private ExtTreeNode createRootNode(String id, String pid, String rights, String text, boolean leaf, String iconClass) {
+	private ExtTreeNode createRootNode(boolean chooser, String id, String pid, String rights, String text, boolean leaf, String iconClass) {
 		boolean active = !inactiveRoots.contains(id);
 		ExtTreeNode node = new ExtTreeNode(id, text, leaf);
 		node.put("_type", JsFolderNode.TYPE_ROOT);
@@ -870,13 +871,13 @@ public class Service extends BaseService {
 		node.put("_rrights", rights);
 		node.put("_active", active);
 		node.setIconClass(iconClass);
-		node.setChecked(active);
+		if (!chooser) node.setChecked(active);
 		node.put("expandable", false);
 		
 		return node;
 	}
 	
-	private ExtTreeNode createFolderNode(ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms) {
+	private ExtTreeNode createFolderNode(boolean chooser, ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms) {
 		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		String color = cat.getColor();
@@ -903,7 +904,7 @@ public class Service extends BaseService {
 		node.put("_sync", EnumUtils.toSerializedName(sync));
 		node.put("_default", cat.getIsDefault());
 		node.put("_active", active);
-		node.setChecked(active);
+		if (!chooser) node.setChecked(active);
 		
 		return node;
 	}
