@@ -186,4 +186,4 @@ ALTER TABLE "tasks"."tasks_icalendars" ADD PRIMARY KEY ("task_id");
 -- ----------------------------
 @DataSource[default@com.sonicle.webtop.core]
 DELETE FROM "core"."settings" WHERE ("settings"."service_id" = 'com.sonicle.webtop.tasks') AND ("settings"."key" = 'manifest.version');
-INSERT INTO "core"."settings" ("service_id", "key", "value") VALUES ('com.sonicle.webtop.tasks', 'manifest.version', '5.3.0');
+INSERT INTO "core"."settings" ("service_id", "key", "value") VALUES ('com.sonicle.webtop.tasks', 'manifest.version', '5.3.2');
