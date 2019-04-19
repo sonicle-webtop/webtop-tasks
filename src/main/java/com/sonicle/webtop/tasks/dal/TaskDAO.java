@@ -436,6 +436,7 @@ public class TaskDAO extends BaseDAO {
 		item.setRevisionStatus(EnumUtils.toSerializedName(Task.RevisionStatus.NEW));
 		item.setRevisionTimestamp(revisionTimestamp);
 		item.setRevisionSequence(0);
+		item.setCreationTimestamp(revisionTimestamp);
 		TasksRecord record = dsl.newRecord(TASKS, item);
 		return dsl
 			.insertInto(TASKS)
