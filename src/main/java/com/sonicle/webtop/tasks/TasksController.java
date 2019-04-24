@@ -77,7 +77,7 @@ public class TasksController extends BaseController implements IControllerServic
 
 	@Override
 	public void onUserRemoved(UserProfileId profileId) throws WTException {
-		TasksManager manager = new TasksManager(false, profileId);
+		TasksManager manager = new TasksManager(true, profileId);
 		manager.eraseData(true);
 	}
 
