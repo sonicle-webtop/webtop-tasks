@@ -32,11 +32,11 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.commons.web.json.JsonResult;
+import com.sonicle.commons.web.json.bean.IntegerSet;
+import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.webtop.core.sdk.BaseUserSettings;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
-import java.util.HashSet;
 
 /**
  *
@@ -60,55 +60,53 @@ public class TasksUserSettings extends BaseUserSettings {
 		return setString(TASK_REMINDER_DELIVERY, value);
 	}
 	
-	public String getSelectedRoot() {
-		return getString(SELECTED_ROOT, null);
+	public StringSet getInactiveCategoryRoots() {
+		return getObject(INACTIVE_CATEGORY_ROOTS, new StringSet(), StringSet.class);
 	}
 	
-	public boolean setSelectedRoot(String value) {
-		return setString(SELECTED_ROOT, value);
+	public boolean setInactiveCategoryRoots(StringSet value) {
+		return setObject(INACTIVE_CATEGORY_ROOTS, value, StringSet.class);
 	}
 	
-	public CheckedRoots getCheckedCategoryRoots() {
-		return getObject(CHECKED_CATEGORY_ROOTS, new CheckedRoots(), CheckedRoots.class);
+	public IntegerSet getInactiveCategoryFolders() {
+		return getObject(INACTIVE_CATEGORY_FOLDERS, new IntegerSet(), IntegerSet.class);
 	}
 	
-	public boolean setCheckedCategoryRoots(CheckedRoots value) {
-		return setObject(CHECKED_CATEGORY_ROOTS, value, CheckedRoots.class);
+	public boolean setInactiveCategoryFolders(IntegerSet value) {
+		return setObject(INACTIVE_CATEGORY_FOLDERS, value, IntegerSet.class);
 	}
 	
-	public CheckedFolders getCheckedCategoryFolders() {
-		return getObject(CHECKED_CATEGORY_FOLDERS, new CheckedFolders(), CheckedFolders.class);
+	/**
+	 * @deprecated Remove when transition (CheckedCategoryRoots -> InactiveCategoryRoots) is completed
+	 * @return
+	 */
+	@Deprecated
+	public StringSet getCheckedCategoryRoots() {
+		return getObject(CHECKED_CATEGORY_ROOTS, null, StringSet.class);
 	}
 	
-	public boolean setCheckedCategoryFolders(CheckedFolders value) {
-		return setObject(CHECKED_CATEGORY_FOLDERS, value, CheckedFolders.class);
+	/**
+	 * @deprecated Remove when transition (CheckedCategoryRoots -> InactiveCategoryRoots) is completed
+	 */
+	@Deprecated
+	public void clearCheckedCategoryRoots() {
+		clear(CHECKED_CATEGORY_ROOTS);
 	}
 	
-	public static class CheckedRoots extends HashSet<String> {
-		public CheckedRoots() {
-			super();
-		}
-		
-		public static CheckedRoots fromJson(String value) {
-			return JsonResult.gson.fromJson(value, CheckedRoots.class);
-		}
-		
-		public static String toJson(CheckedRoots value) {
-			return JsonResult.gson.toJson(value, CheckedRoots.class);
-		}
+	/**
+	 * @deprecated Remove when transition (CheckedCategoryFolders -> InactiveCategoryFolders) is completed
+	 * @return
+	 */
+	@Deprecated
+	public IntegerSet getCheckedCategoryFolders() {
+		return getObject(CHECKED_CATEGORY_FOLDERS, null, IntegerSet.class);
 	}
 	
-	public static class CheckedFolders extends HashSet<Integer> {
-		public CheckedFolders() {
-			super();
-		}
-		
-		public static CheckedFolders fromJson(String value) {
-			return JsonResult.gson.fromJson(value, CheckedFolders.class);
-		}
-		
-		public static String toJson(CheckedFolders value) {
-			return JsonResult.gson.toJson(value, CheckedFolders.class);
-		}
+	/**
+	 * @deprecated Remove when transition (CheckedCategoryFolders -> InactiveCategoryFolders) is completed
+	 */
+	@Deprecated
+	public void clearCheckedCategoryFolders() {
+		clear(CHECKED_CATEGORY_FOLDERS);
 	}
 }

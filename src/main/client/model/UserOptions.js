@@ -34,7 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.model.UserOptions', {
 	extend: 'WTA.sdk.model.UserOptions',
 	
-	proxy: WT.optionsProxy('com.sonicle.webtop.tasks'),
+	proxy: WTF.optionsProxy('com.sonicle.webtop.tasks'),
 	fields: [
 		WTF.field('taskReminderDelivery', 'string', false)
 	]

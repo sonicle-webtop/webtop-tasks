@@ -68,6 +68,7 @@
 		<shortName>wttasks</shortName>
 		<version>@@webtop.service.version@@</version>
 		<buildDate>@@webtop.service.buildDate@@</buildDate>
+		<buildType>@@webtop.service.buildType@@</buildType>
 		
 		<controller className=".TasksController" />
 		<manager className=".TasksManager" />
