@@ -112,6 +112,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import com.github.rutledgepaulv.qbuilders.conditions.Condition;
+import com.sonicle.webtop.tasks.dal.TaskPredicateVisitor;
+import com.sonicle.webtop.tasks.model.TaskQuery;
 import org.slf4j.Logger;
 
 /**
@@ -621,12 +624,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public ListTasksResult listTasks(Collection<Integer> categoryIds, String pattern) throws WTException {
-		return listTasks(categoryIds, pattern, 1, Integer.MAX_VALUE, false);
+	public ListTasksResult listTasks(Collection<Integer> categoryIds, Condition<TaskQuery> conditionPredicate) throws WTException {
+		return listTasks(categoryIds, conditionPredicate, 1, Integer.MAX_VALUE, false);
 	}
 	
 	@Override
-	public ListTasksResult listTasks(Collection<Integer> categoryIds, String pattern, int page, int limit, boolean returnFullCount) throws WTException {
+	public ListTasksResult listTasks(Collection<Integer> categoryIds, Condition<TaskQuery> conditionPredicate, int page, int limit, boolean returnFullCount) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
@@ -639,9 +642,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID);
 			
 			Integer fullCount = null;
-			if (returnFullCount) fullCount = tasDao.countByCategoryPattern(con, okCategoryIds, pattern);
+			org.jooq.Condition condition = BaseDAO.createCondition(conditionPredicate, new TaskPredicateVisitor(true));
+			if (returnFullCount) fullCount = tasDao.countByCategoryPattern(con, okCategoryIds, condition);
 			ArrayList<TaskLookup> items = new ArrayList<>();
-			for (VTaskLookup vcont : tasDao.viewByCategoryPattern(con, okCategoryIds, pattern, limit, offset)) {
+			for (VTaskLookup vcont : tasDao.viewByCategoryPattern(con, okCategoryIds, condition, limit, offset)) {
 				items.add(ManagerUtils.fillTaskLookup(new TaskLookup(), vcont));
 			}
 			

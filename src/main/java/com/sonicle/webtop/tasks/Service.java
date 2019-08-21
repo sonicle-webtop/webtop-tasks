@@ -43,6 +43,7 @@ import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.commons.web.json.Payload;
 import com.sonicle.commons.web.json.bean.IntegerSet;
+import com.sonicle.commons.web.json.bean.QueryObj;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
 import com.sonicle.webtop.core.CoreUserSettings;
@@ -79,6 +80,7 @@ import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
 import com.sonicle.webtop.tasks.model.TaskLookup;
+import com.sonicle.webtop.tasks.model.TaskQuery;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -495,14 +497,16 @@ public class Service extends BaseService {
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
+			UserProfile userProfile = getEnv().getProfile();
+			DateTimeZone userTimeZone = userProfile.getTimeZone();
+			
 			if (crud.equals(Crud.READ)) {
-				String query = ServletUtils.getStringParameter(request, "query", null);
+				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
 				//int page = ServletUtils.getIntParameter(request, "page", true);
 				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
-				String pattern = StringUtils.isBlank(query) ? null : "%" + query + "%";
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
-				ListTasksResult result = manager.listTasks(visibleCategoryIds, pattern);
+				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, userTimeZone));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
@@ -691,7 +695,7 @@ public class Service extends BaseService {
 				
 			} else {
 				String pattern = LangUtils.patternizeWords(query);
-				ListTasksResult result = manager.listTasks(folders.keySet(), pattern);
+				ListTasksResult result = manager.listTasks(folders.keySet(), TaskQuery.toCondition(pattern));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;

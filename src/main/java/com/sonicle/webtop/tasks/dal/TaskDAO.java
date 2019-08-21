@@ -276,10 +276,9 @@ public class TaskDAO extends BaseDAO {
 			.fetchInto(VTaskObjectChanged.class);
 	}
 	
-	public int countByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern) throws DAOException {
+	public int countByCategoryPattern(Connection con, Collection<Integer> categoryIds, Condition condition) throws DAOException {
 		DSLContext dsl = getDSL(con);
-		Condition patternCndt = toSearchPatternCondition(pattern);
-		
+		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
 		return dsl
 			.selectCount()
 			.from(TASKS)
@@ -291,15 +290,15 @@ public class TaskDAO extends BaseDAO {
 					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
-					patternCndt
+					filterCndt
 				)
 			)
 			.fetchOne(0, Integer.class);
 	}
 	
-	public List<VTaskLookup> viewByCategoryPattern(Connection con, Collection<Integer> categoryIds, String pattern, int limit, int offset) throws DAOException {
+	public List<VTaskLookup> viewByCategoryPattern(Connection con, Collection<Integer> categoryIds, Condition condition, int limit, int offset) throws DAOException {
 		DSLContext dsl = getDSL(con);
-		Condition patternCndt = toSearchPatternCondition(pattern);
+		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
 		
 		return dsl
 			.select(
@@ -333,7 +332,7 @@ public class TaskDAO extends BaseDAO {
 					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
-					patternCndt
+					filterCndt
 				)
 			)
 			.orderBy(
