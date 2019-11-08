@@ -92,6 +92,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -644,7 +645,7 @@ public class Service extends BaseService {
 	public void processPrintTasksDetail(HttpServletRequest request, HttpServletResponse response) {
 		ArrayList<RBTaskDetail> items = new ArrayList<>();
 		ByteArrayOutputStream baos = null;
-		
+	
 		try {
 			String filename = ServletUtils.getStringParameter(request, "filename", "print");
 			ServletUtils.IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.IntegerArray.class, true);
@@ -684,7 +685,7 @@ public class Service extends BaseService {
 			
 			if (query == null) {
 				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
-				final List<Integer> ids = manager.listCategoryIds();
+				final Set<Integer> ids = manager.listCategoryIds();
 				for (TaskLookup item : manager.listUpcomingTasks(ids)) {
 					final ShareFolderCategory folder = folders.get(item.getCategoryId());
 					if (folder == null) continue;

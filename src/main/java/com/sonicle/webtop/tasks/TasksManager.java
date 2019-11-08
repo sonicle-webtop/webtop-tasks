@@ -115,6 +115,7 @@ import org.joda.time.DateTimeZone;
 import com.github.rutledgepaulv.qbuilders.conditions.Condition;
 import com.sonicle.webtop.tasks.dal.TaskPredicateVisitor;
 import com.sonicle.webtop.tasks.model.TaskQuery;
+import java.util.Set;
 import org.slf4j.Logger;
 
 /**
@@ -215,12 +216,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<Integer> listCategoryIds() throws WTException {
-		return new ArrayList<>(listCategories().keySet());
+	public Set<Integer> listCategoryIds() throws WTException {
+		return listCategories().keySet();
 	}
 	
 	@Override
-	public List<Integer> listIncomingCategoryIds() throws WTException {
+	public Set<Integer> listIncomingCategoryIds() throws WTException {
 		return shareCache.getFolderIds();
 	}
 	
