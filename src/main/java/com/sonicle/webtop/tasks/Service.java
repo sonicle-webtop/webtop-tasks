@@ -340,8 +340,7 @@ public class Service extends BaseService {
 				for (ShareRootCategory root : roots.values()) {
 					if (foldersByRoot.containsKey(root.getShareId())) {
 						for (ShareFolderCategory fold : foldersByRoot.get(root.getShareId())) {
-							if (!fold.getElementsPerms().implies("CREATE")) continue;
-							items.add(new JsCategoryLkp(fold, folderProps.get(fold.getCategory().getCategoryId())));
+							items.add(new JsCategoryLkp(root, fold, folderProps.get(fold.getCategory().getCategoryId()), items.size()));
 						}
 					}
 				}
