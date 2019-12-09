@@ -644,7 +644,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID);
 			
 			Integer fullCount = null;
-			org.jooq.Condition condition = BaseDAO.createCondition(conditionPredicate, new TaskPredicateVisitor(true));
+			org.jooq.Condition condition = BaseDAO.createCondition(conditionPredicate, new TaskPredicateVisitor()
+					.withIgnoreCase(true)
+					.withForceStringLikeComparison(true)
+			);
 			if (returnFullCount) fullCount = tasDao.countByCategoryPattern(con, okCategoryIds, condition);
 			ArrayList<TaskLookup> items = new ArrayList<>();
 			for (VTaskLookup vcont : tasDao.viewByCategoryPattern(con, okCategoryIds, condition, limit, offset)) {

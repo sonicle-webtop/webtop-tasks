@@ -52,10 +52,6 @@ public class TaskPredicateVisitor extends BaseJOOQVisitor {
 		super();
 	}
 
-	public TaskPredicateVisitor(boolean ignoreCase) {
-		super(ignoreCase);
-	}
-
 	@Override
 	protected Condition toCondition(String fieldName, ComparisonOperator operator, Collection<?> values, ComparisonNode node) {
 		switch (fieldName) {
