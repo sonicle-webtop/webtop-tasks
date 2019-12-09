@@ -89,6 +89,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				{
 					xtype: 'wtsearchfield',
 					reference: 'fldsearch',
+					highlightKeywords: ['subject'],
 					fields: [{
 						name: 'subject',
 						type: 'string',
@@ -241,7 +242,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						extraParams: {
 							query: null
 						}
-					})
+					}),
+					listeners: {
+						load: function() {
+							var el = me.gpTasks().getEl(),
+							searchComponent = me.getToolbar().lookupReference('fldsearch');
+							searchComponent.highlight(el, '.x-grid-item-container');
+						}
+					}
 				},
 				viewConfig: {
 					getRowClass: function (rec, indx) {
