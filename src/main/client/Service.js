@@ -87,23 +87,45 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('deleteTask2'),
 				'->',
 				{
-					xtype: 'textfield',
-					tooltip: me.res('textfield.tip'),
-					plugins: ['sofieldtooltip'],
-					triggers: {
-						search: {
-							cls: Ext.baseCSSPrefix + 'form-search-trigger',
-							handler: function(s) {
-								me.queryTasks(s.getValue());
-							}
-						}
-					},
+					xtype: 'wtsearchfield',
+					reference: 'fldsearch',
+					highlightKeywords: ['subject'],
+					fields: [{
+						name: 'subject',
+						type: 'string',
+						label: me.res('fld-search.field.subject.lbl')
+					}, {
+						name: 'description',
+						type: 'string',
+						label: me.res('fld-search.field.description.lbl')
+					}, {
+						name: 'after',
+						type: 'date',
+						labelAlign: 'left',
+						label: me.res('fld-search.field.after.lbl')
+					}, {
+						name: 'before',
+						type: 'date',
+						labelAlign: 'left',
+						label: me.res('fld-search.field.before.lbl')
+					}, {
+						name: 'private',
+						type: 'boolean',
+						boolKeyword: 'is',
+						label: me.res('fld-search.field.private.lbl')
+					}, {
+						name: 'done',
+						type: 'boolean',
+						boolKeyword: 'is',
+						label: me.res('fld-search.field.done.lbl')
+					}],
+					tooltip: me.res('fld-search.tip'),
+					emptyText: me.res('fld-search.emp'),
 					listeners: {
-						specialkey: function(s, e) {
-							if (e.getKey() === e.ENTER) me.queryTasks(s.getValue());
+						query: function(s, value, qObj) {
+							me.queryTasks(qObj);
 						}
-					},
-					width: 200
+					}
 				},
 				'->'
 			]
@@ -220,7 +242,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						extraParams: {
 							query: null
 						}
-					})
+					}),
+					listeners: {
+						load: function() {
+							var el = me.gpTasks().getEl(),
+							searchComponent = me.getToolbar().lookupReference('fldsearch');
+							searchComponent.highlight(el, '.x-grid-item-container');
+						}
+					}
 				},
 				viewConfig: {
 					getRowClass: function (rec, indx) {
@@ -762,20 +791,21 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}
 	},
 	
-	queryTasks: function(txt) {
-		if (!Ext.isEmpty(txt)) {
-			this.reloadTasks(txt);
-		}
+	queryTasks: function(query) {
+		var isString = Ext.isString(query),
+				obj = {
+					allText: isString ? query : query.anyText,
+					conditions: isString ? [] : query.conditionArray
+				};
+			this.reloadTasks({query: Ext.JSON.encode(obj)});
 	},
 	
-	reloadTasks: function(query) {
-		var me = this,
-				pars = {},
-				sto;
-		
+	reloadTasks: function(opts) {
+		opts = opts || {};
+				var me = this, sto, pars = {};
 		if(me.isActive()) {
 			sto = me.gpTasks().getStore();
-			if(query !== undefined) Ext.apply(pars, {query: query});
+			if(opts.query !== undefined) Ext.apply(pars, {query: opts.query});
 			WTU.loadWithExtraParams(sto, pars);
 		} else {
 			me.needsReload = true;

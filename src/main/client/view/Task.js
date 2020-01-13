@@ -34,7 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
-		'Sonicle.form.field.ColorComboBox',
+		'Sonicle.form.field.ComboBox',
 		'Sonicle.plugin.FileDrop',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.ValueModel',
@@ -109,7 +109,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	},
 	
 	initComponent: function() {
-		var me = this;
+		var me = this,
+				pid = WT.getVar('profileId');
 		
 		Ext.apply(me, {
 			tbar: [
@@ -141,35 +142,53 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}
 				}),
 				'->',
-				WTF.localCombo('id', 'desc', {
-					reference: 'fldowner',
-					bind: '{record._profileId}',
-					store: {
-						autoLoad: true,
-						model: 'WTA.model.Simple',
-						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryRoots', 'roots')
-					},
-					fieldLabel: me.mys.res('task.fld-owner.lbl'),
-					labelWidth: 75,
-					listeners: {
-						select: function(s, rec) {
-							me.updateCategoryFilters();
-						}
-					}
-				}),
-				WTF.lookupCombo('categoryId', 'name', {
-					xtype: 'socolorcombo',
+				WTF.lookupCombo('categoryId', '_label', {
+					xtype: 'socombo',
 					reference: 'fldcategory',
 					bind: '{record.categoryId}',
-					store: {
-						autoLoad: true,
-						model: me.mys.preNs('model.CategoryLkp'),
-						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders')
+					listConfig: {
+						displayField: 'name',
+						groupCls: 'wt-theme-text-greyed'
 					},
+					autoLoadOnValue: true,
+					store: {
+						model: me.mys.preNs('model.CategoryLkp'),
+						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
+						grouper: {
+							property: '_profileId',
+							sortProperty: '_order'
+						},
+						filters: [{
+							filterFn: function(rec) {
+								var mo = me.getModel();
+								if (mo && me.isMode(me.MODE_NEW)) {
+									return rec.get('_writable');
+								} else if (mo && me.isMode(me.MODE_VIEW)) {
+									if (rec.getId() === mo.get('categoryId')) return true;
+								} else if (mo && me.isMode(me.MODE_EDIT)) {
+									if (rec.getId() === mo.get('categoryId')) return true;
+									if (rec.get('_profileId') === mo.get('_profileId') && rec.get('_writable')) return true;
+								}
+								return false;
+							}
+						}],
+						listeners: {
+							load: function(s, recs, succ) {
+								if (succ && (s.loadCount === 1) && me.isMode(me.MODE_NEW)) {
+									var rec = s.getById(me.lref('fldcategory').getValue());
+									if (rec) me.setCategoryDefaults(rec);
+								}
+							}
+						}
+					},
+					groupField: '_profileDescription',
 					colorField: 'color',
+					fieldLabel: me.mys.res('task.fld-category.lbl'),
+					labelAlign: 'right',
+					width: 400,
 					listeners: {
 						select: function(s, rec) {
-							me.onCategorySelect(rec);
+							me.setCategoryDefaults(rec);
 						}
 					}
 				})
@@ -376,43 +395,6 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		me.on('viewclose', me.onViewClose);
 	},
 	
-	onViewLoad: function(s, success) {
-		if(!success) return;
-		var me = this,
-				owner = me.lref('fldowner');
-		
-		me.updateCategoryFilters();
-		if (me.isMode(me.MODE_NEW)) {
-			owner.setDisabled(false);
-			me.getAct('delete').setDisabled(true);
-		} else if(me.isMode(me.MODE_VIEW)) {
-			me.getAct('saveClose').setDisabled(true);
-			me.getAct('delete').setDisabled(true);
-			owner.setDisabled(true);
-		} else if(me.isMode(me.MODE_EDIT)) {
-			owner.setDisabled(true);
-		}
-		me.lref('fldsubject').focus(true);
-	},
-	
-	onViewClose: function(s) {
-		s.mys.cleanupUploadedFiles(WT.uiid(s.getId()));
-	},
-	
-	updateCategoryFilters: function() {
-		this.lref('fldcategory').getStore().addFilter({
-			property: '_profileId',
-			value: this.getModel().get('_profileId')
-		});
-	},
-	
-	onCategorySelect: function(cat) {
-		var mo = this.getModel();
-		mo.set({
-			isPrivate: cat.get('isPrivate')
-		});
-	},
-	
 	saveView: function(closeAfter) {
 		var me = this,
 				rec = me.getModel();
@@ -477,6 +459,40 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		} else {
 			me.mys.printTasksDetail([taskId]);
 		}
-	}
+	},
 	
+	privates: {
+		onViewLoad: function(s, success) {
+			if (!success) return;
+			var me = this;
+
+			if (me.isMode(me.MODE_NEW)) {
+				me.getAct('saveClose').setDisabled(false);
+				me.getAct('delete').setDisabled(true);
+				me.lref('fldcategory').setReadOnly(false);
+			} else if(me.isMode(me.MODE_VIEW)) {
+				me.getAct('saveClose').setDisabled(true);
+				me.getAct('delete').setDisabled(true);
+				me.lref('fldcategory').setReadOnly(true);
+			} else if(me.isMode(me.MODE_EDIT)) {
+				me.getAct('saveClose').setDisabled(false);
+				me.getAct('delete').setDisabled(false);
+				me.lref('fldcategory').setReadOnly(false);
+			}
+			me.lref('fldsubject').focus(true);
+		},
+		
+		onViewClose: function(s) {
+			s.mys.cleanupUploadedFiles(WT.uiid(s.getId()));
+		},
+		
+		setCategoryDefaults: function(cat) {
+			var mo = this.getModel();
+			if (mo) {
+				mo.set({
+					isPrivate: cat.get('tasPrivate')
+				});
+			}
+		}
+	}
 });

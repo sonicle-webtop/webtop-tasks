@@ -43,6 +43,7 @@ import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.commons.web.json.Payload;
 import com.sonicle.commons.web.json.bean.IntegerSet;
+import com.sonicle.commons.web.json.bean.QueryObj;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
 import com.sonicle.webtop.core.CoreUserSettings;
@@ -79,6 +80,7 @@ import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
 import com.sonicle.webtop.tasks.model.TaskLookup;
+import com.sonicle.webtop.tasks.model.TaskQuery;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -90,6 +92,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -337,8 +340,7 @@ public class Service extends BaseService {
 				for (ShareRootCategory root : roots.values()) {
 					if (foldersByRoot.containsKey(root.getShareId())) {
 						for (ShareFolderCategory fold : foldersByRoot.get(root.getShareId())) {
-							if (!fold.getElementsPerms().implies("CREATE")) continue;
-							items.add(new JsCategoryLkp(fold, folderProps.get(fold.getCategory().getCategoryId())));
+							items.add(new JsCategoryLkp(root, fold, folderProps.get(fold.getCategory().getCategoryId()), items.size()));
 						}
 					}
 				}
@@ -495,14 +497,16 @@ public class Service extends BaseService {
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
+			UserProfile userProfile = getEnv().getProfile();
+			DateTimeZone userTimeZone = userProfile.getTimeZone();
+			
 			if (crud.equals(Crud.READ)) {
-				String query = ServletUtils.getStringParameter(request, "query", null);
+				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
 				//int page = ServletUtils.getIntParameter(request, "page", true);
 				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
-				String pattern = StringUtils.isBlank(query) ? null : "%" + query + "%";
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
-				ListTasksResult result = manager.listTasks(visibleCategoryIds, pattern);
+				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, userTimeZone));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
@@ -640,7 +644,7 @@ public class Service extends BaseService {
 	public void processPrintTasksDetail(HttpServletRequest request, HttpServletResponse response) {
 		ArrayList<RBTaskDetail> items = new ArrayList<>();
 		ByteArrayOutputStream baos = null;
-		
+	
 		try {
 			String filename = ServletUtils.getStringParameter(request, "filename", "print");
 			ServletUtils.IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.IntegerArray.class, true);
@@ -680,7 +684,7 @@ public class Service extends BaseService {
 			
 			if (query == null) {
 				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
-				final List<Integer> ids = manager.listCategoryIds();
+				final Set<Integer> ids = manager.listCategoryIds();
 				for (TaskLookup item : manager.listUpcomingTasks(ids)) {
 					final ShareFolderCategory folder = folders.get(item.getCategoryId());
 					if (folder == null) continue;
@@ -691,7 +695,7 @@ public class Service extends BaseService {
 				
 			} else {
 				String pattern = LangUtils.patternizeWords(query);
-				ListTasksResult result = manager.listTasks(folders.keySet(), pattern);
+				ListTasksResult result = manager.listTasks(folders.keySet(), TaskQuery.toCondition(pattern));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
