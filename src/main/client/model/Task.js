@@ -56,7 +56,8 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
 		WTF.field('percentage', 'int', true, {defaultValue: 0}),
-		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'})
+		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('tags', 'string', true)
 	],
 	hasMany: [
 		WTF.hasMany('attachments', 'Sonicle.webtop.tasks.model.TaskAttachment')

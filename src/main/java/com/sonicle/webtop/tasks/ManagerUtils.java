@@ -172,6 +172,7 @@ public class ManagerUtils {
 	static <T extends TaskLookup, S extends VTaskLookup> T fillTaskLookup(T tgt, S src) {
 		if ((tgt != null) && (src != null)) {
 			fillBaseTask(tgt, src);
+			tgt.setTags(src.getTags());
 			tgt.setCategoryName(src.getCategoryName());
 			tgt.setCategoryDomainId(src.getCategoryDomainId());
 			tgt.setCategoryUserId(src.getCategoryUserId());

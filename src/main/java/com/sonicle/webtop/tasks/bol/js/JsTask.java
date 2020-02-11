@@ -34,10 +34,12 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -58,8 +60,10 @@ public class JsTask {
 	public String status;
 	public Short percentage;
 	public String reminderDate;
-	public String _profileId;
+	public String tags;
 	public ArrayList<Attachment> attachments;
+	// Read-only fields
+	public String _profileId;
 
 	public JsTask() {}
 
@@ -77,7 +81,7 @@ public class JsTask {
 		status = EnumUtils.toSerializedName(task.getStatus());
 		percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
-		_profileId = ownerId.toString();
+		tags = new CompositeId(task.getTags()).toString();
 		
 		attachments = new ArrayList<>();
 		for (TaskAttachment att : task.getAttachments()) {
@@ -88,6 +92,8 @@ public class JsTask {
 			jsatt.size = att.getSize();
 			attachments.add(jsatt);
 		}
+		
+		_profileId = ownerId.toString();
 	}
 
 	public static Task createTask(JsTask js, DateTimeZone profileTz) {
@@ -104,6 +110,7 @@ public class JsTask {
 		item.setStatus(EnumUtils.forSerializedName(js.status, Task.Status.class));
 		item.setCompletionPercentage(js.percentage);
 		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
+		item.setTags(new LinkedHashSet<>(new CompositeId().parse(js.tags).getTokens()));
 		
 		// Attachment needs to be treated outside this class in order to have complete access to their streams
 		return item;

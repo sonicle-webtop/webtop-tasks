@@ -34,7 +34,9 @@
 Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
+		'Sonicle.String',
 		'Sonicle.form.field.ComboBox',
+		'Sonicle.form.field.TagDisplay',
 		'Sonicle.plugin.FileDrop',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.ValueModel',
@@ -44,6 +46,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.Task',
 		'Sonicle.webtop.tasks.model.CategoryLkp'
+	],
+	uses: [
+		'Sonicle.webtop.core.view.Tags'
 	],
 	
 	dockableConfig: {
@@ -104,7 +109,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				get: function(val) {
 					return !Ext.isEmpty(val);
 				}
-			}
+			},
+			foHasTags: WTF.foIsEmpty('record', 'tags', true)
 		});
 	},
 	
@@ -113,85 +119,115 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				pid = WT.getVar('profileId');
 		
 		Ext.apply(me, {
-			tbar: [
-				me.addAct('saveClose', {
-					text: WT.res('act-saveClose.lbl'),
-					tooltip: null,
-					iconCls: 'wt-icon-saveClose-xs',
-					handler: function() {
-						me.saveView(true);
-					}
-				}),
-				'-',
-				me.addAct('delete', {
-					text: null,
-					tooltip: WT.res('act-delete.lbl'),
-					iconCls: 'wt-icon-delete',
-					handler: function() {
-						me.deleteTask();
-					}
-				}),
-				'-',
-				me.addAct('print', {
-					text: null,
-					tooltip: WT.res('act-print.lbl'),
-					iconCls: 'wt-icon-print',
-					handler: function() {
-						//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
-						me.printTask(me.getModel().getId());
-					}
-				}),
-				'->',
-				WTF.lookupCombo('categoryId', '_label', {
-					xtype: 'socombo',
-					reference: 'fldcategory',
-					bind: '{record.categoryId}',
-					listConfig: {
-						displayField: 'name',
-						groupCls: 'wt-theme-text-greyed'
-					},
-					autoLoadOnValue: true,
-					store: {
-						model: me.mys.preNs('model.CategoryLkp'),
-						proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
-						grouper: {
-							property: '_profileId',
-							sortProperty: '_order'
-						},
-						filters: [{
-							filterFn: function(rec) {
-								var mo = me.getModel();
-								if (mo && me.isMode(me.MODE_NEW)) {
-									return rec.get('_writable');
-								} else if (mo && me.isMode(me.MODE_VIEW)) {
-									if (rec.getId() === mo.get('categoryId')) return true;
-								} else if (mo && me.isMode(me.MODE_EDIT)) {
-									if (rec.getId() === mo.get('categoryId')) return true;
-									if (rec.get('_profileId') === mo.get('_profileId') && rec.get('_writable')) return true;
-								}
-								return false;
+			dockedItems: [
+				{
+					xtype: 'toolbar',
+					dock: 'top',
+					items: [
+						me.addAct('saveClose', {
+							text: WT.res('act-saveClose.lbl'),
+							tooltip: null,
+							iconCls: 'wt-icon-saveClose-xs',
+							handler: function() {
+								me.saveView(true);
 							}
-						}],
-						listeners: {
-							load: function(s, recs, succ) {
-								if (succ && (s.loadCount === 1) && me.isMode(me.MODE_NEW)) {
-									var rec = s.getById(me.lref('fldcategory').getValue());
-									if (rec) me.setCategoryDefaults(rec);
+						}),
+						'-',
+						me.addAct('delete', {
+							text: null,
+							tooltip: WT.res('act-delete.lbl'),
+							iconCls: 'wt-icon-delete',
+							handler: function() {
+								me.deleteTask();
+							}
+						}),
+						'-',
+						me.addAct('print', {
+							text: null,
+							tooltip: WT.res('act-print.lbl'),
+							iconCls: 'wt-icon-print',
+							handler: function() {
+								//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
+								me.printTask(me.getModel().getId());
+							}
+						}),
+						me.addAct('tags', {
+							text: null,
+							tooltip: me.mys.res('act-manageTags.lbl'),
+							iconCls: 'wt-icon-tag',
+							handler: function() {
+								me.manageTagsUI(Sonicle.String.split(me.getModel().get('tags'), '|'));
+							}
+						}),
+						'->',
+						WTF.lookupCombo('categoryId', '_label', {
+							xtype: 'socombo',
+							reference: 'fldcategory',
+							bind: '{record.categoryId}',
+							listConfig: {
+								displayField: 'name',
+								groupCls: 'wt-theme-text-greyed'
+							},
+							autoLoadOnValue: true,
+							store: {
+								model: me.mys.preNs('model.CategoryLkp'),
+								proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
+								grouper: {
+									property: '_profileId',
+									sortProperty: '_order'
+								},
+								filters: [{
+									filterFn: function(rec) {
+										var mo = me.getModel();
+										if (mo && me.isMode(me.MODE_NEW)) {
+											return rec.get('_writable');
+										} else if (mo && me.isMode(me.MODE_VIEW)) {
+											if (rec.getId() === mo.get('categoryId')) return true;
+										} else if (mo && me.isMode(me.MODE_EDIT)) {
+											if (rec.getId() === mo.get('categoryId')) return true;
+											if (rec.get('_profileId') === mo.get('_profileId') && rec.get('_writable')) return true;
+										}
+										return false;
+									}
+								}],
+								listeners: {
+									load: function(s, recs, succ) {
+										if (succ && (s.loadCount === 1) && me.isMode(me.MODE_NEW)) {
+											var rec = s.getById(me.lref('fldcategory').getValue());
+											if (rec) me.setCategoryDefaults(rec);
+										}
+									}
+								}
+							},
+							groupField: '_profileDescription',
+							colorField: 'color',
+							fieldLabel: me.mys.res('task.fld-category.lbl'),
+							labelAlign: 'right',
+							width: 400,
+							listeners: {
+								select: function(s, rec) {
+									me.setCategoryDefaults(rec);
 								}
 							}
-						}
+						})
+					]
+				}, {
+					xtype: 'sotagdisplayfield',
+					dock : 'top',
+					bind: {
+						value: '{record.tags}',
+						hidden: '{!foHasTags}'
 					},
-					groupField: '_profileDescription',
+					delimiter: '|',
+					valueField: 'id',
+					displayField: 'name',
 					colorField: 'color',
-					fieldLabel: me.mys.res('task.fld-category.lbl'),
-					labelAlign: 'right',
-					width: 400,
-					listeners: {
-						select: function(s, rec) {
-							me.setCategoryDefaults(rec);
-						}
-					}
-				})
+					store: WT.getTagsStore(),
+					dummyIcon: 'loading',
+					hidden: true,
+					hideLabel: true,
+					margin: '0 0 5 0'
+				}
 			]
 		});
 		me.plugins = me.plugins || [];
@@ -403,6 +439,22 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		me.callParent(arguments);
 	},
 	
+	manageTagsUI: function(selTagIds) {
+		var me = this,
+				vw = WT.createView(WT.ID, 'view.Tags', {
+					swapReturn: true,
+					viewCfg: {
+						data: {
+							selection: selTagIds
+						}
+					}
+				});
+		vw.on('viewok', function(s, data) {
+			me.getModel().set('tags', Sonicle.String.join('|', data.selection));
+		});
+		vw.showView();
+	},
+	
 	openAttachmentUI: function(rec, download) {
 		var me = this,
 				name = rec.get('name'),
@@ -465,18 +517,21 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		onViewLoad: function(s, success) {
 			if (!success) return;
 			var me = this;
-
+			
 			if (me.isMode(me.MODE_NEW)) {
 				me.getAct('saveClose').setDisabled(false);
 				me.getAct('delete').setDisabled(true);
+				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
-			} else if(me.isMode(me.MODE_VIEW)) {
+			} else if (me.isMode(me.MODE_VIEW)) {
 				me.getAct('saveClose').setDisabled(true);
 				me.getAct('delete').setDisabled(true);
+				me.getAct('tags').setDisabled(true);
 				me.lref('fldcategory').setReadOnly(true);
-			} else if(me.isMode(me.MODE_EDIT)) {
+			} else if (me.isMode(me.MODE_EDIT)) {
 				me.getAct('saveClose').setDisabled(false);
 				me.getAct('delete').setDisabled(false);
+				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
 			}
 			me.lref('fldsubject').focus(true);

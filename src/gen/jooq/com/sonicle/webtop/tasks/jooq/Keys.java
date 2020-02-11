@@ -33,6 +33,7 @@ public class Keys {
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_PKEY = UniqueKeys0.TASKS_ATTACHMENTS_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord> TASKS_ATTACHMENTS_DATA_PKEY = UniqueKeys0.TASKS_ATTACHMENTS_DATA_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksIcalendarsRecord> TASKS_ICALENDARS_PKEY = UniqueKeys0.TASKS_ICALENDARS_PKEY;
+	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksTagsRecord> TASKS_TAGS_PKEY = UniqueKeys0.TASKS_TAGS_PKEY;
 
 	// -------------------------------------------------------------------------
 	// FOREIGN KEY definitions
@@ -56,6 +57,7 @@ public class Keys {
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord> TASKS_ATTACHMENTS_DATA_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksIcalendarsRecord> TASKS_ICALENDARS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS, com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS.TASK_ID);
+		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksTagsRecord> TASKS_TAGS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS, com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS.TASK_ID, com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS.TAG_ID);
 	}
 
 	private static class ForeignKeys0 extends org.jooq.impl.AbstractKeys {

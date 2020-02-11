@@ -57,6 +57,7 @@ public class JsGridTask {
 	public Short percentage;
 	public String reminderDate;
 	//public String publicUid;
+	public String tags;
     public Integer categoryId;
 	public String categoryName;
     public String categoryColor;
@@ -80,6 +81,7 @@ public class JsGridTask {
         status = EnumUtils.toSerializedName(task.getStatus());
         percentage = task.getCompletionPercentage();
 		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
+		tags = task.getTags();
         categoryId = task.getCategoryId();
         categoryName = category.getName();
 		categoryColor = category.getColor();

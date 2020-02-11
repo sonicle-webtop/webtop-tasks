@@ -33,7 +33,7 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.Category', {
 	extend: 'WTA.ux.data.BaseModel',
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageCategories'),
+	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageCategory'),
 	
 	identifier: 'negative',
 	idProperty: 'categoryId',

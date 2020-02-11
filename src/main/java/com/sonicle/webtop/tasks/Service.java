@@ -37,6 +37,7 @@ import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.IntegerArray;
+import com.sonicle.commons.web.ServletUtils.StringArray;
 import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
@@ -46,6 +47,7 @@ import com.sonicle.commons.web.json.bean.IntegerSet;
 import com.sonicle.commons.web.json.bean.QueryObj;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
+import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
@@ -88,10 +90,12 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -377,7 +381,7 @@ public class Service extends BaseService {
 		}
 	}
 	
-	public void processManageCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+	public void processManageCategory(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		Category item = null;
 		
 		try {
@@ -409,11 +413,19 @@ public class Service extends BaseService {
 				updateFoldersCache();
 				toggleActiveFolder(pl.data.categoryId, true); // forgets it by simply activating it
 				new JsonResult().printTo(out);
+				
+			} else if (crud.equals("updateTag")) {
+				int id = ServletUtils.getIntParameter(request, "id", true);
+				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
+				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+				
+				manager.updateTaskTags(op, id, new HashSet<>(tags));
+				new JsonResult().printTo(out);
 			}
 			
 		} catch(Exception ex) {
-			logger.error("Error in ManageCategories", ex);
-			new JsonResult(false, "Error").printTo(out);
+			logger.error("Error in ManageCategory", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -505,6 +517,19 @@ public class Service extends BaseService {
 				//int page = ServletUtils.getIntParameter(request, "page", true);
 				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
+				if (queryObj.hasCondition("tag")) {
+					CoreManager coreMgr = WT.getCoreManager();
+					Map<String, List<String>> tags = coreMgr.listTagIdsByName();
+					
+					for (QueryObj.Condition condition : queryObj.conditions) {
+						if ("tag".equals(condition.keyword)) {
+							if (tags.containsKey(condition.value)) {
+								condition.value = tags.get(condition.value).get(0);
+							}
+						}
+					}
+				}
+				
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
 				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, userTimeZone));
 				for (TaskLookup item : result.items) {
@@ -517,11 +542,20 @@ public class Service extends BaseService {
 					items.add(new JsGridTask(fold, pset, item, DateTimeZone.UTC));
 				}
 				new JsonResult("tasks", items).printTo(out);
+				
+			} else if (crud.equals("updateTag")) {
+				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
+				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
+				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+				
+				manager.updateTaskTags(op, ids, new HashSet<>(tags));
+				
+				new JsonResult().printTo(out);
 			}
 		
-		} catch(Exception ex) {
-			logger.error("Error in ManageGridTasks", ex);
-			new JsonResult(false, "Error").printTo(out);
+		} catch(Throwable t) {
+			logger.error("Error in ManageGridTasks", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	    

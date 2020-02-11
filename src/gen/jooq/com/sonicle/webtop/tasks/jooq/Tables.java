@@ -45,4 +45,9 @@ public class Tables {
 	 * The table tasks.tasks_icalendars
 	 */
 	public static final com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars TASKS_ICALENDARS = com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;
+
+	/**
+	 * The table tasks.tasks_tags
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.TasksTags TASKS_TAGS = com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS;
 }

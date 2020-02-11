@@ -39,8 +39,10 @@ import java.util.Collection;
 import org.jooq.Condition;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.app.sdk.BaseJOOQVisitor;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.model.BaseTask;
 import org.joda.time.DateTime;
+import static org.jooq.impl.DSL.*;
 
 /**
  *
@@ -57,21 +59,38 @@ public class TaskPredicateVisitor extends BaseJOOQVisitor {
 		switch (fieldName) {
 			case "subject":
 				return defaultCondition(TASKS.SUBJECT, operator, values);
+				
 			case "description":
 				return defaultCondition(TASKS.DESCRIPTION, operator, values);
+				
 			case "after":
 				DateTime after = (DateTime)single(values);
 				return TASKS.START_DATE.greaterOrEqual(after);
+				
 			case "before":
 				DateTime before = (DateTime)single(values);
 				return TASKS.START_DATE.lessThan(before);
+				
 			case "done":
 				return TASKS.STATUS.equal(EnumUtils.toSerializedName(BaseTask.Status.COMPLETED));
+				
 			case "private":
 				return defaultCondition(TASKS.IS_PRIVATE, operator, values);
+				
+			case "tag":
+				return exists(
+					selectOne()
+					.from(TASKS_TAGS)
+					.where(
+						TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+						.and(TASKS_TAGS.TAG_ID.equal(singleAsString(values)))
+					)
+				);
+				
 			case "any":
 				return TASKS.SUBJECT.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values)))
 						.or(TASKS.DESCRIPTION.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values))));
+				
 			default:
 				throw new UnsupportedOperationException("Field not supported: " + fieldName);
 		}
