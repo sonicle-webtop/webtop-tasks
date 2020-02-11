@@ -263,6 +263,7 @@ public class ManagerUtils {
 			if (tgt.getImportance() == null) tgt.setImportance((short)0);
 			if (tgt.getIsPrivate() == null) tgt.setIsPrivate(false);
 			if (tgt.getStatus() == null) tgt.setStatus(EnumUtils.toSerializedName(Task.Status.NOT_STARTED));
+			if (tgt.getCompletionPercentage() == null) tgt.setCompletionPercentage((short)0);
 		}
 		return tgt;
 	}
