@@ -260,9 +260,11 @@ public class ManagerUtils {
 			if (StringUtils.isBlank(tgt.getPublicUid())) {
 				tgt.setPublicUid(TasksUtils.buildTaskUid(tgt.getTaskId(), WT.getDomainInternetName(targetProfile.getDomainId())));
 			}
+			if (StringUtils.isBlank(tgt.getHref())) tgt.setHref(TasksUtils.buildHref(tgt.getPublicUid()));
 			if (tgt.getImportance() == null) tgt.setImportance((short)0);
 			if (tgt.getIsPrivate() == null) tgt.setIsPrivate(false);
 			if (tgt.getStatus() == null) tgt.setStatus(EnumUtils.toSerializedName(Task.Status.NOT_STARTED));
+			if (tgt.getCompletionPercentage() == null) tgt.setCompletionPercentage((short)0);
 		}
 		return tgt;
 	}
