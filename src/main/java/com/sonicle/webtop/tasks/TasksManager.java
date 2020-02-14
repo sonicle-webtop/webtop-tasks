@@ -113,10 +113,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import com.github.rutledgepaulv.qbuilders.conditions.Condition;
+import com.sonicle.commons.web.json.JsonResult;
+import com.sonicle.webtop.core.app.sdk.AuditReferenceDataEntry;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
 import com.sonicle.webtop.tasks.dal.TaskPredicateVisitor;
 import com.sonicle.webtop.tasks.dal.TaskTagDAO;
 import com.sonicle.webtop.tasks.model.TaskQuery;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -349,8 +352,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			category.setBuiltIn(false);
 			category = doCategoryInsert(con, category);
+			
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_INSERT", String.valueOf(category.getCategoryId()));
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, category.getCategoryId(), null);
+			}
 			
 			return category;
 			
@@ -383,8 +389,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			cat.setDescription("");
 			cat.setIsDefault(true);
 			cat = doCategoryInsert(con, cat);
+			
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_INSERT", String.valueOf(cat.getCategoryId()));
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, cat.getCategoryId(), null);
+			}
 			
 			return cat;
 			
@@ -407,8 +416,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			boolean ret = doCategoryUpdate(con, cat);
 			if (!ret) throw new WTNotFoundException("Category not found [{}]", categoryId);
+			
 			DbUtils.commitQuietly(con);
-			writeLog("CATEGORY_UPDATE", String.valueOf(categoryId));
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.CATEGORY, AuditAction.UPDATE, categoryId, null);
+			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -444,10 +456,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			
 			DbUtils.commitQuietly(con);
-			
-			final String ref = String.valueOf(categoryId);
-			writeLog("CATEGORY_DELETE", ref);
-			writeLog("TASK_DELETE", "*@"+ref);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, categoryId, null);
+				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
+			}
 			
 			return ret == 1;
 			
@@ -779,13 +791,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.ELEMENTS, "CREATE");
-			Set<String> validTags = coreMgr.listTagIds();
 			con = WT.getConnection(SERVICE_ID, false);
 			
+			Set<String> validTags = coreMgr.listTagIds();
 			TaskInsertResult result = doTaskInsert(con, task, true, true, validTags);
-			DbUtils.commitQuietly(con);
 			
-			writeLog("TASK_INSERT", String.valueOf(result.otask.getTaskId()));
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, result.otask.getTaskId(), null);
+			}
 			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
 			
 			Task newTask = ManagerUtils.createTask(result.otask);
@@ -820,10 +834,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			boolean ret = doTaskUpdate(con, task, processAttachments, processTags, validTags);
-			if (!ret) throw new WTException("Task not updated [{}]", task.getTaskId());
-			DbUtils.commitQuietly(con);
+			if (!ret) throw new WTNotFoundException("Task not found [{}]", task.getTaskId());
 			
-			writeLog("TASK_UPDATE", String.valueOf(task.getTaskId()));
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, task.getTaskId(), null);
+			}
 			
 			//TODO: handle subject suggestions
 
@@ -849,17 +865,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			Set<Integer> deleteOkCache = new HashSet<>();
 			Map<Integer, Integer> map = tasDao.selectCategoriesByIds(con, taskIds);
+			ArrayList<AuditReferenceDataEntry> deleted = new ArrayList<>();
 			for (Integer taskId : taskIds) {
 				if (taskId == null) continue;
 				if (!map.containsKey(taskId)) throw new WTNotFoundException("Task not found [{}]", taskId);
 				checkRightsOnCategory(deleteOkCache, map.get(taskId), CheckRightsTarget.ELEMENTS, "DELETE");
 				
-				doTaskDelete(con, taskId);
+				if (doTaskDelete(con, taskId)) {
+					deleted.add(new AuditTaskObj(taskId));
+				} else {
+					throw new WTNotFoundException("Task not found [{}]", taskId);
+				}
 			}
-			DbUtils.commitQuietly(con);
 			
-			if (!taskIds.isEmpty()) {
-				writeLog("TASK_DELETE", taskIds.size() == 1 ? String.valueOf(taskIds.iterator().next()) : "*");
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.TASK, AuditAction.DELETE, deleted);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -887,6 +908,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			Set<Integer> readOkCache = new HashSet<>();
 			Set<Integer> deleteOkCache = new HashSet<>();
 			Map<Integer, Integer> map = tasDao.selectCategoriesByIds(con, taskIds);
+			ArrayList<AuditReferenceDataEntry> copied = new ArrayList<>();
+			ArrayList<AuditReferenceDataEntry> moved = new ArrayList<>();
 			for (Integer taskId : taskIds) {
 				if (taskId == null) continue;
 				if (!map.containsKey(taskId)) throw new WTNotFoundException("Task not found [{}]", taskId);
@@ -897,21 +920,28 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					if (copy) {
 						Task origTask = doTaskGet(con, taskId, false, true);
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
-						TaskInsertResult task = doTaskCopy(con, origTask, targetCategoryId);
+						TaskInsertResult result = doTaskCopy(con, origTask, targetCategoryId);
 						
-						//FIXME move log below to avoid log in case of errors
-						writeLog("TASK_CREATE", String.valueOf(task.otask.getTaskId()));
+						copied.add(new AuditTaskCopyObj(result.otask.getTaskId(), origTask.getTaskId()));
 						
 					} else {
 						checkRightsOnCategory(deleteOkCache, categoryId, CheckRightsTarget.ELEMENTS, "DELETE");
 						boolean ret = doTaskMove(con, taskId, targetCategoryId);
+						if (!ret) throw new WTNotFoundException("Task not found [{}]", taskId);
 						
-						//FIXME move log below to avoid log in case of errors
-						writeLog("TASK_UPDATE", String.valueOf(taskId));
+						moved.add(new AuditTaskMoveObj(taskId, categoryId));
 					}	
 				}
 			}
+			
 			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				if (copy) {
+					writeAuditLog(AuditContext.TASK, AuditAction.CREATE, copied);
+				} else {
+					writeAuditLog(AuditContext.TASK, AuditAction.MOVE, moved);
+				}
+			}
 			
 		} catch(SQLException | DAOException | IOException | WTException ex) {
 			DbUtils.rollbackQuietly(con);
@@ -957,29 +987,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	*/
 	
 	@Override
-	public int deleteCategoryTasks(int categoryId) throws WTException {
-		Connection con = null;
-
-		try {
-			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "DELETE");
-
-			con = WT.getConnection(SERVICE_ID, false);
-			int ret = doTaskDeleteByCategory(con, categoryId);
-			DbUtils.commitQuietly(con);
-			writeLog("TASK_DELETE", "*");
-			
-			return ret;
-
-		} catch(SQLException | DAOException | WTException ex) {
-			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	
-	@Override
-	public void updateTaskTags(final UpdateTagsOperation operation, final int categoryId, final Set<String> tagIds) throws WTException {
+	public void updateTaskCategoryTags(final UpdateTagsOperation operation, final int categoryId, final Set<String> tagIds) throws WTException {
 		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
 		TaskTagDAO ttagDao = TaskTagDAO.getInstance();
 		Connection con = null;
@@ -998,12 +1006,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				for (String tagId : okTagIds) {
 					ttagDao.insertByCategory(con, categoryId, tagId);
 				}
-				DbUtils.commitQuietly(con);
 				
 			} else if (UpdateTagsOperation.UNSET.equals(operation)) {
 				con = WT.getConnection(SERVICE_ID, false);
 				ttagDao.deleteByCategoryTags(con, categoryId, tagIds);
-				DbUtils.commitQuietly(con);
+			}
+			
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, "*", categoryId);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -1036,12 +1047,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				for (String tagId : okTagIds) {
 					ttagDao.insertByCategoriesTasks(con, okCategoryIds, taskIds, tagId);
 				}
-				DbUtils.commitQuietly(con);
 				
 			} else if (UpdateTagsOperation.UNSET.equals(operation)) {
 				con = WT.getConnection(SERVICE_ID, false);
 				ttagDao.deleteByCategoriesTasksTags(con, okCategoryIds, taskIds, tagIds);
-				DbUtils.commitQuietly(con);
+			}
+			
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				ArrayList<AuditReferenceDataEntry> updated = new ArrayList<>();
+				Iterator it = taskIds.iterator();
+				while (it.hasNext()) updated.add(new AuditTaskObj((Integer)it.next()));
+				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, updated);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -1539,6 +1556,80 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			} catch(WTException ex) {
 				throw new WTRuntimeException(ex.getMessage());
 			}
+		}
+	}
+	
+	private enum AuditContext {
+		CATEGORY, TASK
+	}
+	
+	private enum AuditAction {
+		CREATE, UPDATE, DELETE, MOVE
+	}
+	
+	private void writeAuditLog(AuditContext context, AuditAction action, Object reference, Object data) {
+		writeAuditLog(EnumUtils.getName(context), EnumUtils.getName(action), (reference != null) ? String.valueOf(reference) : null, (data != null) ? String.valueOf(data) : null);
+	}
+	
+	private void writeAuditLog(AuditContext context, AuditAction action, Collection<AuditReferenceDataEntry> entries) {
+		writeAuditLog(EnumUtils.getName(context), EnumUtils.getName(action), entries);
+	}
+	
+	private class AuditTaskObj implements AuditReferenceDataEntry {
+		public final int contactId;
+		
+		public AuditTaskObj(int contactId) {
+			this.contactId = contactId;
+		}
+
+		@Override
+		public String getReference() {
+			return String.valueOf(contactId);
+		}
+
+		@Override
+		public String getData() {
+			return null;
+		}
+	}
+	
+	private class AuditTaskMoveObj implements AuditReferenceDataEntry {
+		public final int taskId;
+		public final int origCategoryId;
+		
+		public AuditTaskMoveObj(int taskId, int origCategoryId) {
+			this.taskId = taskId;
+			this.origCategoryId = origCategoryId;
+		}
+
+		@Override
+		public String getReference() {
+			return String.valueOf(taskId);
+		}
+
+		@Override
+		public String getData() {
+			return String.valueOf(origCategoryId);
+		}
+	}
+	
+	private class AuditTaskCopyObj implements AuditReferenceDataEntry {
+		public final int taskId;
+		public final int origTaskId;
+		
+		public AuditTaskCopyObj(int taskId, int origTaskId) {
+			this.taskId = taskId;
+			this.origTaskId = origTaskId;
+		}
+
+		@Override
+		public String getReference() {
+			return String.valueOf(taskId);
+		}
+
+		@Override
+		public String getData() {
+			return String.valueOf(origTaskId);
 		}
 	}
 }

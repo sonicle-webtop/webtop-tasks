@@ -419,7 +419,7 @@ public class Service extends BaseService {
 				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
 				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
 				
-				manager.updateTaskTags(op, id, new HashSet<>(tags));
+				manager.updateTaskCategoryTags(op, id, new HashSet<>(tags));
 				new JsonResult().printTo(out);
 			}
 			
