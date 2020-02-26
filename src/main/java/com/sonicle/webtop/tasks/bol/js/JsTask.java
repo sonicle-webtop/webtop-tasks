@@ -33,14 +33,23 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.CompositeId;
+import com.sonicle.webtop.core.bol.js.JsCustomFieldDefs;
+import com.sonicle.webtop.core.bol.js.JsCustomFieldValue;
+import com.sonicle.webtop.core.model.CustomField;
+import com.sonicle.webtop.core.model.CustomFieldValue;
+import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
 
 /**
  *
@@ -62,25 +71,26 @@ public class JsTask {
 	public String reminderDate;
 	public String tags;
 	public ArrayList<Attachment> attachments;
-	// Read-only fields
-	public String _profileId;
+	public ArrayList<JsCustomFieldValue> cvalues;
+	public String _profileId; // Read-only
+	public String _cfdefs; // Read-only
 
 	public JsTask() {}
 
-	public JsTask(UserProfileId ownerId, Task task, DateTimeZone profileTz) {
+	public JsTask(UserProfileId ownerId, Task task, Collection<CustomPanel> customPanels, Map<String, CustomField> customFields, String profileLanguageTag, DateTimeZone profileTz) {
 		taskId = task.getTaskId();
 		categoryId = task.getCategoryId();
 		//publicUid;
 		subject = task.getSubject();
 		description = task.getDescription();
-		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), profileTz);
-		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
-		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
+		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), DateTimeZone.UTC);
+		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), DateTimeZone.UTC);
+		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), DateTimeZone.UTC);
 		importance = task.getImportance();
 		isPrivate = task.getIsPrivate();
 		status = EnumUtils.toSerializedName(task.getStatus());
 		percentage = task.getCompletionPercentage();
-		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
+		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), DateTimeZone.UTC);
 		tags = new CompositeId(task.getTags()).toString();
 		
 		attachments = new ArrayList<>();
@@ -93,25 +103,46 @@ public class JsTask {
 			attachments.add(jsatt);
 		}
 		
-		_profileId = ownerId.toString();
-	}
-
-	public static Task createTask(JsTask js, DateTimeZone profileTz) {
-		Task item = new Task();
-		item.setTaskId(js.taskId);
-		item.setCategoryId(js.categoryId);
-		item.setSubject(js.subject);
-		item.setDescription(js.description);
-		item.setStartDate(DateTimeUtils.parseYmdHmsWithZone(js.startDate, DateTimeZone.UTC));
-		item.setDueDate(DateTimeUtils.parseYmdHmsWithZone(js.dueDate, DateTimeZone.UTC));
-		item.setCompletedDate(DateTimeUtils.parseYmdHmsWithZone(js.completedDate, DateTimeZone.UTC));
-		item.setImportance(js.importance);
-		item.setIsPrivate(js.isPrivate);
-		item.setStatus(EnumUtils.forSerializedName(js.status, Task.Status.class));
-		item.setCompletionPercentage(js.percentage);
-		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(js.reminderDate, DateTimeZone.UTC));
-		item.setTags(new LinkedHashSet<>(new CompositeId().parse(js.tags).getTokens()));
+		cvalues = new ArrayList<>();
+		ArrayList<JsCustomFieldDefs.Panel> panels = new ArrayList<>();
+		for (CustomPanel panel : customPanels) {
+			panels.add(new JsCustomFieldDefs.Panel(panel, profileLanguageTag));
+		}
+		ArrayList<JsCustomFieldDefs.Field> fields = new ArrayList<>();
+		for (CustomField field : customFields.values()) {
+			CustomFieldValue cvalue = null;
+			if (task.hasCustomValues()) {
+				cvalue = task.getCustomValues().get(field.getFieldId());
+			}
+			cvalues.add(cvalue != null ? new JsCustomFieldValue(field.getType(), cvalue, profileTz) : new JsCustomFieldValue(field.getType(), field.getFieldId()));
+			fields.add(new JsCustomFieldDefs.Field(field, profileLanguageTag));
+		}
 		
+		_profileId = ownerId.toString();
+		_cfdefs = LangUtils.serialize(new JsCustomFieldDefs(panels, fields), JsCustomFieldDefs.class);
+	}
+	
+	public Task toTask(DateTimeZone profileTz) {
+		Task item = new Task();
+		item.setTaskId(taskId);
+		item.setCategoryId(categoryId);
+		item.setSubject(subject);
+		item.setDescription(description);
+		item.setStartDate(DateTimeUtils.parseYmdHmsWithZone(startDate, DateTimeZone.UTC));
+		item.setDueDate(DateTimeUtils.parseYmdHmsWithZone(dueDate, DateTimeZone.UTC));
+		item.setCompletedDate(DateTimeUtils.parseYmdHmsWithZone(completedDate, DateTimeZone.UTC));
+		item.setImportance(importance);
+		item.setIsPrivate(isPrivate);
+		item.setStatus(EnumUtils.forSerializedName(status, Task.Status.class));
+		item.setCompletionPercentage(percentage);
+		item.setReminderDate(DateTimeUtils.parseYmdHmsWithZone(reminderDate, DateTimeZone.UTC));
+		item.setTags(new LinkedHashSet<>(new CompositeId().parse(tags).getTokens()));
+		
+		ArrayList<CustomFieldValue> customValues = new ArrayList<>();
+		for (JsCustomFieldValue jscfv : cvalues) {
+			customValues.add(jscfv.toCustomFieldValue(profileTz));
+		}
+		item.setCustomValues(customValues);
 		// Attachment needs to be treated outside this class in order to have complete access to their streams
 		return item;
 	}

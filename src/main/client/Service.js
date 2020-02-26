@@ -446,6 +446,25 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				hdscale = WT.getHeaderScale();
 		
+		if (WT.isPermitted(WT.ID, 'CUSTOM_FIELDS', 'MANAGE')) {
+			me.addAct('toolbox', 'manageCustomFields', {
+				text: WT.res('act-manageCustomFields.lbl'),
+				tooltip: WT.res('act-manageCustomFields.tip'),
+				iconCls: 'wt-icon-customField',
+				handler: function() {
+					me.showCustomFieldsUI();
+				}
+			});
+			me.addAct('toolbox', 'manageCustomPanels', {
+				text: WT.res('act-manageCustomPanels.lbl'),
+				tooltip: WT.res('act-manageCustomPanels.tip'),
+				iconCls: 'wt-icon-customPanel',
+				handler: function() {
+					me.showCustomPanelsUI();
+				}
+			});
+		}
+		
 		me.addAct('new', 'newTask', {
 			ignoreSize: true,
 			handler: function() {
@@ -900,6 +919,32 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	getSelectedTasks: function() {
 		return this.gpTasks().getSelection();
+	},
+	
+	showCustomPanelsUI: function() {
+		var me = this;
+		WT.createView(WT.ID, 'view.CustomPanels', {
+			swapReturn: true,
+			viewCfg: {
+				dockableConfig: {
+					title: WT.res('customPanels.tit') + ' [' + me.getName() + ']'
+				},
+				serviceId: me.ID
+			}
+		}).showView();
+	},
+	
+	showCustomFieldsUI: function() {
+		var me = this;
+		WT.createView(WT.ID, 'view.CustomFields', {
+			swapReturn: true,
+			viewCfg: {
+				dockableConfig: {
+					title: WT.res('customFields.tit') + ' [' + me.getName() + ']'
+				},
+				serviceId: me.ID
+			}
+		}).showView();
 	},
 	
 	addCategoryUI: function(domainId, userId) {

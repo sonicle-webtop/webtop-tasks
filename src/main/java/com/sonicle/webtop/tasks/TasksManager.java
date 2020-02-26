@@ -116,6 +116,9 @@ import com.github.rutledgepaulv.qbuilders.conditions.Condition;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.app.sdk.AuditReferenceDataEntry;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
+import com.sonicle.webtop.core.model.CustomFieldValue;
+import com.sonicle.webtop.tasks.bol.OTaskCustomValue;
+import com.sonicle.webtop.tasks.dal.TaskCustomValueDAO;
 import com.sonicle.webtop.tasks.dal.TaskPredicateVisitor;
 import com.sonicle.webtop.tasks.dal.TaskTagDAO;
 import com.sonicle.webtop.tasks.model.TaskQuery;
@@ -737,16 +740,16 @@ public class TasksManager extends BaseManager implements ITasksManager {
     
 	@Override
 	public Task getTask(int taskId) throws WTException {
-		return getTask(taskId, true, true);
+		return getTask(taskId, true, true, true);
 	}
 	
 	@Override
-	public Task getTask(int taskId, boolean processAttachments, boolean processTags) throws WTException {
+	public Task getTask(int taskId, boolean processAttachments, boolean processTags, boolean processCustomValues) throws WTException {
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			Task task = doTaskGet(con, taskId, processAttachments, processTags);
+			Task task = doTaskGet(con, taskId, processAttachments, processTags, processCustomValues);
 			if (task == null) return null;
 			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.FOLDER, "READ");
 			
@@ -794,7 +797,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			Set<String> validTags = coreMgr.listTagIds();
-			TaskInsertResult result = doTaskInsert(con, task, true, true, validTags);
+			TaskInsertResult result = doTaskInsert(con, task, true, true, true, validTags);
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
@@ -821,10 +824,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void updateTask(Task task, boolean processAttachments) throws WTException {
-		updateTask(task, true, true);
+		updateTask(task, true, true, true);
 	}
 	
-	public void updateTask(Task task, boolean processAttachments, boolean processTags) throws WTException {
+	public void updateTask(Task task, boolean processAttachments, boolean processTags, boolean processCustomValues) throws WTException {
 		CoreManager coreMgr = getCoreManager();
 		Connection con = null;
 		
@@ -833,7 +836,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			Set<String> validTags = processTags ? coreMgr.listTagIds() : null;
 			con = WT.getConnection(SERVICE_ID, false);
 			
-			boolean ret = doTaskUpdate(con, task, processAttachments, processTags, validTags);
+			boolean ret = doTaskUpdate(con, task, processAttachments, processTags, processCustomValues, validTags);
 			if (!ret) throw new WTNotFoundException("Task not found [{}]", task.getTaskId());
 			
 			DbUtils.commitQuietly(con);
@@ -918,7 +921,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				if (copy || (targetCategoryId != categoryId)) {
 					if (copy) {
-						Task origTask = doTaskGet(con, taskId, false, true);
+						Task origTask = doTaskGet(con, taskId, false, true, true);
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
 						TaskInsertResult result = doTaskCopy(con, origTask, targetCategoryId);
 						
@@ -1202,10 +1205,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private Task doTaskGet(Connection con, int taskId, boolean processAttachments, boolean processTags) throws DAOException, WTException {
+	private Task doTaskGet(Connection con, int taskId, boolean processAttachments, boolean processTags, boolean processCustomValues) throws DAOException, WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskTagDAO tagDao = TaskTagDAO.getInstance();
 		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		
 		OTask otask = tasDao.selectById(con, taskId);
 		if (otask == null) return null;
@@ -1218,12 +1222,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			List<OTaskAttachment> oatts = attDao.selectByTask(con, taskId);
 			task.setAttachments(ManagerUtils.createTaskAttachmentList(oatts));
 		}
+		if (processCustomValues) {
+			List<OTaskCustomValue> ovals = cvalDao.selectByTask(con, taskId);
+			task.setCustomValues(ManagerUtils.createCustomValuesMap(ovals));
+		}
 		return task;
 	}
 	
-	private TaskInsertResult doTaskInsert(Connection con, Task task, boolean processAttachments, boolean processTags, Set<String> validTags) throws DAOException, IOException {
+	private TaskInsertResult doTaskInsert(Connection con, Task task, boolean processAttachments, boolean processTags, boolean processCustomValues, Set<String> validTags) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskTagDAO tagDao = TaskTagDAO.getInstance();
+		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		
 		OTask otask = ManagerUtils.createOTask(task);
 		otask.setTaskId(tasDao.getSequence(con).intValue());
@@ -1250,13 +1259,25 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 		}
 		
-		return new TaskInsertResult(otask, otags, oatts);
+		ArrayList<OTaskCustomValue> ocvals = null;
+		if (processCustomValues && task.hasCustomValues()) {
+				ocvals = new ArrayList<>(task.getCustomValues().size());
+				for (CustomFieldValue cfv : task.getCustomValues().values()) {
+					OTaskCustomValue ocv = ManagerUtils.createOTaskCustomValue(cfv);
+					ocv.setTaskId(otask.getTaskId());
+					ocvals.add(ocv);
+				}
+				cvalDao.batchInsert(con, ocvals);
+			}
+		
+		return new TaskInsertResult(otask, otags, oatts, ocvals);
 	}
 	
-	private boolean doTaskUpdate(Connection con, Task task, boolean processAttachments, boolean processTags, Set<String> validTags) throws DAOException, IOException {
+	private boolean doTaskUpdate(Connection con, Task task, boolean processAttachments, boolean processTags, boolean processCustomValues, Set<String> validTags) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskTagDAO tagDao = TaskTagDAO.getInstance();
 		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
+		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		
 		OTask otask = ManagerUtils.createOTask(task);
 		ManagerUtils.fillOTaskWithDefaults(otask, getTargetProfileId());
@@ -1290,6 +1311,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				attDao.delete(con, att.getAttachmentId());
 			}
 		}
+		
+		if (processCustomValues && task.hasCustomValues()) {
+			ArrayList<OTaskCustomValue> ocvals = new ArrayList<>(task.getCustomValues().size());
+			for (CustomFieldValue cfv : task.getCustomValues().values()) {
+				OTaskCustomValue ocv = ManagerUtils.createOTaskCustomValue(cfv);
+				ocv.setTaskId(otask.getTaskId());
+				ocvals.add(ocv);
+			}
+			cvalDao.deleteByTask(con, otask.getTaskId());
+			cvalDao.batchInsert(con, ocvals);
+		}
+		
 		return ret;
 	}
 	
@@ -1307,7 +1340,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		task.setCategoryId(targetCategoryId);
 		//TODO: maybe add support to attachments copy
 		
-		return doTaskInsert(con, task, false, true, null);
+		return doTaskInsert(con, task, false, true, true, null);
 	}
 	
 	private boolean doTaskMove(Connection con, int taskId, int targetCategoryId) throws DAOException {
@@ -1501,11 +1534,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		public final OTask otask;
 		public final Set<String> otags;
 		public final List<OTaskAttachment> oattachments;
+		public final List<OTaskCustomValue> ocustomvalues;
 		
-		public TaskInsertResult(OTask otask, Set<String> otags, List<OTaskAttachment> oattachments) {
+		public TaskInsertResult(OTask otask, Set<String> otags, List<OTaskAttachment> oattachments, ArrayList<OTaskCustomValue> ocustomvalues) {
 			this.otask = otask;
 			this.otags = otags;
 			this.oattachments = oattachments;
+			this.ocustomvalues = ocustomvalues;
 		}
 	}
 	

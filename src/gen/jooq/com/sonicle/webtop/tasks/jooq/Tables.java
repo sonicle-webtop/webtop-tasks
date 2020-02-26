@@ -42,6 +42,11 @@ public class Tables {
 	public static final com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData TASKS_ATTACHMENTS_DATA = com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA;
 
 	/**
+	 * The table tasks.tasks_custom_values
+	 */
+	public static final com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues TASKS_CUSTOM_VALUES = com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES;
+
+	/**
 	 * The table tasks.tasks_icalendars
 	 */
 	public static final com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars TASKS_ICALENDARS = com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;

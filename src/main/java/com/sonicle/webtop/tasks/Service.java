@@ -58,11 +58,14 @@ import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
+import com.sonicle.webtop.core.bol.js.JsCustomFieldDefsData;
 import com.sonicle.webtop.core.bol.js.JsSimple;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
+import com.sonicle.webtop.core.model.CustomField;
+import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
@@ -560,11 +563,11 @@ public class Service extends BaseService {
 	}
 	    
 	public void processManageTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
 		JsTask item = null;
 		
 		try {
-			DateTimeZone ptz = getEnv().getProfile().getTimeZone();
-			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
@@ -572,14 +575,22 @@ public class Service extends BaseService {
 				int taskId = Integer.parseInt(id);
 				Task task = manager.getTask(taskId);
 				UserProfileId ownerId = manager.getCategoryOwner(task.getCategoryId());
-				item = new JsTask(ownerId, task, DateTimeZone.UTC);
 				
+				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
+				Map<String, CustomField> cfields = new HashMap<>();
+				for (CustomPanel cpanel : cpanels.values()) {
+					for (String fieldId : cpanel.getFields()) {
+						CustomField cfield = coreMgr.getCustomField(SERVICE_ID, fieldId);
+						if (cfield != null) cfields.put(fieldId, cfield);
+					}
+				}
+				item = new JsTask(ownerId, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone());
 				new JsonResult(item).printTo(out);
 				
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.createTask(pl.data, ptz);
+				Task task = pl.data.toTask(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
 					TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
@@ -595,7 +606,7 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.createTask(pl.data, ptz);
+				Task task = pl.data.toTask(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					if (!StringUtils.isBlank(jsatt._uplId)) {
 						UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
@@ -635,7 +646,7 @@ public class Service extends BaseService {
 			
 		} catch(Throwable t) {
 			logger.error("Error in ManageTasks", t);
-			new JsonResult(false, "Error").printTo(out);	
+			new JsonResult(t).printTo(out);	
 		}
 	}
 	
@@ -671,6 +682,29 @@ public class Service extends BaseService {
 			
 		} catch(Throwable t) {
 			logger.error("Error in DownloadTaskAttachment", t);
+			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
+		}
+	}
+	
+	public void processGetCustomFieldsDefsData(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
+		
+		try {
+			ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+			
+			Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, tags);
+			Map<String, CustomField> cfields = new HashMap<>();
+			for (CustomPanel cpanel : cpanels.values()) {
+				for (String fieldId : cpanel.getFields()) {
+					CustomField cfield = coreMgr.getCustomField(SERVICE_ID, fieldId);
+					if (cfield != null) cfields.put(fieldId, cfield);
+				}
+			}
+			new JsonResult(new JsCustomFieldDefsData(cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone())).printTo(out);
+			
+		} catch(Throwable t) {
+			logger.error("Error in GetCustomFieldsDefsData", t);
 			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
 		}
 	}

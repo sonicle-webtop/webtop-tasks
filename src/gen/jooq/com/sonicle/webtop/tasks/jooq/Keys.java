@@ -32,6 +32,7 @@ public class Keys {
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_PKEY = UniqueKeys0.TASKS_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_PKEY = UniqueKeys0.TASKS_ATTACHMENTS_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord> TASKS_ATTACHMENTS_DATA_PKEY = UniqueKeys0.TASKS_ATTACHMENTS_DATA_PKEY;
+	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksCustomValuesRecord> TASKS_CUSTOM_VALUES_PKEY = UniqueKeys0.TASKS_CUSTOM_VALUES_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksIcalendarsRecord> TASKS_ICALENDARS_PKEY = UniqueKeys0.TASKS_ICALENDARS_PKEY;
 	public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksTagsRecord> TASKS_TAGS_PKEY = UniqueKeys0.TASKS_TAGS_PKEY;
 
@@ -41,6 +42,7 @@ public class Keys {
 
 	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY = ForeignKeys0.TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY;
 	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY = ForeignKeys0.TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY;
+	public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksCustomValuesRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_CUSTOM_VALUES__TASKS_CUSTOM_VALUES_TASK_ID_FKEY = ForeignKeys0.TASKS_CUSTOM_VALUES__TASKS_CUSTOM_VALUES_TASK_ID_FKEY;
 
 	// -------------------------------------------------------------------------
 	// [#1459] distribute members to avoid static initialisers > 64kb
@@ -56,6 +58,7 @@ public class Keys {
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS, com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS.TASK_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord> TASKS_ATTACHMENTS_DATA_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID);
+		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksCustomValuesRecord> TASKS_CUSTOM_VALUES_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES, com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES.TASK_ID, com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES.CUSTOM_FIELD_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksIcalendarsRecord> TASKS_ICALENDARS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS, com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS.TASK_ID);
 		public static final org.jooq.UniqueKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksTagsRecord> TASKS_TAGS_PKEY = createUniqueKey(com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS, com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS.TASK_ID, com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS.TAG_ID);
 	}
@@ -63,5 +66,6 @@ public class Keys {
 	private static class ForeignKeys0 extends org.jooq.impl.AbstractKeys {
 		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_ATTACHMENTS__TASKS_ATTACHMENTS_TASK_ID_FKEY = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS, com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS.TASK_ID);
 		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsDataRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord> TASKS_ATTACHMENTS_DATA__TASKS_ATTACHMENTS_DATA_TASK_ATTACHMENT_ID_FKEY = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_ATTACHMENTS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA, com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID);
+		public static final org.jooq.ForeignKey<com.sonicle.webtop.tasks.jooq.tables.records.TasksCustomValuesRecord, com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> TASKS_CUSTOM_VALUES__TASKS_CUSTOM_VALUES_TASK_ID_FKEY = createForeignKey(com.sonicle.webtop.tasks.jooq.Keys.TASKS_PKEY, com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES, com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES.TASK_ID);
 	}
 }

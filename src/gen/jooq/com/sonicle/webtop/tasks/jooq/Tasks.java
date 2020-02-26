@@ -16,7 +16,7 @@ package com.sonicle.webtop.tasks.jooq;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tasks extends org.jooq.impl.SchemaImpl {
 
-	private static final long serialVersionUID = 268263840;
+	private static final long serialVersionUID = 1312778390;
 
 	/**
 	 * The reference instance of <code>tasks</code>
@@ -57,6 +57,7 @@ public class Tasks extends org.jooq.impl.SchemaImpl {
 			com.sonicle.webtop.tasks.jooq.tables.Tasks.TASKS,
 			com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS,
 			com.sonicle.webtop.tasks.jooq.tables.TasksAttachmentsData.TASKS_ATTACHMENTS_DATA,
+			com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues.TASKS_CUSTOM_VALUES,
 			com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS,
 			com.sonicle.webtop.tasks.jooq.tables.TasksTags.TASKS_TAGS);
 	}
