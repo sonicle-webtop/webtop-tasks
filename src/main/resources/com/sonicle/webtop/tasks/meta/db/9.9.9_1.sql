@@ -31,6 +31,6 @@ WITH (OIDS=FALSE)
 
 ;
 
-ALTER TABLE "tasks"."tasks_custom_values" ADD PRIMARY KEY ("task_id", "field_id");
+ALTER TABLE "tasks"."tasks_custom_values" ADD PRIMARY KEY ("task_id", "custom_field_id");
 ALTER TABLE "tasks"."tasks_custom_values" ADD FOREIGN KEY ("task_id") REFERENCES "tasks"."tasks" ("task_id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "tasks"."tasks_custom_values" ADD FOREIGN KEY ("custom_field_id") REFERENCES "core"."custom_fields" ("custom_field_id") ON DELETE CASCADE ON UPDATE CASCADE;
