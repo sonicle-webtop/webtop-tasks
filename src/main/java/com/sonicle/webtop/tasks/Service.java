@@ -34,10 +34,10 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
+import com.sonicle.commons.cache.AbstractPassiveExpiringCache;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.IntegerArray;
-import com.sonicle.commons.web.ServletUtils.StringArray;
 import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
@@ -60,11 +60,14 @@ import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
 import com.sonicle.webtop.core.bol.js.JsCustomFieldDefsData;
 import com.sonicle.webtop.core.bol.js.JsSimple;
+import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
+import com.sonicle.webtop.core.bol.js.ObjSearchableCustomField;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
 import com.sonicle.webtop.core.model.CustomField;
+import com.sonicle.webtop.core.model.CustomFieldEx;
 import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
@@ -93,13 +96,13 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -121,6 +124,7 @@ public class Service extends BaseService {
 	private TasksServiceSettings ss;
 	private TasksUserSettings us;
 	
+	private final SearchableCustomFieldTypeCache cacheSearchableCustomFieldType = new SearchableCustomFieldTypeCache(5, TimeUnit.SECONDS);
 	private final LinkedHashMap<String, ShareRootCategory> roots = new LinkedHashMap<>();
 	private final LinkedHashMap<Integer, ShareFolderCategory> folders = new LinkedHashMap<>();
 	private final HashMap<Integer, CategoryPropSet> folderProps = new HashMap<>();
@@ -159,7 +163,24 @@ public class Service extends BaseService {
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
 		co.put("defaultCategorySync", EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
+		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjSearchableCustomField.List.class));
 		return co;
+	}
+	
+	private ObjSearchableCustomField.List getSearchableCustomFieldDefs() {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
+		
+		try {
+			ObjSearchableCustomField.List scfields = new ObjSearchableCustomField.List();
+			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, true).values()) {
+				scfields.add(new ObjCustomFieldDefs.Field(cfield, up.getLanguageTag()));
+			}
+			return scfields;
+			
+		} catch(Throwable t) {
+			return null;
+		}
 	}
 	
 	private WebTopSession getWts() {
@@ -520,21 +541,9 @@ public class Service extends BaseService {
 				//int page = ServletUtils.getIntParameter(request, "page", true);
 				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
-				if (queryObj.hasCondition("tag")) {
-					CoreManager coreMgr = WT.getCoreManager();
-					Map<String, List<String>> tags = coreMgr.listTagIdsByName();
-					
-					for (QueryObj.Condition condition : queryObj.conditions) {
-						if ("tag".equals(condition.keyword)) {
-							if (tags.containsKey(condition.value)) {
-								condition.value = tags.get(condition.value).get(0);
-							}
-						}
-					}
-				}
-				
+				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
-				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, userTimeZone));
+				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, map, userTimeZone));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
@@ -979,5 +988,24 @@ public class Service extends BaseService {
 		if (!chooser) node.setChecked(active);
 		
 		return node;
+	}
+	
+	private class SearchableCustomFieldTypeCache extends AbstractPassiveExpiringCache<String, CustomField.Type> {
+		
+		public SearchableCustomFieldTypeCache(final long timeToLive, final TimeUnit timeUnit) {
+			super(timeToLive, timeUnit);
+		}
+		
+		@Override
+		protected Map<String, CustomField.Type> internalGetCache() {
+			try {
+				CoreManager coreMgr = WT.getCoreManager();
+				return coreMgr.listCustomFieldTypesById(SERVICE_ID, true);
+				
+			} catch(Throwable t) {
+				logger.error("[SearchableCustomFieldTypeCache] Unable to build cache", t);
+				throw new UnsupportedOperationException();
+			}
+		}
 	}
 }

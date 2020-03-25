@@ -74,7 +74,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	init: function() {
 		var me = this,
-				tagsStore = WT.getTagsStore();
+				tagsStore = WT.getTagsStore(),
+				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.getVar('cfieldsSearchable'));
 		
 		me.initActions();
 		me.initCxm();
@@ -94,7 +95,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'wtsearchfield',
 					reference: 'fldsearch',
 					highlightKeywords: ['subject'],
-					fields: [
+					fields: Ext.Array.push([
 						{
 							name: 'subject',
 							type: 'string',
@@ -125,7 +126,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							label: me.res('fld-search.field.done.lbl')
 						}, {
 							name: 'tag',
-							type: 'tag[]',
+							type: 'tag',
 							label: me.res('fld-search.field.tags.lbl'),
 							customConfig: {
 								valueField: 'id',
@@ -134,7 +135,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								store: WT.getTagsStore() // This is filterable, let's do a separate copy!
 							}
 						}
+					], scfields),
+					tabs: Ext.isEmpty(scfields) ? undefined: [
+						{
+							title: WT.res('wtsearchfield.main.tit'),
+							fields: ['subject', 'description', 'after', 'before', 'private', 'done', 'tag']
+						}, {
+							title: WT.res('wtsearchfield.customFields.tit'),
+							fields: Ext.Array.pluck(scfields, 'name')
+						}
 					],
+					
 					tooltip: me.res('fld-search.tip'),
 					searchTooltip: me.res('fld-search.tip'),
 					emptyText: me.res('fld-search.emp'),

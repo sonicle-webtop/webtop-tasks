@@ -35,50 +35,53 @@ package com.sonicle.webtop.tasks.dal;
 import com.github.rutledgepaulv.qbuilders.nodes.ComparisonNode;
 import com.github.rutledgepaulv.qbuilders.operators.ComparisonOperator;
 import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.web.json.CompId;
 import java.util.Collection;
 import org.jooq.Condition;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
-import com.sonicle.webtop.core.app.sdk.BaseJOOQVisitor;
+import com.sonicle.webtop.core.app.sdk.JOOQPredicateVisitorWithCValues;
+import com.sonicle.webtop.core.app.sdk.QBuilderWithCValues;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.model.BaseTask;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import static org.jooq.impl.DSL.*;
 
 /**
  *
- * @author Inis
+ * @author malbinola
  */
-public class TaskPredicateVisitor extends BaseJOOQVisitor {
+public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 
 	public TaskPredicateVisitor() {
-		super();
+		super(false);
 	}
 
 	@Override
 	protected Condition toCondition(String fieldName, ComparisonOperator operator, Collection<?> values, ComparisonNode node) {
-		switch (fieldName) {
-			case "subject":
-				return defaultCondition(TASKS.SUBJECT, operator, values);
-				
-			case "description":
-				return defaultCondition(TASKS.DESCRIPTION, operator, values);
-				
-			case "after":
-				DateTime after = (DateTime)single(values);
-				return TASKS.START_DATE.greaterOrEqual(after);
-				
-			case "before":
-				DateTime before = (DateTime)single(values);
-				return TASKS.START_DATE.lessThan(before);
-				
-			case "done":
-				return TASKS.STATUS.equal(EnumUtils.toSerializedName(BaseTask.Status.COMPLETED));
-				
-			case "private":
-				return defaultCondition(TASKS.IS_PRIVATE, operator, values);
-				
-			case "tag":
-				return exists(
+		if ("subject".equals(fieldName)) {
+			return defaultCondition(TASKS.SUBJECT, operator, values);
+			
+		} else if ("description".equals(fieldName)) {
+			return defaultCondition(TASKS.DESCRIPTION, operator, values);
+			
+		} else if ("after".equals(fieldName)) {
+			DateTime after = (DateTime)single(values);
+			return TASKS.START_DATE.greaterOrEqual(after);
+			
+		} else if ("before".equals(fieldName)) {
+			DateTime before = (DateTime)single(values);
+			return TASKS.START_DATE.lessThan(before);
+			
+		} else if ("done".equals(fieldName)) {
+			return TASKS.STATUS.equal(EnumUtils.toSerializedName(BaseTask.Status.COMPLETED));
+			
+		} else if ("private".equals(fieldName)) {
+			return defaultCondition(TASKS.IS_PRIVATE, operator, values);
+			
+		} else if ("tag".equals(fieldName)) {
+			return exists(
 					selectOne()
 					.from(TASKS_TAGS)
 					.where(
@@ -86,13 +89,63 @@ public class TaskPredicateVisitor extends BaseJOOQVisitor {
 						.and(TASKS_TAGS.TAG_ID.equal(singleAsString(values)))
 					)
 				);
+			
+		} else if ("any".equals(fieldName)) {
+			return TASKS.SUBJECT.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values)))
+				.or(TASKS.DESCRIPTION.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values))));
+			
+		} else if (StringUtils.startsWith(fieldName, "CV")) {
+			CompId fn = new CompId(2).parse(fieldName, false);
+			if (fn.isTokenEmpty(1)) throw new UnsupportedOperationException("Field name invalid: " + fieldName);
+			
+			JOOQPredicateVisitorWithCValues.CValueCondition cvCondition = getCustomFieldCondition(fn, operator, values);
+			if (cvCondition.negated) {
+				return notExists(
+					selectOne()
+					.from(TASKS_CUSTOM_VALUES)
+					.where(
+						TASKS_CUSTOM_VALUES.TASK_ID.equal(TASKS.TASK_ID)
+						.and(TASKS_CUSTOM_VALUES.CUSTOM_FIELD_ID.equal(fn.getToken(1)))
+						.and(cvCondition.condition)
+					)
+				);
 				
-			case "any":
-				return TASKS.SUBJECT.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values)))
-						.or(TASKS.DESCRIPTION.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values))));
-				
-			default:
-				throw new UnsupportedOperationException("Field not supported: " + fieldName);
+			} else {
+				return exists(
+					selectOne()
+					.from(TASKS_CUSTOM_VALUES)
+					.where(
+						TASKS_CUSTOM_VALUES.TASK_ID.equal(TASKS.TASK_ID)
+						.and(TASKS_CUSTOM_VALUES.CUSTOM_FIELD_ID.equal(fn.getToken(1)))
+						.and(cvCondition.condition)
+					)
+				);
+			}
+			
+		} else {
+			throw new UnsupportedOperationException("Field not supported: " + fieldName);
+		}
+	}
+
+	@Override
+	protected Condition cvalueCondition(QBuilderWithCValues.Type cvalueType, ComparisonOperator operator, Collection<?> values) {
+		if (QBuilderWithCValues.Type.CVSTRING.equals(cvalueType)) {
+			return defaultCondition(TASKS_CUSTOM_VALUES.STRING_VALUE, operator, values);
+			
+		} else if (QBuilderWithCValues.Type.CVNUMBER.equals(cvalueType)) {
+			return defaultCondition(TASKS_CUSTOM_VALUES.NUMBER_VALUE, operator, values);
+			
+		} else if (QBuilderWithCValues.Type.CVBOOL.equals(cvalueType)) {
+			return defaultCondition(TASKS_CUSTOM_VALUES.BOOLEAN_VALUE, operator, values);
+			
+		} else if (QBuilderWithCValues.Type.CVDATE.equals(cvalueType)) {
+			return defaultCondition(TASKS_CUSTOM_VALUES.DATE_VALUE, operator, values);
+			
+		} else if (QBuilderWithCValues.Type.CVTEXT.equals(cvalueType)) {
+			return defaultCondition(TASKS_CUSTOM_VALUES.TEXT_VALUE, operator, values);
+			
+		} else {
+			return null;
 		}
 	}
 }
