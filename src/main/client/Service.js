@@ -47,6 +47,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.model.GridTask'
 	],
 	uses: [
+		'Sonicle.picker.Color',
 		'WTA.util.FoldersTree',
 		'WTA.ux.SelectTagsBox',
 		'Sonicle.webtop.tasks.view.Sharing',
@@ -586,14 +587,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			menu: {
 				showSeparator: false,
 				itemId: 'categoryColor',
-				items: [{
-						xtype: 'colorpicker',
-						colors: WT.getColorPalette(),
+				items: [
+					{
+						xtype: 'socolorpicker',
+						colors: WT.getColorPalette('default'),
+						tilesPerRow: 11,
 						listeners: {
 							select: function(s, color) {
 								var node = s.menuData.node;
 								me.getRef('cxmFolder').hide();
-								if (node) me.updateCategoryColorUI(node, '#'+color);
+								if (node) me.updateCategoryColorUI(node, Sonicle.String.prepend(color, '#', true));
 							}
 						}
 					},

@@ -69,43 +69,57 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 			defaults: {
 				labelWidth: 110
 			},
-			items: [{
-				xtype: 'textfield',
-				reference: 'fldname',
-				bind: '{record.name}',
-				fieldLabel: me.mys.res('category.fld-name.lbl'),
-				anchor: '100%'
-			}, {
-				xtype: 'checkbox',
-				bind: '{isDefault}',
-				hideEmptyLabel: false,
-				boxLabel: me.mys.res('category.fld-default.lbl')
-			}, {
-				xtype: 'textareafield',
-				bind: '{record.description}',
-				fieldLabel: me.mys.res('category.fld-description.lbl'),
-				anchor: '100%'
-			}, {
-				xtype: 'sopalettefield',
-				bind: '{record.color}',
-				colors: WT.getColorPalette(),
-				fieldLabel: me.mys.res('category.fld-color.lbl'),
-				width: 210
-			},
-			WTF.lookupCombo('id', 'desc', {
-				bind: '{record.sync}',
-				store: Ext.create('Sonicle.webtop.tasks.store.Sync', {
-					autoLoad: true
-				}),
-				fieldLabel: me.mys.res('category.fld-sync.lbl'),
-				width: 250
-			}),
-			{
-				xtype: 'checkbox',
-				bind: '{isPrivate}',
-				hideEmptyLabel: false,
-				boxLabel: me.mys.res('category.fld-private.lbl')
-			}]
+			items: [
+				{
+					xtype: 'fieldcontainer',
+					layout: {
+						type: 'hbox',
+						padding: '0 0 1 0' // fixes classic-theme bottom border issue
+					},
+					items: [
+						{
+							xtype: 'textfield',
+							reference: 'fldname',
+							bind: '{record.name}',
+							margin: '0 5 0 0',
+							flex: 1
+						}, {
+							xtype: 'sopalettefield',
+							bind: '{record.color}',
+							hideTrigger: true,
+							colors: WT.getColorPalette('default'),
+							tilesPerRow: 11,
+							width: 24
+						}
+					],
+					fieldLabel: me.mys.res('category.fld-name.lbl'),
+					anchor: '100%'
+				}, {
+				   xtype: 'checkbox',
+				   bind: '{isDefault}',
+				   hideEmptyLabel: false,
+				   boxLabel: me.mys.res('category.fld-default.lbl')
+			   }, {
+				   xtype: 'textareafield',
+				   bind: '{record.description}',
+				   fieldLabel: me.mys.res('category.fld-description.lbl'),
+				   anchor: '100%'
+			   },
+			   WTF.lookupCombo('id', 'desc', {
+				   bind: '{record.sync}',
+				   store: Ext.create('Sonicle.webtop.tasks.store.Sync', {
+					   autoLoad: true
+				   }),
+				   fieldLabel: me.mys.res('category.fld-sync.lbl'),
+				   width: 250
+			   }),
+			   {
+				   xtype: 'checkbox',
+				   bind: '{isPrivate}',
+				   hideEmptyLabel: false,
+				   boxLabel: me.mys.res('category.fld-private.lbl')
+			   }
+			]
 		});
 		me.on('viewload', me.onViewLoad);
 	},
