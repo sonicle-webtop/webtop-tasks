@@ -40,7 +40,7 @@ import java.util.Collection;
 import org.jooq.Condition;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.app.sdk.JOOQPredicateVisitorWithCValues;
-import com.sonicle.webtop.core.app.sdk.QBuilderWithCValues;
+import com.sonicle.webtop.core.app.sdk.QueryBuilderWithCValues;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.model.BaseTask;
@@ -91,8 +91,9 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 				);
 			
 		} else if ("any".equals(fieldName)) {
-			return TASKS.SUBJECT.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values)))
-				.or(TASKS.DESCRIPTION.likeIgnoreCase(valueToSmartLikePattern(singleAsString(values))));
+			String singleAsString = valueToLikePattern(singleAsString(values));
+			return TASKS.SUBJECT.likeIgnoreCase(singleAsString)
+				.or(TASKS.DESCRIPTION.likeIgnoreCase(singleAsString));
 			
 		} else if (StringUtils.startsWith(fieldName, "CV")) {
 			CompId fn = new CompId(2).parse(fieldName, false);
@@ -128,20 +129,20 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	}
 
 	@Override
-	protected Condition cvalueCondition(QBuilderWithCValues.Type cvalueType, ComparisonOperator operator, Collection<?> values) {
-		if (QBuilderWithCValues.Type.CVSTRING.equals(cvalueType)) {
+	protected Condition cvalueCondition(QueryBuilderWithCValues.Type cvalueType, ComparisonOperator operator, Collection<?> values) {
+		if (QueryBuilderWithCValues.Type.CVSTRING.equals(cvalueType)) {
 			return defaultCondition(TASKS_CUSTOM_VALUES.STRING_VALUE, operator, values);
 			
-		} else if (QBuilderWithCValues.Type.CVNUMBER.equals(cvalueType)) {
+		} else if (QueryBuilderWithCValues.Type.CVNUMBER.equals(cvalueType)) {
 			return defaultCondition(TASKS_CUSTOM_VALUES.NUMBER_VALUE, operator, values);
 			
-		} else if (QBuilderWithCValues.Type.CVBOOL.equals(cvalueType)) {
+		} else if (QueryBuilderWithCValues.Type.CVBOOL.equals(cvalueType)) {
 			return defaultCondition(TASKS_CUSTOM_VALUES.BOOLEAN_VALUE, operator, values);
 			
-		} else if (QBuilderWithCValues.Type.CVDATE.equals(cvalueType)) {
+		} else if (QueryBuilderWithCValues.Type.CVDATE.equals(cvalueType)) {
 			return defaultCondition(TASKS_CUSTOM_VALUES.DATE_VALUE, operator, values);
 			
-		} else if (QBuilderWithCValues.Type.CVTEXT.equals(cvalueType)) {
+		} else if (QueryBuilderWithCValues.Type.CVTEXT.equals(cvalueType)) {
 			return defaultCondition(TASKS_CUSTOM_VALUES.TEXT_VALUE, operator, values);
 			
 		} else {
