@@ -32,8 +32,8 @@
  */
 package com.sonicle.webtop.tasks.dal;
 
-import com.github.rutledgepaulv.qbuilders.nodes.ComparisonNode;
-import com.github.rutledgepaulv.qbuilders.operators.ComparisonOperator;
+import com.sonicle.commons.qbuilders.nodes.ComparisonNode;
+import com.sonicle.commons.qbuilders.operators.ComparisonOperator;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.web.json.CompId;
 import java.util.Collection;

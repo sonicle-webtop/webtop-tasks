@@ -112,7 +112,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import com.github.rutledgepaulv.qbuilders.conditions.Condition;
+import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.app.sdk.AuditReferenceDataEntry;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
