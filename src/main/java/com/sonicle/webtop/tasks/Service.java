@@ -701,11 +701,11 @@ public class Service extends BaseService {
 		UserProfile up = getEnv().getProfile();
 		
 		try {
-			String taskId = ServletUtils.getStringParameter(request, "taskId", true);
 			ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+			Integer taskId = ServletUtils.getIntParameter(request, "taskId", false);
 			
-			Map<String, CustomFieldValue> cvalues = manager.getTaskCustomValues(Integer.parseInt(taskId));
 			Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, tags);
+			Map<String, CustomFieldValue> cvalues = (taskId != null) ? manager.getTaskCustomValues(taskId) : null;
 			Map<String, CustomField> cfields = new HashMap<>();
 			for (CustomPanel cpanel : cpanels.values()) {
 				for (String fieldId : cpanel.getFields()) {
@@ -717,7 +717,7 @@ public class Service extends BaseService {
 			
 		} catch(Throwable t) {
 			logger.error("Error in GetCustomFieldsDefsData", t);
-			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
+			new JsonResult(false, "Error").printTo(out);
 		}
 	}
 	
