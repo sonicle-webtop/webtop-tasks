@@ -116,6 +116,7 @@ import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.app.sdk.AuditReferenceDataEntry;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
+import com.sonicle.webtop.core.app.util.ExceptionUtils;
 import com.sonicle.webtop.core.model.CustomFieldValue;
 import com.sonicle.webtop.tasks.bol.OTaskCustomValue;
 import com.sonicle.webtop.tasks.dal.TaskCustomValueDAO;
@@ -782,6 +783,28 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		} catch(SQLException | DAOException ex) {
 			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Map<String, CustomFieldValue> getTaskCustomValues(int taskId) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			Integer catId = tasDao.selectCategoryId(con, taskId);
+			if (catId == null) return null;
+			checkRightsOnCategory(catId, CheckRightsTarget.FOLDER, "READ");
+			
+			List<OTaskCustomValue> ovals = cvalDao.selectByTask(con, taskId);
+			return ManagerUtils.createCustomValuesMap(ovals);
+			
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}

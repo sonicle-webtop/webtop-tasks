@@ -422,6 +422,17 @@ public class TaskDAO extends BaseDAO {
 			.fetchOneInto(OTask.class);
 	}
 	
+	public Integer selectCategoryId(Connection con, int taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.CATEGORY_ID
+			)
+			.from(TASKS)
+			.where(TASKS.TASK_ID.equal(taskId))
+			.fetchOneInto(Integer.class);
+	}
+	
 	public Map<Integer, Integer> selectCategoriesByIds(Connection con, Collection<Integer> taskIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl

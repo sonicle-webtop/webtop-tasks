@@ -594,15 +594,19 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				mo = me.getModel();
 				cftab = me.lref('tabcfields');
 				cftab.wait();
-				me.getCustomFieldsDefsData(nv, {
+				me.getCustomFieldsDefsData(mo.getId(), nv, {
 					callback: function(success, json) {
 						if (success) {
 							Ext.iterate(json.data.cvalues, function(cval) {
-								if (!mo.cvalues().getById(cval.id)) {
+								var rec = mo.cvalues().getById(cval.id);
+								if (!rec) {
 									mo.cvalues().add(cval);
+								} else {
+									rec.set(cval);
 								}
 							});
 							mo.set('_cfdefs', json.data.cfdefs);
+							me.lref('tabcfields').setStore(mo.cvalues());
 						}
 						cftab.unwait();
 					}
@@ -610,11 +614,12 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			}
 		},
 		
-		getCustomFieldsDefsData: function(tags, opts) {
+		getCustomFieldsDefsData: function(taskId, tags, opts) {
 			opts = opts || {};
 			var me = this;
 			WT.ajaxReq(me.mys.ID, 'GetCustomFieldsDefsData', {
 				params: {
+					taskId: taskId,
 					tags: WTU.arrayAsParam(tags)
 				},
 				callback: function(success, json) {
