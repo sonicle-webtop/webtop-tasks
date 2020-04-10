@@ -164,17 +164,17 @@ public class Service extends BaseService {
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
 		co.put("defaultCategorySync", EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
-		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjSearchableCustomField.List.class));
+		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjCustomFieldDefs.FieldsList.class));
 		return co;
 	}
 	
-	private ObjSearchableCustomField.List getSearchableCustomFieldDefs() {
+	private ObjCustomFieldDefs.FieldsList getSearchableCustomFieldDefs() {
 		CoreManager coreMgr = WT.getCoreManager();
 		UserProfile up = getEnv().getProfile();
 		
 		try {
-			ObjSearchableCustomField.List scfields = new ObjSearchableCustomField.List();
-			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, true).values()) {
+			ObjCustomFieldDefs.FieldsList scfields = new ObjCustomFieldDefs.FieldsList();
+			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, true, null).values()) {
 				scfields.add(new ObjCustomFieldDefs.Field(cfield, up.getLanguageTag()));
 			}
 			return scfields;

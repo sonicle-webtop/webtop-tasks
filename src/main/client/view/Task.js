@@ -42,7 +42,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		'WTA.ux.data.ValueModel',
 		'WTA.ux.field.SuggestCombo',
 		'WTA.ux.grid.Attachments',
-		'WTA.ux.panel.CustomFields',
+		'WTA.ux.panel.CustomFieldsEditor',
 		'Sonicle.webtop.tasks.store.Importance',
 		'Sonicle.webtop.tasks.store.Status',
 		'Sonicle.webtop.tasks.model.Task',
@@ -444,7 +444,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						}
 					}
 				}, {
-					xtype: 'wtcustomfieldspanel',
+					xtype: 'wtcfieldseditorpanel',
 					reference: 'tabcfields',
 					title: me.mys.res('task.cfields.tit'),
 					bind: {
