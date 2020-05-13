@@ -37,8 +37,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Icon',
 		'Sonicle.grid.column.Color',
 		'Sonicle.grid.column.Tag',
-		'Sonicle.menu.TagItem',
 		'Sonicle.tree.Column',
+		'WTA.ux.field.Search',
+		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.SimpleModel',
 		'Sonicle.webtop.tasks.store.Importance',
@@ -47,6 +48,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.model.GridTask'
 	],
 	uses: [
+		'Sonicle.Data',
 		'Sonicle.picker.Color',
 		'WTA.util.FoldersTree',
 		'WTA.ux.SelectTagsBox',
@@ -130,10 +132,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							type: 'tag',
 							label: me.res('fld-search.field.tags.lbl'),
 							customConfig: {
+								store: WT.getTagsStore(), // This is filterable, let's do a separate copy!
 								valueField: 'id',
 								displayField: 'name',
 								colorField: 'color',
-								store: WT.getTagsStore() // This is filterable, let's do a separate copy!
+								sourceField: 'source',
+								sourceCls: 'wt-source'
 							}
 						}
 					], scfields),
@@ -364,6 +368,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						me.updateDisabled('copyTask');
 						me.updateDisabled('moveTask');
 						me.updateDisabled('deleteTask');
+						me.updateDisabled('tags');
 					},
 					rowdblclick: function(s, rec) {
 						var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -458,16 +463,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				hdscale = WT.getHeaderScale();
 		
-		if (WT.isPermitted(WT.ID, 'TAGS', 'MANAGE')) {
-			me.addAct('toolbox', 'manageTags', {
-				text: WT.res('act-manageTags.lbl'),
-				tooltip: WT.res('act-manageTags.tip'),
-				iconCls: 'wt-icon-tag',
-				handler: function() {
-					me.showManageTagsUI();
-				}
-			});
-		}
+		me.addAct('toolbox', 'manageTags', {
+			text: WT.res('act-manageTags.lbl'),
+			tooltip: WT.res('act-manageTags.tip'),
+			iconCls: 'wt-icon-tag',
+			handler: function() {
+				me.showManageTagsUI();
+			}
+		});
 		if (WT.isPermitted(WT.ID, 'CUSTOM_FIELDS', 'MANAGE')) {
 			me.addAct('toolbox', 'manageCustomFields', {
 				text: WT.res('act-manageCustomFields.lbl'),
@@ -552,11 +555,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			text: me.res('mni-tags.lbl'),
 			tooltip: null,
 			menu: {
-				xtype: 'sostoremenu',
-				useItemIdPrefix: true,
-				store: WT.getTagsStore(),
-				textField: 'name',
-				tagField: 'id',
+				xtype: 'wttagmenu',
 				bottomStaticItems: [
 					'-',
 					me.addAct('manageTags', {
@@ -567,26 +566,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						}
 					})
 				],
-				itemCfgCreator: function(rec) {
-					return {
-						xclass: 'Sonicle.menu.TagItem',
-						color: rec.get('color'),
-						hideOnClick: true
-					};
+				restoreSelectedTags: function() {
+					return me.toMutualTags(me.getSelectedTasks());
 				},
 				listeners: {
-					beforeshow: function(s) {
-						s.setCheckedItems(me.toMutualTags(me.getSelectedTasks()) || []);
-					},
-					click: function(s, itm, e) {
-						if (itm.tag) {
-							var ids = WTU.collectIds(me.getSelectedTasks());
-							me.updateTaskItemsTags(ids, !itm.checked ? 'unset' : 'set', [itm.tag], {
-								callback: function(success) {
-									if (success) me.reloadTasks();
-								}
-							});
-						}
+					tagclick: function(s, tagId, checked) {
+						var ids = Sonicle.Data.collectValues(me.getSelectedTasks());
+						me.updateTaskItemsTags(ids, !checked ? 'unset' : 'set', [tagId], {
+							callback: function(success) {
+								if (success) me.reloadTasks();
+							}
+						});
 					}
 				}
 			}
@@ -1095,7 +1085,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	manageTaskItemsTagsUI: function(recs) {
 		var me = this,
-				ids = WTU.collectIds(recs),
+				ids = Sonicle.Data.collectValues(recs),
 				tags = me.toMutualTags(recs),
 				vw = WT.createView(WT.ID, 'view.Tags', {
 					swapReturn: true,
@@ -1138,7 +1128,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	deleteTaskSel: function(sel) {
 		var me = this,
 			sto = me.gpTasks().getStore(),
-			ids = WTU.collectIds(sel),
+			ids = Sonicle.Data.collectValues(sel),
 			msg;
 		
 		if(sel.length === 1) {
@@ -1188,7 +1178,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	printTaskSel: function(sel) {
 		var me = this;
-		me.printTasksDetail(WTU.collectIds(sel));
+		me.printTasksDetail(Sonicle.Data.collectValues(sel));
 	},
 	
 	editShare: function(id) {
@@ -1458,6 +1448,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 					return false;
 				}
+			case 'tags':
+					sel = me.getSelectedContacts();
+					if (sel.length === 0) {
+						return true;
+					} else if (sel.length === 1) {
+						er = FT.toRightsObj(sel[0].get('_erights'));
+						return !er.UPDATE;
+					} else {
+						for (var i=0; i<sel.length; i++) {
+							if (!FT.toRightsObj(sel[i].get('_erights')).UPDATE) return true;
+						}
+						return false;
+					}
+					break;
 			case 'printTask':
 				sel = me.getSelectedTasks();
 				if (sel.length > 0) {
