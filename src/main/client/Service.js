@@ -1449,7 +1449,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					return false;
 				}
 			case 'tags':
-					sel = me.getSelectedContacts();
+					sel = me.getSelectedTasks();
 					if (sel.length === 0) {
 						return true;
 					} else if (sel.length === 1) {
