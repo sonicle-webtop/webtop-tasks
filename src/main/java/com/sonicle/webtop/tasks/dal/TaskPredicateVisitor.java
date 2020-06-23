@@ -35,7 +35,7 @@ package com.sonicle.webtop.tasks.dal;
 import com.sonicle.commons.qbuilders.nodes.ComparisonNode;
 import com.sonicle.commons.qbuilders.operators.ComparisonOperator;
 import com.sonicle.commons.EnumUtils;
-import com.sonicle.commons.web.json.CompId;
+import com.sonicle.commons.web.json.CId;
 import java.util.Collection;
 import org.jooq.Condition;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
@@ -102,7 +102,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 				.or(TASKS.DESCRIPTION.likeIgnoreCase(singleAsString));
 			
 		} else if (StringUtils.startsWith(fieldName, "CV")) {
-			CompId fn = new CompId(2).parse(fieldName, false);
+			CId fn = new CId(fieldName, 2);
 			if (fn.isTokenEmpty(1)) throw new UnsupportedOperationException("Field name invalid: " + fieldName);
 			return generateCValueCondition(fn, operator, values);
 			
