@@ -953,6 +953,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		WT.createView(WT.ID, 'view.CustomFields', {
 			swapReturn: true,
+			preventDuplicates: true,
 			viewCfg: {
 				serviceId: me.ID,
 				serviceName: me.getName()
@@ -964,6 +965,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		WT.createView(WT.ID, 'view.CustomPanels', {
 			swapReturn: true,
+			preventDuplicates: true,
 			viewCfg: {
 				serviceId: me.ID,
 				serviceName: me.getName()
