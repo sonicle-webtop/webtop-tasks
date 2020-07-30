@@ -37,9 +37,18 @@ package com.sonicle.webtop.tasks.bol;
  * @author malbinola
  */
 public class VTaskLookup extends VTaskBase {
+	protected String tags;
 	protected String categoryName;
 	protected String categoryDomainId;
 	protected String categoryUserId;
+	
+	public String getTags() {
+		return tags;
+	}
+
+	public void setTags(String tags) {
+		this.tags = tags;
+	}
 	
 	public String getCategoryName() {
 		return categoryName;

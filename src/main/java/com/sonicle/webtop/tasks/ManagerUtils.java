@@ -34,11 +34,13 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.model.CustomFieldValue;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
+import com.sonicle.webtop.tasks.bol.OTaskCustomValue;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.model.BaseTask;
@@ -49,7 +51,9 @@ import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskObject;
 import com.sonicle.webtop.tasks.model.TaskLookup;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -172,6 +176,7 @@ public class ManagerUtils {
 	static <T extends TaskLookup, S extends VTaskLookup> T fillTaskLookup(T tgt, S src) {
 		if ((tgt != null) && (src != null)) {
 			fillBaseTask(tgt, src);
+			tgt.setTags(src.getTags());
 			tgt.setCategoryName(src.getCategoryName());
 			tgt.setCategoryDomainId(src.getCategoryDomainId());
 			tgt.setCategoryUserId(src.getCategoryUserId());
@@ -315,6 +320,48 @@ public class ManagerUtils {
 		if (tgt != null) {
 			//if (fill.getRevisionTimestamp()== null) fill.setRevisionTimestamp();
 			if (tgt.getRevisionSequence() == null) tgt.setRevisionSequence(0);
+		}
+		return tgt;
+	}
+	
+	static Map<String, CustomFieldValue> createCustomValuesMap(List<OTaskCustomValue> items) {
+		LinkedHashMap<String, CustomFieldValue> map = new LinkedHashMap<>(items.size());
+		for (OTaskCustomValue item : items) {
+			map.put(item.getCustomFieldId(), createCustomValue(item));
+		}
+		return map;
+	}
+	
+	static CustomFieldValue createCustomValue(OTaskCustomValue src) {
+		if (src == null) return null;
+		return fillCustomFieldValue(new CustomFieldValue(), src);
+	}
+	
+	static <T extends CustomFieldValue> T fillCustomFieldValue(T tgt, OTaskCustomValue src) {
+		if ((tgt != null) && (src != null)) {
+			tgt.setFieldId(src.getCustomFieldId());
+			tgt.setStringValue(src.getStringValue());
+			tgt.setNumberValue(src.getNumberValue());
+			tgt.setBooleanValue(src.getBooleanValue());
+			tgt.setDateValue(src.getDateValue());
+			tgt.setTextValue(src.getTextValue());
+		}
+		return tgt;
+	}
+	
+	static OTaskCustomValue createOTaskCustomValue(CustomFieldValue src) {
+		if (src == null) return null;
+		return fillOTaskCustomValue(new OTaskCustomValue(), src);
+	}
+	
+	static <T extends OTaskCustomValue> T fillOTaskCustomValue(T tgt, CustomFieldValue src) {
+		if ((tgt != null) && (src != null)) {
+			tgt.setCustomFieldId(src.getFieldId());
+			tgt.setStringValue(src.getStringValue());
+			tgt.setNumberValue(src.getNumberValue());
+			tgt.setBooleanValue(src.getBooleanValue());
+			tgt.setDateValue(src.getDateValue());
+			tgt.setTextValue(src.getTextValue());
 		}
 		return tgt;
 	}

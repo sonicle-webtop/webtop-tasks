@@ -36,7 +36,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	requires: [
 		'Sonicle.grid.column.Icon',
 		'Sonicle.grid.column.Color',
+		'Sonicle.grid.column.Tag',
 		'Sonicle.tree.Column',
+		'WTA.ux.field.Search',
+		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.SimpleModel',
 		'Sonicle.webtop.tasks.store.Importance',
@@ -45,7 +48,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.model.GridTask'
 	],
 	uses: [
+		'Sonicle.Data',
+		'Sonicle.picker.Color',
 		'WTA.util.FoldersTree',
+		'WTA.ux.SelectTagsBox',
 		'Sonicle.webtop.tasks.view.Sharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
@@ -70,7 +76,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	init: function() {
-		var me = this;
+		var me = this,
+				tagsStore = WT.getTagsStore(),
+				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.getVar('cfieldsSearchable'));
 		
 		me.initActions();
 		me.initCxm();
@@ -90,36 +98,61 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'wtsearchfield',
 					reference: 'fldsearch',
 					highlightKeywords: ['subject'],
-					fields: [{
-						name: 'subject',
-						type: 'string',
-						label: me.res('fld-search.field.subject.lbl')
-					}, {
-						name: 'description',
-						type: 'string',
-						label: me.res('fld-search.field.description.lbl')
-					}, {
-						name: 'after',
-						type: 'date',
-						labelAlign: 'left',
-						label: me.res('fld-search.field.after.lbl')
-					}, {
-						name: 'before',
-						type: 'date',
-						labelAlign: 'left',
-						label: me.res('fld-search.field.before.lbl')
-					}, {
-						name: 'private',
-						type: 'boolean',
-						boolKeyword: 'is',
-						label: me.res('fld-search.field.private.lbl')
-					}, {
-						name: 'done',
-						type: 'boolean',
-						boolKeyword: 'is',
-						label: me.res('fld-search.field.done.lbl')
-					}],
+					fields: Ext.Array.push([
+						{
+							name: 'subject',
+							type: 'string',
+							label: me.res('fld-search.field.subject.lbl')
+						}, {
+							name: 'description',
+							type: 'string',
+							label: me.res('fld-search.field.description.lbl')
+						}, {
+							name: 'after',
+							type: 'date',
+							labelAlign: 'left',
+							label: me.res('fld-search.field.after.lbl')
+						}, {
+							name: 'before',
+							type: 'date',
+							labelAlign: 'left',
+							label: me.res('fld-search.field.before.lbl')
+						}, {
+							name: 'private',
+							type: 'boolean',
+							boolKeyword: 'is',
+							label: me.res('fld-search.field.private.lbl')
+						}, {
+							name: 'done',
+							type: 'boolean',
+							boolKeyword: 'is',
+							label: me.res('fld-search.field.done.lbl')
+						}, {
+							name: 'tag',
+							type: 'tag',
+							label: me.res('fld-search.field.tags.lbl'),
+							customConfig: {
+								store: WT.getTagsStore(), // This is filterable, let's do a separate copy!
+								valueField: 'id',
+								displayField: 'name',
+								colorField: 'color',
+								sourceField: 'source',
+								sourceCls: 'wt-source'
+							}
+						}
+					], scfields),
+					tabs: Ext.isEmpty(scfields) ? undefined: [
+						{
+							title: WT.res('wtsearchfield.main.tit'),
+							fields: ['subject', 'description', 'after', 'before', 'private', 'done', 'tag']
+						}, {
+							title: WT.res('wtsearchfield.customFields.tit'),
+							fields: Ext.Array.pluck(scfields, 'name')
+						}
+					],
+					
 					tooltip: me.res('fld-search.tip'),
+					searchTooltip: me.res('fld-search.tip'),
 					emptyText: me.res('fld-search.emp'),
 					listeners: {
 						query: function(s, value, qObj) {
@@ -234,8 +267,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				region: 'center',
 				xtype: 'grid',
 				reference: 'gptasks',
-				stateful: true,
-				stateId: me.buildStateId('gptasks'),
+				//FIXME: keep commented otherwise columns size may be wrong
+				//stateful: true,
+				//stateId: me.buildStateId('gptasks'),
 				store: {
 					model: 'Sonicle.webtop.tasks.model.GridTask',
 					proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', 'tasks', {
@@ -246,8 +280,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					listeners: {
 						load: function() {
 							var el = me.gpTasks().getEl(),
-							searchComponent = me.getToolbar().lookupReference('fldsearch');
-							searchComponent.highlight(el, '.x-grid-item-container');
+									search = me.getToolbar().lookupReference('fldsearch');
+							search.highlight(el, '.x-grid-item-container');
 						}
 					}
 				},
@@ -278,6 +312,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					iconSize: 16,
 					width: 40
 				}, {
+					xtype: 'sotagcolumn',
+					dataIndex: 'tags',
+					header: me.res('gptasks.tags.lbl'),
+					tagsStore: tagsStore,
+					width: 90
+				}, {
 					dataIndex: 'subject',
 					header: me.res('gptasks.subject.lbl'),
 					flex: 2
@@ -294,7 +334,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					header: me.res('gptasks.dueDate.lbl'),
 					xtype: 'datecolumn',
 					format: WT.getShortDateFmt(),
-					flex: 1
+					width: 120
 				}, {
 					dataIndex: 'status',
 					header: me.res('gptasks.status.lbl'),
@@ -302,7 +342,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						id: me.ID,
 						key: 'store.status'
 					}),
-					flex: 1
+					width: 120
 				}, {
 					xtype: 'widgetcolumn',
 					dataIndex: 'progress',
@@ -328,6 +368,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						me.updateDisabled('copyTask');
 						me.updateDisabled('moveTask');
 						me.updateDisabled('deleteTask');
+						me.updateDisabled('tags');
 					},
 					rowdblclick: function(s, rec) {
 						var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -422,6 +463,33 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				hdscale = WT.getHeaderScale();
 		
+		me.addAct('toolbox', 'manageTags', {
+			text: WT.res('act-manageTags.lbl'),
+			tooltip: WT.res('act-manageTags.tip'),
+			iconCls: 'wt-icon-tag',
+			handler: function() {
+				me.showManageTagsUI();
+			}
+		});
+		if (WT.isPermitted(WT.ID, 'CUSTOM_FIELDS', 'MANAGE')) {
+			me.addAct('toolbox', 'manageCustomFields', {
+				text: WT.res('act-manageCustomFields.lbl'),
+				tooltip: WT.res('act-manageCustomFields.tip'),
+				iconCls: 'wt-icon-customField',
+				handler: function() {
+					me.showCustomFieldsUI();
+				}
+			});
+			me.addAct('toolbox', 'manageCustomPanels', {
+				text: WT.res('act-manageCustomPanels.lbl'),
+				tooltip: WT.res('act-manageCustomPanels.tip'),
+				iconCls: 'wt-icon-customPanel',
+				handler: function() {
+					me.showCustomPanelsUI();
+				}
+			});
+		}
+		
 		me.addAct('new', 'newTask', {
 			ignoreSize: true,
 			handler: function() {
@@ -476,20 +544,59 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) me.deleteCategoryUI(node);
 			}
 		});
+		me.addAct('applyTags', {
+			tooltip: null,
+			handler: function(s, e) {
+				var node = e.menuData.node;
+				if (node) me.applyCategoryTagsUI(node);
+			}
+		});
+		me.addAct('tags', {
+			text: me.res('mni-tags.lbl'),
+			tooltip: null,
+			menu: {
+				xtype: 'wttagmenu',
+				bottomStaticItems: [
+					'-',
+					me.addAct('manageTags', {
+						tooltip: null,
+						handler: function(s, e) {
+							var sel = me.getSelectedTasks();
+							if (sel.length > 0) me.manageTaskItemsTagsUI(sel);
+						}
+					})
+				],
+				restoreSelectedTags: function() {
+					return me.toMutualTags(me.getSelectedTasks());
+				},
+				listeners: {
+					tagclick: function(s, tagId, checked) {
+						var ids = Sonicle.Data.collectValues(me.getSelectedTasks());
+						me.updateTaskItemsTags(ids, !checked ? 'unset' : 'set', [tagId], {
+							callback: function(success) {
+								if (success) me.reloadTasks();
+							}
+						});
+					}
+				}
+			}
+		});
 		me.addAct('categoryColor', {
 			text: me.res('mni-categoryColor.lbl'),
 			tooltip: null,
 			menu: {
 				showSeparator: false,
 				itemId: 'categoryColor',
-				items: [{
-						xtype: 'colorpicker',
-						colors: WT.getColorPalette(),
+				items: [
+					{
+						xtype: 'socolorpicker',
+						colors: WT.getColorPalette('default'),
+						tilesPerRow: 11,
 						listeners: {
 							select: function(s, color) {
 								var node = s.menuData.node;
 								me.getRef('cxmFolder').hide();
-								if (node) me.updateCategoryColorUI(node, '#'+color);
+								if (node) me.updateCategoryColorUI(node, Sonicle.String.prepend(color, '#', true));
 							}
 						}
 					},
@@ -717,6 +824,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				},
 				'-',
+				me.getAct('applyTags'),
+				'-',
 				me.getAct('addTask')
 				//TODO: azioni altri servizi?
 			],
@@ -734,6 +843,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					me.getAct('addTask').setDisabled(!er.CREATE);
 					me.getAct('hideCategory').setDisabled(mine);
 					me.getAct('restoreCategoryColor').setDisabled(mine);
+					me.getAct('applyTags').setDisabled(!er.UPDATE);
 					
 					var picker = s.down('menu#categoryColor').down('colorpicker');
 					picker.menuData = s.menuData; // Picker's handler doesn't carry the event, injects menuData inside the picket itself
@@ -757,6 +867,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				},
 				me.getAct('printTask'),
+				'-',
+				me.getAct('tags'),
 				'-',
 				me.getAct('deleteTask')
 			]
@@ -821,6 +933,44 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	getSelectedTasks: function() {
 		return this.gpTasks().getSelection();
+	},
+	
+	showManageTagsUI: function() {
+		var me = this,
+				vw = WT.createView(WT.ID, 'view.Tags', {
+					swapReturn: true,
+					viewCfg: {
+						enableSelection: false
+					}
+				});
+		vw.on('viewclose', function(s) {
+			if (s.syncCount > 0) me.reloadTasks();
+		});
+		vw.showView();
+	},
+	
+	showCustomFieldsUI: function() {
+		var me = this;
+		WT.createView(WT.ID, 'view.CustomFields', {
+			swapReturn: true,
+			preventDuplicates: true,
+			viewCfg: {
+				serviceId: me.ID,
+				serviceName: me.getName()
+			}
+		}).showView();
+	},
+	
+	showCustomPanelsUI: function() {
+		var me = this;
+		WT.createView(WT.ID, 'view.CustomPanels', {
+			swapReturn: true,
+			preventDuplicates: true,
+			viewCfg: {
+				serviceId: me.ID,
+				serviceName: me.getName()
+			}
+		}).showView();
 	},
 	
 	addCategoryUI: function(domainId, userId) {
@@ -900,6 +1050,24 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
+	applyCategoryTagsUI: function(node) {
+		var me = this, op;
+		WT.confirmSelectTags(function(bid, value) {
+			if (bid === 'yes' || bid === 'no') {
+				op = (bid === 'yes') ? 'set' : ((bid === 'no') ? 'unset' : ''); 
+				WT.confirm(me.res('category.confirm.tags.' + op, Ext.String.ellipsis(node.get('text'), 40)), function(bid2) {
+					if (bid2 === 'yes') {
+						me.updateCategoryTags(node.get('_catId'), op, value, {
+							callback: function(success) {
+								if (success) me.reloadTasks();
+							}
+						});
+					}
+				}, this);
+			}
+		}, me);
+	},
+	
 	/*
 	updateCheckedFoldersUI: function(node, checked) {
 		var me = this;
@@ -916,6 +1084,30 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	*/
+	
+	manageTaskItemsTagsUI: function(recs) {
+		var me = this,
+				ids = Sonicle.Data.collectValues(recs),
+				tags = me.toMutualTags(recs),
+				vw = WT.createView(WT.ID, 'view.Tags', {
+					swapReturn: true,
+					viewCfg: {
+						data: {
+							selection: tags
+						}
+					}
+				});
+		vw.on('viewok', function(s, data) {
+			if (Sonicle.String.difference(tags, data.selection).length > 0) {
+				me.updateTaskItemsTags(ids, 'reset', data.selection, {
+					callback: function(success) {
+						if (success) me.reloadTasks();
+					}
+				});
+			}	
+		});
+		vw.showView();
+	},
 	
 	addTaskUI: function(ownerId, categoryId) {
 		var me = this;
@@ -938,7 +1130,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	deleteTaskSel: function(sel) {
 		var me = this,
 			sto = me.gpTasks().getStore(),
-			ids = me.selectionIds(sel),
+			ids = Sonicle.Data.collectValues(sel),
 			msg;
 		
 		if(sel.length === 1) {
@@ -988,7 +1180,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	printTaskSel: function(sel) {
 		var me = this;
-		me.printTasksDetail(me.selectionIds(sel));
+		me.printTasksDetail(Sonicle.Data.collectValues(sel));
 	},
 	
 	editShare: function(id) {
@@ -1083,6 +1275,22 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
+	updateCategoryTags: function(categoryId, op, tagIds, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'ManageCategory', {
+			params: {
+				crud: 'updateTag',
+				id: categoryId,
+				op: op,
+				tags: WTU.arrayAsParam(tagIds)
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope, [success, json]);
+			}
+		});
+	},
+	
 	/*
 	updateCheckedFolders: function(rootId, checked, opts) {
 		opts = opts || {};
@@ -1170,12 +1378,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	selectionIds: function(sel) {
-		var ids = [];
-		Ext.iterate(sel, function(rec) {
-			ids.push(rec.getId());
+	updateTaskItemsTags: function(taskIds, op, tagIds, opts) {
+		opts = opts || {};
+		var me = this;
+		WT.ajaxReq(me.ID, 'ManageGridTasks', {
+			params: {
+				crud: 'updateTag',
+				ids: WTU.arrayAsParam(taskIds),
+				op: op,
+				tags: WTU.arrayAsParam(tagIds)
+			},
+			callback: function(success, json) {
+				Ext.callback(opts.callback, opts.scope, [success, json]);
+			}
 		});
-		return ids;
 	},
 	
 	/**
@@ -1234,6 +1450,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 					return false;
 				}
+			case 'tags':
+					sel = me.getSelectedTasks();
+					if (sel.length === 0) {
+						return true;
+					} else if (sel.length === 1) {
+						er = FT.toRightsObj(sel[0].get('_erights'));
+						return !er.UPDATE;
+					} else {
+						for (var i=0; i<sel.length; i++) {
+							if (!FT.toRightsObj(sel[i].get('_erights')).UPDATE) return true;
+						}
+						return false;
+					}
+					break;
 			case 'printTask':
 				sel = me.getSelectedTasks();
 				if (sel.length > 0) {
@@ -1245,27 +1475,21 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}
 	},
 	
-	/**
-	 * @private
-	 */
-	createHiddenCategories: function(rootNodeId) {
-		var me = this;
-		return WT.createView(me.ID, 'view.HiddenCategories', {
-			viewCfg: {
-				action: 'ManageHiddenCategories',
-				extraParams: {
-					crud: 'list',
-					rootId: rootNodeId
+	privates: {
+		createHiddenCategories: function(rootNodeId) {
+			var me = this;
+			return WT.createView(me.ID, 'view.HiddenCategories', {
+				viewCfg: {
+					action: 'ManageHiddenCategories',
+					extraParams: {
+						crud: 'list',
+						rootId: rootNodeId
+					}
 				}
-			}
-		});
-	},
-	
-	/**
-	 * @private
-	 */
-	
-	createCategoryChooser: function(copy) {
+			});
+		},
+		
+		createCategoryChooser: function(copy) {
 			var me = this;
 			return WT.createView(me.ID, 'view.CategoryChooser', {
 				swapReturn: true,
@@ -1276,5 +1500,20 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					writableOnly: true
 				}
 			});
+		},
+		
+		toMutualTags: function(recs) {
+			var arr, ids;
+			Ext.iterate(recs, function(rec) {
+				ids = Sonicle.String.split(rec.get('tags'), '|');
+				if (!arr) {
+					arr = ids;
+				} else {
+					arr = Ext.Array.intersect(arr, ids);
+				}
+				if (arr.length === 0) return false;
+			});
+			return arr;
 		}
+	}
 });

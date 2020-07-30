@@ -43,7 +43,8 @@ import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
-import static com.sonicle.webtop.tasks.jooq.tables.TasksIcalendars.TASKS_ICALENDARS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ICALENDARS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
 import com.sonicle.webtop.tasks.model.Task;
 import java.sql.Connection;
@@ -296,9 +297,16 @@ public class TaskDAO extends BaseDAO {
 			.fetchOne(0, Integer.class);
 	}
 	
-	public List<VTaskLookup> viewByCategoryPattern(Connection con, Collection<Integer> categoryIds, Condition condition, int limit, int offset) throws DAOException {
+	public List<VTaskLookup> viewByCategoryCondition(Connection con, Collection<Integer> categoryIds, Condition condition, int limit, int offset) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
+		
+		Field<String> tags = DSL
+			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
+			.from(TASKS_TAGS)
+			.where(
+				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+			).asField("tags");
 		
 		return dsl
 			.select(
@@ -319,6 +327,7 @@ public class TaskDAO extends BaseDAO {
 				TASKS.REMINDER_DATE
 			)
 			.select(
+				tags,
 				CATEGORIES.NAME.as("category_name"),
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
@@ -411,6 +420,31 @@ public class TaskDAO extends BaseDAO {
 			.from(TASKS)
 			.where(TASKS.TASK_ID.equal(taskId))
 			.fetchOneInto(OTask.class);
+	}
+	
+	public Integer selectCategoryId(Connection con, int taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.CATEGORY_ID
+			)
+			.from(TASKS)
+			.where(TASKS.TASK_ID.equal(taskId))
+			.fetchOneInto(Integer.class);
+	}
+	
+	public Map<Integer, Integer> selectCategoriesByIds(Connection con, Collection<Integer> taskIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.TASK_ID,
+				TASKS.CATEGORY_ID
+			)
+			.from(TASKS)
+			.where(
+				TASKS.TASK_ID.in(taskIds)
+			)
+			.fetchMap(TASKS.TASK_ID, TASKS.CATEGORY_ID);
 	}
 	
 	public Map<Integer, DateTime> selectMaxRevTimestampByCategories(Connection con, Collection<Integer> categoryIds) throws DAOException {

@@ -34,6 +34,7 @@ package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
+import com.sonicle.commons.cache.AbstractPassiveExpiringCache;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.IntegerArray;
@@ -46,6 +47,7 @@ import com.sonicle.commons.web.json.bean.IntegerSet;
 import com.sonicle.commons.web.json.bean.QueryObj;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
+import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
@@ -56,11 +58,18 @@ import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
+import com.sonicle.webtop.core.bol.js.JsCustomFieldDefsData;
 import com.sonicle.webtop.core.bol.js.JsSimple;
+import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
+import com.sonicle.webtop.core.bol.js.ObjSearchableCustomField;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
+import com.sonicle.webtop.core.model.CustomField;
+import com.sonicle.webtop.core.model.CustomFieldEx;
+import com.sonicle.webtop.core.model.CustomFieldValue;
+import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.BaseService;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
@@ -92,7 +101,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -114,6 +125,7 @@ public class Service extends BaseService {
 	private TasksServiceSettings ss;
 	private TasksUserSettings us;
 	
+	private final SearchableCustomFieldTypeCache cacheSearchableCustomFieldType = new SearchableCustomFieldTypeCache(5, TimeUnit.SECONDS);
 	private final LinkedHashMap<String, ShareRootCategory> roots = new LinkedHashMap<>();
 	private final LinkedHashMap<Integer, ShareFolderCategory> folders = new LinkedHashMap<>();
 	private final HashMap<Integer, CategoryPropSet> folderProps = new HashMap<>();
@@ -152,7 +164,24 @@ public class Service extends BaseService {
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
 		co.put("defaultCategorySync", EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
+		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjCustomFieldDefs.FieldsList.class));
 		return co;
+	}
+	
+	private ObjCustomFieldDefs.FieldsList getSearchableCustomFieldDefs() {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
+		
+		try {
+			ObjCustomFieldDefs.FieldsList scfields = new ObjCustomFieldDefs.FieldsList();
+			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, true, null).values()) {
+				scfields.add(new ObjCustomFieldDefs.Field(cfield, up.getLanguageTag()));
+			}
+			return scfields;
+			
+		} catch(Throwable t) {
+			return null;
+		}
 	}
 	
 	private WebTopSession getWts() {
@@ -377,7 +406,7 @@ public class Service extends BaseService {
 		}
 	}
 	
-	public void processManageCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+	public void processManageCategory(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		Category item = null;
 		
 		try {
@@ -409,11 +438,19 @@ public class Service extends BaseService {
 				updateFoldersCache();
 				toggleActiveFolder(pl.data.categoryId, true); // forgets it by simply activating it
 				new JsonResult().printTo(out);
+				
+			} else if (crud.equals("updateTag")) {
+				int id = ServletUtils.getIntParameter(request, "id", true);
+				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
+				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+				
+				manager.updateTaskCategoryTags(op, id, new HashSet<>(tags));
+				new JsonResult().printTo(out);
 			}
 			
 		} catch(Exception ex) {
-			logger.error("Error in ManageCategories", ex);
-			new JsonResult(false, "Error").printTo(out);
+			logger.error("Error in ManageCategory", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -505,8 +542,9 @@ public class Service extends BaseService {
 				//int page = ServletUtils.getIntParameter(request, "page", true);
 				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
 				
+				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
-				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, userTimeZone));
+				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, map, userTimeZone));
 				for (TaskLookup item : result.items) {
 					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
 					if (root == null) continue;
@@ -517,20 +555,29 @@ public class Service extends BaseService {
 					items.add(new JsGridTask(fold, pset, item, DateTimeZone.UTC));
 				}
 				new JsonResult("tasks", items).printTo(out);
+				
+			} else if (crud.equals("updateTag")) {
+				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
+				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
+				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+				
+				manager.updateTaskTags(op, ids, new HashSet<>(tags));
+				
+				new JsonResult().printTo(out);
 			}
 		
-		} catch(Exception ex) {
-			logger.error("Error in ManageGridTasks", ex);
-			new JsonResult(false, "Error").printTo(out);
+		} catch(Throwable t) {
+			logger.error("Error in ManageGridTasks", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	    
 	public void processManageTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
 		JsTask item = null;
 		
 		try {
-			DateTimeZone ptz = getEnv().getProfile().getTimeZone();
-			
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
@@ -538,14 +585,22 @@ public class Service extends BaseService {
 				int taskId = Integer.parseInt(id);
 				Task task = manager.getTask(taskId);
 				UserProfileId ownerId = manager.getCategoryOwner(task.getCategoryId());
-				item = new JsTask(ownerId, task, DateTimeZone.UTC);
 				
+				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
+				Map<String, CustomField> cfields = new HashMap<>();
+				for (CustomPanel cpanel : cpanels.values()) {
+					for (String fieldId : cpanel.getFields()) {
+						CustomField cfield = coreMgr.getCustomField(SERVICE_ID, fieldId);
+						if (cfield != null) cfields.put(fieldId, cfield);
+					}
+				}
+				item = new JsTask(ownerId, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone());
 				new JsonResult(item).printTo(out);
 				
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.createTask(pl.data, ptz);
+				Task task = pl.data.toTask(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
 					TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
@@ -561,7 +616,7 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = JsTask.createTask(pl.data, ptz);
+				Task task = pl.data.toTask(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					if (!StringUtils.isBlank(jsatt._uplId)) {
 						UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
@@ -601,7 +656,7 @@ public class Service extends BaseService {
 			
 		} catch(Throwable t) {
 			logger.error("Error in ManageTasks", t);
-			new JsonResult(false, "Error").printTo(out);	
+			new JsonResult(t).printTo(out);	
 		}
 	}
 	
@@ -638,6 +693,31 @@ public class Service extends BaseService {
 		} catch(Throwable t) {
 			logger.error("Error in DownloadTaskAttachment", t);
 			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
+		}
+	}
+	
+	public void processGetCustomFieldsDefsData(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		CoreManager coreMgr = WT.getCoreManager();
+		UserProfile up = getEnv().getProfile();
+		
+		try {
+			ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+			Integer taskId = ServletUtils.getIntParameter(request, "taskId", false);
+			
+			Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, tags);
+			Map<String, CustomFieldValue> cvalues = (taskId != null) ? manager.getTaskCustomValues(taskId) : null;
+			Map<String, CustomField> cfields = new HashMap<>();
+			for (CustomPanel cpanel : cpanels.values()) {
+				for (String fieldId : cpanel.getFields()) {
+					CustomField cfield = coreMgr.getCustomField(SERVICE_ID, fieldId);
+					if (cfield != null) cfields.put(fieldId, cfield);
+				}
+			}
+			new JsonResult(new JsCustomFieldDefsData(cpanels.values(), cfields, cvalues, up.getLanguageTag(), up.getTimeZone())).printTo(out);
+			
+		} catch(Throwable t) {
+			logger.error("Error in GetCustomFieldsDefsData", t);
+			new JsonResult(false, "Error").printTo(out);
 		}
 	}
 	
@@ -911,5 +991,24 @@ public class Service extends BaseService {
 		if (!chooser) node.setChecked(active);
 		
 		return node;
+	}
+	
+	private class SearchableCustomFieldTypeCache extends AbstractPassiveExpiringCache<String, CustomField.Type> {
+		
+		public SearchableCustomFieldTypeCache(final long timeToLive, final TimeUnit timeUnit) {
+			super(timeToLive, timeUnit);
+		}
+		
+		@Override
+		protected Map<String, CustomField.Type> internalGetCache() {
+			try {
+				CoreManager coreMgr = WT.getCoreManager();
+				return coreMgr.listCustomFieldTypesById(SERVICE_ID, true);
+				
+			} catch(Throwable t) {
+				logger.error("[SearchableCustomFieldTypeCache] Unable to build cache", t);
+				throw new UnsupportedOperationException();
+			}
+		}
 	}
 }

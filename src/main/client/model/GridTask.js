@@ -53,6 +53,7 @@ Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 			return Ext.isEmpty(rec.get('reminderDate'));
 		}),
 		//WTF.roField('publicUid', 'string'),
+		WTF.roField('tags', 'string'),
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string')

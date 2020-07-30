@@ -34,6 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.model.Task', {
 	extend: 'WTA.ux.data.BaseModel',
 	requires: [
+		'Sonicle.webtop.core.ux.data.CustomFieldValueModel',
 		'Sonicle.webtop.tasks.model.TaskAttachment'
 	],
 	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageTasks', 'data', {
@@ -56,10 +57,13 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
 		WTF.field('percentage', 'int', true, {defaultValue: 0}),
-		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'})
+		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('tags', 'string', true),
+		WTF.field('_cfdefs', 'string', true)
 	],
 	hasMany: [
-		WTF.hasMany('attachments', 'Sonicle.webtop.tasks.model.TaskAttachment')
+		WTF.hasMany('attachments', 'Sonicle.webtop.tasks.model.TaskAttachment'),
+		WTF.hasMany('cvalues', 'Sonicle.webtop.core.ux.data.CustomFieldValueModel')
 	]
 	
 	/*

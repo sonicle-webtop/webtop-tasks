@@ -16,7 +16,7 @@ package com.sonicle.webtop.tasks.jooq.tables;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tasks extends org.jooq.impl.TableImpl<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord> {
 
-	private static final long serialVersionUID = -256752694;
+	private static final long serialVersionUID = -2098516951;
 
 	/**
 	 * The reference instance of <code>tasks.tasks</code>
@@ -129,7 +129,7 @@ public class Tasks extends org.jooq.impl.TableImpl<com.sonicle.webtop.tasks.jooq
 	/**
 	 * The column <code>tasks.tasks.creation_timestamp</code>.
 	 */
-	public final org.jooq.TableField<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord, org.joda.time.DateTime> CREATION_TIMESTAMP = createField("creation_timestamp", org.jooq.impl.SQLDataType.TIMESTAMP.defaulted(true), this, "", new com.sonicle.webtop.core.jooq.DateTimeConverter());
+	public final org.jooq.TableField<com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord, org.joda.time.DateTime> CREATION_TIMESTAMP = createField("creation_timestamp", org.jooq.impl.SQLDataType.TIMESTAMP.nullable(false).defaulted(true), this, "", new com.sonicle.webtop.core.jooq.DateTimeConverter());
 
 	/**
 	 * Create a <code>tasks.tasks</code> table reference
