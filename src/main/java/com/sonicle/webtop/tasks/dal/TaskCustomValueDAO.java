@@ -102,14 +102,14 @@ public class TaskCustomValueDAO extends BaseDAO {
 		return batch.execute();
 	}
 	
-	public int deleteByTask(Connection con, int taskId) throws DAOException {
+	public int deleteByTaskFields(Connection con, int taskId, Collection<String> customFieldIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_CUSTOM_VALUES)
 			.where(
 				TASKS_CUSTOM_VALUES.TASK_ID.equal(taskId)
+				.and(TASKS_CUSTOM_VALUES.CUSTOM_FIELD_ID.in(customFieldIds))
 			)
 			.execute();
 	}
-	
 }
