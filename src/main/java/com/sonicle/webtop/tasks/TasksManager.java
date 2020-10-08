@@ -1336,13 +1336,16 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		
 		if (processCustomValues && task.hasCustomValues()) {
+			ArrayList<String> customFieldIds = new ArrayList<>();
 			ArrayList<OTaskCustomValue> ocvals = new ArrayList<>(task.getCustomValues().size());
 			for (CustomFieldValue cfv : task.getCustomValues().values()) {
 				OTaskCustomValue ocv = ManagerUtils.createOTaskCustomValue(cfv);
 				ocv.setTaskId(otask.getTaskId());
 				ocvals.add(ocv);
+				customFieldIds.add(ocv.getCustomFieldId());
 			}
-			cvalDao.deleteByTask(con, otask.getTaskId());
+			//TODO: use upsert when available
+			cvalDao.deleteByTaskFields(con, otask.getTaskId(), customFieldIds);
 			cvalDao.batchInsert(con, ocvals);
 		}
 		
