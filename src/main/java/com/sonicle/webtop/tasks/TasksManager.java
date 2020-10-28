@@ -1143,13 +1143,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			DateTime now12 = now.plusHours(14);
-			if (shouldLog) logger.debug("Retrieving expired tasks... [{}]", now12);
+			if (shouldLog) logger.debug("Retrieving expired tasks... [ ->| {}]", now12);
 			
 			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now12);
 			HashMap<UserProfileId, Boolean> byEmailCache = new HashMap<>();
 			
 			int i = 0;
-			if (shouldLog) logger.debug("Found {} expired tasks [{}]", i);
+			if (shouldLog) logger.debug("Found {} expired tasks", tasks.size());
 			for (VTask task : tasks) {
 				i++;
 				try {
