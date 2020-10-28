@@ -1135,22 +1135,25 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 	public List<BaseReminder> getRemindersToBeNotified(DateTime now) {
 		ArrayList<BaseReminder> alerts = new ArrayList<>();
-		HashMap<UserProfileId, Boolean> byEmailCache = new HashMap<>();
 		TaskDAO dao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
+			final boolean shouldLog = logger.isDebugEnabled();
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			DateTime now12 = now.plusHours(14);
-			if (logger.isDebugEnabled()) logger.debug("Retrieving expired tasks... [{}]", now12);
-			int i = 0;
+			if (shouldLog) logger.debug("Retrieving expired tasks... [{}]", now12);
+			
 			List<VTask> tasks = dao.viewExpridedForUpdateByUntil(con, now12);
-			if (logger.isDebugEnabled()) logger.debug("Found {} expired tasks [{}]", i);
+			HashMap<UserProfileId, Boolean> byEmailCache = new HashMap<>();
+			
+			int i = 0;
+			if (shouldLog) logger.debug("Found {} expired tasks [{}]", i);
 			for (VTask task : tasks) {
 				i++;
 				try {
-					if (logger.isDebugEnabled()) logger.debug("[{}] Working on task... [{}]", i, task.getTaskId());
+					if (shouldLog) logger.debug("[{}] Working on task... [{}]", i, task.getTaskId());
 					
 					UserProfile.Data ud = WT.getUserData(task.getCategoryProfileId());
 					if (ud == null) throw new WTException("UserData is null [{}]", task.getCategoryProfileId());
@@ -1164,24 +1167,31 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						boolean bool = us.getTaskReminderDelivery().equals(TasksSettings.TASK_REMINDER_DELIVERY_EMAIL);
 						byEmailCache.put(task.getCategoryProfileId(), bool);
 					}
-
+					
+					if (shouldLog) logger.debug("[{}] Creating alert... [{}]", i, task.getTaskId());
+					BaseReminder alert = null;
+					if (byEmailCache.get(task.getCategoryProfileId())) {
+						alert = createTaskReminderAlertEmail(ud.toProfileI18n(), task, ud.getPersonalEmailAddress());
+						
+					} else {
+						alert = createTaskReminderAlertWeb(ud.toProfileI18n(), task, profileReminderDate);
+					}
+					
+					if (shouldLog) logger.debug("[{}] Updating task record... [{}]", i, task.getTaskId());
 					int ret = dao.updateRemindedOn(con, task.getTaskId(), now);
 					if (ret != 1) continue;
 					
-					if (logger.isDebugEnabled()) logger.debug("[{}] Creating alert... [{}]", i, task.getTaskId());
-					if (byEmailCache.get(task.getCategoryProfileId())) {
-						alerts.add(createTaskReminderAlertEmail(ud.toProfileI18n(), task, ud.getPersonalEmailAddress()));
-					} else {
-						alerts.add(createTaskReminderAlertWeb(ud.toProfileI18n(), task, profileReminderDate));
-					}
+					alerts.add(alert);
+					if (shouldLog) logger.debug("[{}] Alert collected [{}]", i, task.getTaskId());
 					
 				} catch (Throwable t1) {
-					if (logger.isWarnEnabled()) logger.warn("[{}] Unable to manage reminder. Alert skipped! [{}]", i, t1, task.getTaskId());
+					logger.warn("[{}] Unable to manage reminder. Task skipped! [{}]", t1, i, task.getTaskId());
 				}
 			}
 			DbUtils.commitQuietly(con);
 			
 		} catch (Throwable t) {
+			DbUtils.rollbackQuietly(con);
 			logger.error("Error handling tasks' reminder alerts", t);
 		} finally {
 			DbUtils.closeQuietly(con);
