@@ -1595,16 +1595,16 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private class OwnerCache extends AbstractMapCache<Integer, UserProfileId> {
 
 		@Override
-		protected void internalInitCache() {}
+		protected void internalInitCache(Map<Integer, UserProfileId> mapObject) {}
 
 		@Override
-		protected void internalMissKey(Integer key) {
+		protected void internalMissKey(Map<Integer, UserProfileId> mapObject, Integer key) {
 			try {
 				UserProfileId owner = findCategoryOwner(key);
 				if (owner == null) throw new WTException("Owner not found [{0}]", key);
-				put(key, owner);
+				mapObject.put(key, owner);
 			} catch(WTException ex) {
-				throw new WTRuntimeException(ex.getMessage());
+				logger.trace("OwnerCache miss", ex);
 			}
 		}
 	}
