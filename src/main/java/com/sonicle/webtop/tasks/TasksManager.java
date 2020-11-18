@@ -358,6 +358,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			category = doCategoryInsert(con, category);
 			
 			DbUtils.commitQuietly(con);
+			onAfterCategoryAction(category.getCategoryId(), category.getProfileId());
 			if (isAuditEnabled()) {
 				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, category.getCategoryId(), null);
 			}
@@ -395,6 +396,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			cat = doCategoryInsert(con, cat);
 			
 			DbUtils.commitQuietly(con);
+			onAfterCategoryAction(cat.getCategoryId(), cat.getProfileId());
 			if (isAuditEnabled()) {
 				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, cat.getCategoryId(), null);
 			}
@@ -422,6 +424,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (!ret) throw new WTNotFoundException("Category not found [{}]", categoryId);
 			
 			DbUtils.commitQuietly(con);
+			onAfterCategoryAction(categoryId, cat.getProfileId());
 			if (isAuditEnabled()) {
 				writeAuditLog(AuditContext.CATEGORY, AuditAction.UPDATE, categoryId, null);
 			}
@@ -448,6 +451,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			Sharing sharing = getSharing(sharingId);
 			
 			con = WT.getConnection(SERVICE_ID, false);
+			Category cat = ManagerUtils.createCategory(catDao.selectById(con, categoryId));
+			if (cat == null) throw new WTNotFoundException("Category not found [{}]", categoryId);
+			
 			int ret = catDao.deleteById(con, categoryId);
 			psetDao.deleteByCategory(con, categoryId);
 			doTaskDeleteByCategory(con, categoryId);
@@ -460,6 +466,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			
 			DbUtils.commitQuietly(con);
+			onAfterCategoryAction(categoryId, cat.getProfileId());
 			if (isAuditEnabled()) {
 				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, categoryId, null);
 				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
@@ -1443,6 +1450,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
+	}
+	
+	private void onAfterCategoryAction(int categoryId, UserProfileId owner) {
+		if (!owner.equals(getTargetProfileId())) shareCache.init();
 	}
 	
 	private void checkRightsOnCategoryRoot(UserProfileId owner, String action) throws WTException {
