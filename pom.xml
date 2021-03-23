@@ -24,10 +24,13 @@
 	</properties>
 	
 	<dependencies>
+		<!-- This WebTop Service's API -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>webtop-tasks-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- Libraries -->
+		<!-- Other WebTop Services (integrations) -->
 	</dependencies>
 </project>
