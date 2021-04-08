@@ -42,7 +42,7 @@ import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Locale;
-import javax.mail.internet.AddressException;
+import jakarta.mail.internet.AddressException;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
