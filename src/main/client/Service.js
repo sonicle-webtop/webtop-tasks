@@ -288,7 +288,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					getRowClass: function (rec, indx) {
 						if (rec.get('status') === 'completed')
 							return 'wttasks-row-completed';
-						if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(rec.get('dueDate'),new Date(),false)>0 )
+						if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(new Date(), rec.get('dueDate'), false) > 0)
 							return 'wttasks-row-expired';
 						return '';
 					}
