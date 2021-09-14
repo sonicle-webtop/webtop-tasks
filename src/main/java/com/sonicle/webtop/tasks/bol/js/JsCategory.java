@@ -48,7 +48,6 @@ public class JsCategory {
 	public String description;
 	public String color;
 	public String sync;
-	public Boolean isDefault;
 	public Boolean isPrivate;
 	
 	public JsCategory(Category cat) {
@@ -60,7 +59,6 @@ public class JsCategory {
 		description = cat.getDescription();
 		color = cat.getColor();
 		sync = EnumUtils.toSerializedName(cat.getSync());
-		isDefault = cat.getIsDefault();
 		isPrivate = cat.getIsPrivate();
 	}
 	
@@ -74,7 +72,6 @@ public class JsCategory {
 		cat.setDescription(js.description);
 		cat.setColor(js.color);
 		cat.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
-		cat.setIsDefault(js.isDefault);
 		cat.setIsPrivate(js.isPrivate);
 		return cat;
 	}

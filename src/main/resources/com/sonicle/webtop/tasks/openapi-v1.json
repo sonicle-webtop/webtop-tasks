@@ -221,7 +221,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "type": "integer",
+          "type": "string",
           "description": "Message ID",
           "x-example": 1234
         }
@@ -304,7 +304,7 @@
       ],
       "properties": {
         "id": {
-          "type": "integer",
+          "type": "string",
           "description": "Task ID (internal)"
         },
         "etag": {
@@ -325,7 +325,7 @@
       ],
       "properties": {
         "id": {
-          "type": "integer",
+          "type": "string",
           "description": "Task ID (internal)"
         },
         "etag": {

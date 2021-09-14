@@ -32,12 +32,13 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
+import com.google.gson.annotations.SerializedName;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.TaskLookup;
+import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -45,49 +46,66 @@ import org.joda.time.DateTimeZone;
  * @author malbinola
  */
 public class JsGridTask {
-	public Integer taskId;
+	public String id;
+	public String taskId;
+	public String parentId;
 	public String subject;
 	public String description;
-	public String startDate;
-	public String dueDate;
-	public String completedDate;
+	public String start;
+	public String due;
+	public String completedOn;
+	public String status;
+	public Short progress;
 	public Short importance;
 	public Boolean isPrivate;
-	public String status;
-	public Short percentage;
-	public String reminderDate;
+	public String docRef;
+	public Integer reminder;
 	//public String publicUid;
 	public String tags;
+	public Boolean hasRecur;
     public Integer categoryId;
 	public String categoryName;
     public String categoryColor;
+	public String ownerId;
 	public String _frights;
 	public String _erights;
-	public String _profileId;
+	public Hierarchy _hierarchy;
+	public Integer _depth;
 	
 	public JsGridTask() {}
 	
-	public JsGridTask(ShareFolderCategory folder, CategoryPropSet folderProps, TaskLookup task, DateTimeZone profileTz) {
+	public JsGridTask(ShareFolderCategory folder, CategoryPropSet folderProps, TaskLookupInstance task, Hierarchy hierarchy, Integer depth, DateTimeZone profileTz) {
 		Category category = folder.getCategory();
 		
-		taskId = task.getTaskId();
-        subject = task.getSubject();
-        description = task.getDescription();
-		startDate = DateTimeUtils.printYmdHmsWithZone(task.getStartDate(), profileTz);
-		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
-		completedDate = DateTimeUtils.printYmdHmsWithZone(task.getCompletedDate(), profileTz);
-        importance = task.getImportance();
-        isPrivate = task.getIsPrivate();
-        status = EnumUtils.toSerializedName(task.getStatus());
-        percentage = task.getCompletionPercentage();
-		reminderDate = DateTimeUtils.printYmdHmsWithZone(task.getReminderDate(), profileTz);
-		tags = task.getTags();
-        categoryId = task.getCategoryId();
-        categoryName = category.getName();
-		categoryColor = category.getColor();
-		if (folderProps != null) categoryColor = folderProps.getColorOrDefault(categoryColor);
-        _frights = folder.getPerms().toString();
-        _erights = folder.getElementsPerms().toString();
-        _profileId = category.getProfileId().toString();
+		this.id = task.getId().toString();
+		this.taskId = task.getTaskId();
+		this.parentId = Hierarchy.CHILD.equals(hierarchy) ? task.getParentInstanceId().toString() : null;
+        this.subject = task.getSubject();
+        this.description = task.getDescription();
+		this.start = DateTimeUtils.printYmdHmsWithZone(task.getStart(), profileTz);
+		this.due = DateTimeUtils.printYmdHmsWithZone(task.getDue(), profileTz);
+		this.completedOn = DateTimeUtils.printYmdHmsWithZone(task.getCompletedOn(), profileTz);
+		this.status = EnumUtils.toSerializedName(task.getStatus());
+        this.progress = task.getProgress();
+        this.importance = task.getImportance();
+        this.isPrivate = task.getIsPrivate();
+		this.docRef = task.getDocumentRef();
+		this.reminder = task.getReminder();
+		this.tags = task.getTags();
+		this.hasRecur = task.getHasRecurrence();
+        this.categoryId = task.getCategoryId();
+        this.categoryName = category.getName();
+		this.categoryColor = category.getColor();
+		if (folderProps != null) this.categoryColor = folderProps.getColorOrDefault(categoryColor);
+		this.ownerId = category.getProfileId().toString();
+        this._frights = folder.getPerms().toString();
+        this._erights = folder.getElementsPerms().toString();
+		this._hierarchy = hierarchy;
+		this._depth = depth;
+	}
+	
+	public static enum Hierarchy {
+		@SerializedName("parent") PARENT,
+		@SerializedName("child") CHILD
 	}
 }

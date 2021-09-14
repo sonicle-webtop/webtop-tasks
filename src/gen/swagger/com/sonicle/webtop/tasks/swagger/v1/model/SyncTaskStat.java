@@ -15,13 +15,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class SyncTaskStat   {
   
-  private @Valid Integer id = null;
+  private @Valid String id = null;
   private @Valid String etag = null;
 
   /**
    * Task ID (internal)
    **/
-  public SyncTaskStat id(Integer id) {
+  public SyncTaskStat id(String id) {
     this.id = id;
     return this;
   }
@@ -30,10 +30,10 @@ public class SyncTaskStat   {
   @ApiModelProperty(required = true, value = "Task ID (internal)")
   @JsonProperty("id")
   @NotNull
-  public Integer getId() {
+  public String getId() {
     return id;
   }
-  public void setId(Integer id) {
+  public void setId(String id) {
     this.id = id;
   }
 

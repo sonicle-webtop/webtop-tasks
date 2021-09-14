@@ -32,12 +32,14 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.util.EmailNotification;
 import com.sonicle.webtop.core.model.ProfileI18n;
 import com.sonicle.webtop.tasks.bol.VTask;
+import com.sonicle.webtop.tasks.model.TaskBase;
 import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -55,14 +57,14 @@ import org.joda.time.format.DateTimeFormatter;
 public class TplHelper {
 	private static final String SERVICE_ID = "com.sonicle.webtop.tasks";
 	
-	public static String buildTaskReminderSubject(ProfileI18n profileI18n, VTask task) {
+	public static String buildTaskReminderSubject(ProfileI18n profileI18n, TaskBase task) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(StringUtils.abbreviate(task.getSubject(), 30));
 		
 		return MessageFormat.format(WT.lookupResource(SERVICE_ID, profileI18n.getLocale(), TasksLocale.EMAIL_REMINDER_SUBJECT), sb.toString());
 	}
 	
-	public static String buildTplTaskReminderBody(ProfileI18n profileI18n, VTask task) throws IOException, TemplateException, AddressException {
+	public static String buildTplTaskReminderBody(ProfileI18n profileI18n, TaskBase task) throws IOException, TemplateException, AddressException {
 		MapItem i18n = new MapItem();
 		i18n.put("whenStart", WT.lookupResource(SERVICE_ID, profileI18n.getLocale(), TasksLocale.TPL_EMAIL_TASK_BODY_WHENSTART));
 		i18n.put("whenDue", WT.lookupResource(SERVICE_ID,  profileI18n.getLocale(), TasksLocale.TPL_EMAIL_TASK_BODY_WHENDUE));
@@ -74,11 +76,11 @@ public class TplHelper {
 		MapItem item = new MapItem();
 		item.put("subject", StringUtils.defaultIfBlank(task.getSubject(), ""));
 		item.put("description", StringUtils.defaultIfBlank(task.getDescription(), null));
-		item.put("startDate", formatAsDate(task.getStartDate(), dateFmt));
-		item.put("dueDate", formatAsDate(task.getDueDate(), dateFmt));
-		//evt.put("completedDate", dateFmt.print(task.getCompletedDate()));
+		item.put("startDate", formatAsDate(task.getStart(), dateFmt));
+		item.put("dueDate", formatAsDate(task.getDue(), dateFmt));
+		//item.put("completedDate", dateFmt.print(task.getCompletedOn()));
 		item.put("status", statusToString(profileI18n.getLocale(), task.getStatus()));
-		item.put("completion", toCompletionPercentage(task.getCompletionPercentage())); 
+		item.put("completion", toCompletionPercentage(task.getProgress())); 
 		
 		MapItem vars = new MapItem();
 		vars.put("i18n", i18n);
@@ -102,7 +104,7 @@ public class TplHelper {
 		return (completion == null) ? "" : completion + "%";
 	}
 	
-	private static String statusToString(Locale locale, String status) {
-		return StringUtils.isBlank(status) ? "" : WT.lookupResource(SERVICE_ID, locale, MessageFormat.format(TasksLocale.TPL_EMAIL_TASK_BODY_STATUS_X, status));
+	private static String statusToString(Locale locale, TaskBase.Status status) {
+		return (status == null) ? "" : WT.lookupResource(SERVICE_ID, locale, MessageFormat.format(TasksLocale.TPL_EMAIL_TASK_BODY_STATUS_X, EnumUtils.toSerializedName(status)));
 	}
 }

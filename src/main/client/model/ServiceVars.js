@@ -35,6 +35,7 @@ Ext.define('Sonicle.webtop.tasks.model.ServiceVars', {
 	extend: 'WTA.sdk.model.ServiceVars',
 	
 	fields: [
+		WTF.field('gridView', 'string', true),
 		WTF.field('defaultCategorySync', 'string', true)
 	]
 });

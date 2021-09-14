@@ -85,5 +85,5 @@ public class TasksController extends BaseController implements IControllerServic
 	public List<BaseReminder> returnReminders(DateTime now) {
 		TasksManager manager = new TasksManager(true, RunContext.getRunProfileId());
 		return manager.getRemindersToBeNotified(now);
-	}
+	}	
 }

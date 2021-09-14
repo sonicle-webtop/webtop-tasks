@@ -39,6 +39,7 @@ import com.sonicle.webtop.core.sdk.bol.js.JsUserOptionsBase;
  * @author malbinola
  */
 public class JsUserOptions extends JsUserOptionsBase {
+	public String gridView;
 	public String taskReminderDelivery;
 	
 	public JsUserOptions() {}

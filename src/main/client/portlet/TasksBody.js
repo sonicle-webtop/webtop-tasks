@@ -70,36 +70,39 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 				deferEmptyText: false,
 				emptyText: me.mys.res('portlet.tasks.gp.emp'),
 				getRowClass: function (rec, indx) {
-					if (Ext.isDate(rec.get('dueDate')) && Sonicle.Date.compare(rec.get('dueDate'), new Date(), false)>0)
-						return 'wttasks-row-expired';
+					if (rec.isOverdue()) return 'wt-theme-text-error';
 					return '';
 				}
 			},
-			columns: [{
-				xtype: 'socolorcolumn',
-				dataIndex: 'categoryName',
-				colorField: 'categoryColor',
-				width: 30
-			}, {
-				dataIndex: 'subject',
-				flex: 1
-			}],
-			features: [{
-				ftype: 'rowbody',
-				getAdditionalData: function(data, idx, rec, orig) {
-					var desc = Ext.String.ellipsis(rec.get('description'), 100),
-						date = Ext.Date.format(rec.get('dueDate'), WT.getShortDateFmt()),
-						html = Ext.String.format(me.mys.res('portlet.tasks.gp.dueon'), date);
-						if (!Ext.isEmpty(desc)) html += (' <span style="color:grey;">' + Ext.String.htmlEncode(desc) + '</span>');
-					return {
-						rowBody: html
-					};
+			columns: [
+				{
+					xtype: 'socolorcolumn',
+					dataIndex: 'categoryName',
+					colorField: 'categoryColor',
+					width: 30
+				}, {
+					dataIndex: 'subject',
+					flex: 1
 				}
-			}],
+			],
+			features: [
+				{
+					ftype: 'rowbody',
+					getAdditionalData: function(data, idx, rec, orig) {
+						var body = Ext.String.ellipsis(rec.get('body'), 100),
+							date = Ext.Date.format(rec.get('due'), WT.getShortDateFmt()),
+							html = Ext.String.format(me.mys.res('portlet.tasks.gp.dueon'), date);
+							if (!Ext.isEmpty(body)) html += (' <span style="color:grey;">' + Ext.String.htmlEncode(body) + '</span>');
+						return {
+							rowBody: html
+						};
+					}
+				}
+			],
 			listeners: {
 				rowdblclick: function(s, rec) {
 					var er = me.mys.toRightsObj(rec.get('_erights'));
-					me.mys.openTaskUI(er.UPDATE, rec.get('taskId'));
+					me.mys.openTaskUI(er.UPDATE, rec.getId());
 				}
 			}
 		});

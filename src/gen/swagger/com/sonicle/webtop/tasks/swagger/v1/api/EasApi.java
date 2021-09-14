@@ -17,7 +17,7 @@ import javax.validation.Valid;
 
 @Path("/eas")
 @Api(description = "the eas API")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2019-02-01T15:12:39.188+01:00")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2021-05-26T12:02:08.001+02:00")
 public abstract class EasApi extends com.sonicle.webtop.core.sdk.BaseRestApiResource {
 
     @POST
@@ -42,7 +42,7 @@ public abstract class EasApi extends com.sonicle.webtop.core.sdk.BaseRestApiReso
         @ApiResponse(code = 204, message = "Success", response = Void.class),
         @ApiResponse(code = 400, message = "Invalid parameter", response = Void.class),
         @ApiResponse(code = 404, message = "Message not found", response = Void.class) })
-    public Response deleteMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") Integer id) {
+    public Response deleteMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") String id) {
         return Response.ok().entity("magic!").build();
     }
 
@@ -68,7 +68,7 @@ public abstract class EasApi extends com.sonicle.webtop.core.sdk.BaseRestApiReso
         @ApiResponse(code = 200, message = "Success", response = SyncTask.class),
         @ApiResponse(code = 400, message = "Invalid parameter", response = Void.class),
         @ApiResponse(code = 404, message = "Message not found", response = Void.class) })
-    public Response getMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") Integer id) {
+    public Response getMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") String id) {
         return Response.ok().entity("magic!").build();
     }
 
@@ -96,7 +96,7 @@ public abstract class EasApi extends com.sonicle.webtop.core.sdk.BaseRestApiReso
         @ApiResponse(code = 200, message = "Success", response = SyncTaskStat.class),
         @ApiResponse(code = 400, message = "Invalid parameter", response = Void.class),
         @ApiResponse(code = 404, message = "Message not found", response = Void.class) })
-    public Response updateMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") Integer id,@Valid SyncTaskUpdate body) {
+    public Response updateMessage(@PathParam("folderId") @ApiParam("Folder ID") Integer folderId,@PathParam("id") @ApiParam("Message ID") String id,@Valid SyncTaskUpdate body) {
         return Response.ok().entity("magic!").build();
     }
 }

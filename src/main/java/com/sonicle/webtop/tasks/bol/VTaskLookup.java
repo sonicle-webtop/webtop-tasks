@@ -32,12 +32,17 @@
  */
 package com.sonicle.webtop.tasks.bol;
 
+import com.sonicle.webtop.core.sdk.UserProfileId;
+
 /**
  *
  * @author malbinola
  */
-public class VTaskLookup extends VTaskBase {
+public class VTaskLookup extends OTask {
+	// We extend OTask for convenience, not all fields are needed!
 	protected String tags;
+	protected Boolean hasRecurrence;
+	protected Boolean hasChildren;
 	protected String categoryName;
 	protected String categoryDomainId;
 	protected String categoryUserId;
@@ -48,6 +53,22 @@ public class VTaskLookup extends VTaskBase {
 
 	public void setTags(String tags) {
 		this.tags = tags;
+	}
+	
+	public Boolean getHasRecurrence() {
+		return hasRecurrence;
+	}
+
+	public void setHasRecurrence(Boolean hasRecurrence) {
+		this.hasRecurrence = hasRecurrence;
+	}
+
+	public Boolean getHasChildren() {
+		return hasChildren;
+	}
+
+	public void setHasChildren(Boolean hasChildren) {
+		this.hasChildren = hasChildren;
 	}
 	
 	public String getCategoryName() {
@@ -72,5 +93,9 @@ public class VTaskLookup extends VTaskBase {
 
 	public void setCategoryUserId(String categoryUserId) {
 		this.categoryUserId = categoryUserId;
+	}
+	
+	public UserProfileId getCategoryProfileId() {
+		return new UserProfileId(getCategoryDomainId(), getCategoryUserId());
 	}
 }

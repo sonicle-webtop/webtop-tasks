@@ -32,12 +32,20 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.google.gson.annotations.SerializedName;
+import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
+import com.sonicle.commons.PathUtils;
 import com.sonicle.commons.cache.AbstractPassiveExpiringBulkMap;
+import com.sonicle.commons.qbuilders.conditions.Condition;
+import com.sonicle.commons.beans.SortInfo;
+import com.sonicle.commons.time.DateTimeRange;
+import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.IntegerArray;
+import com.sonicle.commons.web.ServletUtils.StringArray;
 import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
@@ -47,6 +55,8 @@ import com.sonicle.commons.web.json.bean.IntegerSet;
 import com.sonicle.commons.web.json.bean.QueryObj;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.commons.web.json.extjs.ExtTreeNode;
+import com.sonicle.commons.web.json.extjs.GridMetadata;
+import com.sonicle.commons.web.json.extjs.SortMeta;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
@@ -58,10 +68,12 @@ import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
+import com.sonicle.webtop.core.app.util.log.LogEntry;
+import com.sonicle.webtop.core.app.util.log.LogHandler;
 import com.sonicle.webtop.core.bol.js.JsCustomFieldDefsData;
 import com.sonicle.webtop.core.bol.js.JsSimple;
+import com.sonicle.webtop.core.bol.js.JsWizardData;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
-import com.sonicle.webtop.core.bol.js.ObjSearchableCustomField;
 import com.sonicle.webtop.core.model.SharePermsRoot;
 import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
@@ -71,16 +83,24 @@ import com.sonicle.webtop.core.model.CustomFieldEx;
 import com.sonicle.webtop.core.model.CustomFieldValue;
 import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.BaseService;
+import com.sonicle.webtop.core.sdk.ServiceMessage;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
+import com.sonicle.webtop.core.util.ICalendarUtils;
+import com.sonicle.webtop.core.util.LogEntries;
+import com.sonicle.webtop.core.util.RRuleStringify;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsPletTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
+import com.sonicle.webtop.tasks.bol.js.JsTaskPreview;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
+import com.sonicle.webtop.tasks.bol.model.RBTaskList;
+import com.sonicle.webtop.tasks.io.ICalendarInput;
+import com.sonicle.webtop.tasks.io.ICalendarOutput;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.ListTasksResult;
@@ -88,21 +108,33 @@ import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
+import com.sonicle.webtop.tasks.model.TaskBase;
+import com.sonicle.webtop.tasks.model.TaskEx;
+import com.sonicle.webtop.tasks.model.TaskInstance;
+import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import com.sonicle.webtop.tasks.model.TaskLookup;
+import com.sonicle.webtop.tasks.model.TaskLookupInstance;
+import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
 import com.sonicle.webtop.tasks.model.TaskQuery;
+import com.sonicle.webtop.tasks.msg.TaskImportLogSM;
+import com.sonicle.webtop.tasks.rpt.RptTaskList;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -118,8 +150,6 @@ import org.slf4j.Logger;
  */
 public class Service extends BaseService {
 	public static final Logger logger = WT.getLogger(Service.class);
-	public static final String WORK_VIEW = "w";
-	public static final String HOME_VIEW = "h";
 	
 	private TasksManager manager;
 	private TasksServiceSettings ss;
@@ -142,6 +172,9 @@ public class Service extends BaseService {
 		ss = new TasksServiceSettings(SERVICE_ID, up.getDomainId());
 		us = new TasksUserSettings(SERVICE_ID, up.getId());
 		initFolders();
+		
+		// Default lookup: if not yet configured this will implicitly set built-in folder as default!
+		manager.getDefaultCategoryId();
 	}
 	
 	@Override
@@ -163,6 +196,7 @@ public class Service extends BaseService {
 	@Override
 	public ServiceVars returnServiceVars() {
 		ServiceVars co = new ServiceVars();
+		co.put("gridView", EnumUtils.toSerializedName(us.getGridView()));
 		co.put("defaultCategorySync", EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
 		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjCustomFieldDefs.FieldsList.class));
 		return co;
@@ -249,7 +283,7 @@ public class Service extends BaseService {
 			for (ShareRootCategory root : roots.values()) {
 				foldersByRoot.put(root.getShareId(), new ArrayList<ShareFolderCategory>());
 				if (root instanceof MyShareRootCategory) {
-					for (Category cat : manager.listCategories().values()) {
+					for (Category cat : manager.listMyCategories().values()) {
 						final MyShareFolderCategory fold = new MyShareFolderCategory(root.getShareId(), cat);
 						foldersByRoot.get(root.getShareId()).add(fold);
 						folders.put(cat.getCategoryId(), fold);
@@ -285,20 +319,23 @@ public class Service extends BaseService {
 					boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
 					ShareRootCategory root = roots.get(node);
 					
+					Integer defltCategoryId = manager.getDefaultCategoryId();
 					if (root instanceof MyShareRootCategory) {
-						for (Category cat : manager.listCategories().values()) {
+						for (Category cat : manager.listMyCategories().values()) {
 							MyShareFolderCategory folder = new MyShareFolderCategory(node, cat);
 							if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
 							
-							children.add(createFolderNode(chooser, folder, null, root.getPerms()));
+							final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
+							children.add(createFolderNode(chooser, folder, null, root.getPerms(), isDefault));
 						}
 					} else {
 						if (foldersByRoot.containsKey(root.getShareId())) {
 							for (ShareFolderCategory folder : foldersByRoot.get(root.getShareId())) {
 								if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
 								
+								final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
 								final CategoryPropSet pset = folderProps.get(folder.getCategory().getCategoryId());
-								final ExtTreeNode etn = createFolderNode(chooser, folder, pset, root.getPerms());
+								final ExtTreeNode etn = createFolderNode(chooser, folder, pset, root.getPerms(), isDefault);
 								if (etn != null) children.add(etn);
 							}
 						}
@@ -365,11 +402,13 @@ public class Service extends BaseService {
 		List<JsCategoryLkp> items = new ArrayList<>();
 		
 		try {
+			Integer defltCategoryId = manager.getDefaultCategoryId();
 			synchronized(roots) {
 				for (ShareRootCategory root : roots.values()) {
 					if (foldersByRoot.containsKey(root.getShareId())) {
-						for (ShareFolderCategory fold : foldersByRoot.get(root.getShareId())) {
-							items.add(new JsCategoryLkp(root, fold, folderProps.get(fold.getCategory().getCategoryId()), items.size()));
+						for (ShareFolderCategory folder : foldersByRoot.get(root.getShareId())) {
+							final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
+							items.add(new JsCategoryLkp(root, folder, folderProps.get(folder.getCategory().getCategoryId()), isDefault, items.size()));
 						}
 					}
 				}
@@ -501,6 +540,20 @@ public class Service extends BaseService {
 		}
 	}
 	
+	public void processSetDefaultCategory(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		try {
+			Integer id = ServletUtils.getIntParameter(request, "id", true);
+			
+			us.setDefaultCategoryFolder(id);
+			Integer defltCategoryId = manager.getDefaultCategoryId();
+			new JsonResult(String.valueOf(defltCategoryId)).printTo(out);
+				
+		} catch(Throwable t) {
+			logger.error("Error in SetDefaultCategory", t);
+			new JsonResult(t).printTo(out);
+		}
+	}
+	
 	public void processSetCategoryColor(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
@@ -508,13 +561,13 @@ public class Service extends BaseService {
 			
 			updateCategoryFolderColor(id, color);
 			new JsonResult().printTo(out);
-			
-		} catch(Exception ex) {
-			logger.error("Error in SetCategoryColor", ex);
-			new JsonResult(ex).printTo(out);
+				
+		} catch(Throwable t) {
+			logger.error("Error in SetCategoryColor", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
-	
+				
 	public void processSetCategorySync(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			Integer id = ServletUtils.getIntParameter(request, "id", true);
@@ -522,47 +575,118 @@ public class Service extends BaseService {
 			
 			updateCategoryFolderSync(id, EnumUtils.forSerializedName(sync, Category.Sync.class));
 			new JsonResult().printTo(out);
+				
+		} catch(Throwable t) {
+			logger.error("Error in SetCategorySync", t);
+			new JsonResult(t).printTo(out);
+		}
+	}
+	
+	public void processGetTaskChildren(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		UserProfile userProfile = getEnv().getProfile();
+		DateTimeZone userTimeZone = userProfile.getTimeZone();
+		
+		try {
+			String parentId = ServletUtils.getStringParameter(request, "parentId", true);
 			
-		} catch(Exception ex) {
-			logger.error("Error in SetCategorySync", ex);
-			new JsonResult(ex).printTo(out);
+			List<JsSimple> items = new ArrayList<>();
+			Condition<TaskQuery> pred = new TaskQuery().parent().eq(parentId);
+			Set<Integer> categoryIds = manager.listAllCategoryIds();
+			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, pred, null, userTimeZone)) {
+				items.add(new JsSimple(instance.getIdAsString(), instance.getSubject()));
+			}
+			new JsonResult(items).printTo(out);
+			
+		} catch(Throwable t) {
+			logger.error("Error in GetTaskChildren", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 
 	public void processManageGridTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
-		ArrayList<JsGridTask> items = new ArrayList<>();
+		UserProfile userProfile = getEnv().getProfile();
+		DateTimeZone userTimeZone = userProfile.getTimeZone();
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			UserProfile userProfile = getEnv().getProfile();
-			DateTimeZone userTimeZone = userProfile.getTimeZone();
-			
 			if (crud.equals(Crud.READ)) {
-				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
-				//int page = ServletUtils.getIntParameter(request, "page", true);
-				//int limit = ServletUtils.getIntParameter(request, "limit", 50);
+				ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
+				QueryObj queryObj = applyTasksQueryObjDefaults(ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class));
+				SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
 				
+				ArrayList<JsGridTask> items = new ArrayList<>();
+				Set<String> parents = new HashSet<>();
 				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
-				ListTasksResult result = manager.listTasks(visibleCategoryIds, TaskQuery.toCondition(queryObj, map, userTimeZone));
-				for (TaskLookup item : result.items) {
-					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
+				SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
+				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.toCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
 					if (root == null) continue;
-					final ShareFolderCategory fold = folders.get(item.getCategoryId());
+					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
 					if (fold == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(item.getCategoryId());
-					items.add(new JsGridTask(fold, pset, item, DateTimeZone.UTC));
+					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+					
+					JsGridTask js = null;
+					if (!instance.getHasChildren() && instance.getParentInstanceId() == null) { // simple task
+						js = new JsGridTask(fold, pset, instance, null, 0, userTimeZone);
+					} else if (instance.getHasChildren()) { // parent task
+						parents.add(instance.getTaskId());
+						js = new JsGridTask(fold, pset, instance, JsGridTask.Hierarchy.PARENT, 0, userTimeZone);
+					} else if (instance.getParentInstanceId() != null) { // child task
+						boolean parentInResultset = parents.contains(instance.getParentInstanceId().getTaskId());
+						js = new JsGridTask(fold, pset, instance, JsGridTask.Hierarchy.CHILD, parentInResultset ? 1 : 0, userTimeZone);
+					}
+					items.add(js);
 				}
-				new JsonResult("tasks", items).printTo(out);
+				new JsonResult(items, items.size())
+					.setMetaData(new GridMetadata()
+						.setSortInfo(sortInfo)
+					)
+					.printTo(out);
 				
 			} else if (crud.equals("updateTag")) {
-				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
+				StringArray ids = ServletUtils.getObjectParameter(request, "ids", StringArray.class, true);
 				UpdateTagsOperation op = ServletUtils.getEnumParameter(request, "op", true, UpdateTagsOperation.class);
 				ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
 				
-				manager.updateTaskTags(op, ids, new HashSet<>(tags));
+				manager.updateTaskInstanceTags(op, iids, new HashSet<>(tags));
+				new JsonResult().printTo(out);
 				
+			} else if (crud.equals("complete")) {
+				StringArray ids = ServletUtils.getObjectParameter(request, "ids", StringArray.class, true);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
+				
+				manager.updateQuickTaskInstance(iids, true, null, null);
+				new JsonResult().printTo(out);
+				
+			} else if (crud.equals("setProgress")) {
+				StringArray ids = ServletUtils.getObjectParameter(request, "ids", StringArray.class, true);
+				Short progress = ServletUtils.getShortParameter(request, "progress", true);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
+				
+				manager.updateQuickTaskInstance(iids, null, progress, null);
+				new JsonResult().printTo(out);
+				
+			} else if (crud.equals("setImportance")) {
+				StringArray ids = ServletUtils.getObjectParameter(request, "ids", StringArray.class, true);
+				Short importance = ServletUtils.getShortParameter(request, "importance", true);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
+				
+				manager.updateQuickTaskInstance(iids, null, null, importance);
 				new JsonResult().printTo(out);
 			}
 		
@@ -571,8 +695,202 @@ public class Service extends BaseService {
 			new JsonResult(t).printTo(out);
 		}
 	}
+	
+	private QueryObj applyTasksQueryObjDefaults(QueryObj queryObj) {
+		// If status is not used in query, filter-out completed tasks by default!
+		if (!queryObj.hasCondition("is", "done") && !queryObj.hasCondition("status")) {
+			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION), false);
+			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.IN_PROGRESS), false);
+			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.CANCELLED), false);
+			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.WAITING), false);
+		}
+		return queryObj;
+	}
+	
+	public void processPrintTasks(HttpServletRequest request, HttpServletResponse response) {
+		UserProfile userProfile = getEnv().getProfile();
+		DateTimeZone userTimeZone = userProfile.getTimeZone();
+		AbstractReport rpt = null;
+		ByteArrayOutputStream baos = null;
+		
+		try {
+			String filename = ServletUtils.getStringParameter(request, "filename", false);
+			String type = ServletUtils.getStringParameter(request, "type", true);
+			
+			if ("list".equals(type)) {
+				if (StringUtils.isBlank(filename)) filename = "tasklist";
+				ReportConfig.Builder builder = reportConfigBuilder();
+				rpt = new RptTaskList(builder.build());
+				ArrayList<RBTaskList> items = new ArrayList<>();
+				
+				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, false);
+				if (ids != null && !ids.isEmpty()) {
+					List<TaskInstanceId> iids = ids.stream()
+						.map(id -> TaskInstanceId.parse(id))
+						.filter(id -> id != null)
+						.collect(Collectors.toList());
+					
+					String lastParent = null;
+					for (TaskInstanceId iid : iids) {
+						TaskInstance instance = manager.getTaskInstance(iid);
+						if (instance == null) continue;
+						final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
+						if (root == null) continue;
+						final ShareFolderCategory fold = folders.get(instance.getCategoryId());
+						if (fold == null) continue;
+						final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+						
+						boolean showNested = false;
+						if (instance.isParent()) {
+							lastParent = instance.getTaskId();
+						} else if (instance.isChild()) {
+							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
+						}
+						items.add(new RBTaskList(root, fold.getCategory(), pset, instance, userTimeZone, showNested));
+					}
+					
+				} else {
+					ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
+					QueryObj queryObj = applyTasksQueryObjDefaults(ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class));
+					SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
+					
+					String lastParent = null;
+					Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
+					List<Integer> visibleCategoryIds = getActiveFolderIds();
+					SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
+					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.toCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+						final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
+						if (root == null) continue;
+						final ShareFolderCategory fold = folders.get(instance.getCategoryId());
+						if (fold == null) continue;
+						final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+						
+						boolean showNested = false;
+						if (instance.isParent()) {
+							lastParent = instance.getTaskId();
+						} else if (instance.isChild()) {
+							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
+						}
+						items.add(new RBTaskList(root, fold.getCategory(), pset, instance, userTimeZone, showNested));
+					}
+				}
+				rpt.setDataSource(items);
+				
+			} else if ("detail".equals(type)) {
+				if (StringUtils.isBlank(filename)) filename = "taskdetail";
+				ReportConfig.Builder builder = reportConfigBuilder();
+				rpt = new RptTasksDetail(builder.build());
+				ArrayList<RBTaskDetail> items = new ArrayList<>();
+				
+				RRuleStringify.Strings strings = WT.getRRuleStringifyStrings(userProfile.getLocale());
+				RRuleStringify rrs = new RRuleStringify(strings, userTimeZone);
+				
+				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, false);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
+
+				for (TaskInstanceId iid : iids) {
+					TaskInstance instance = manager.getTaskInstance(iid, BitFlag.none());
+					if (instance == null) continue;
+					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
+					if (root == null) continue;
+					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
+					if (fold == null) continue;
+					final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+					
+					items.add(new RBTaskDetail(rrs, root, fold.getCategory(), pset, instance, userTimeZone));
+				}
+				rpt.setDataSource(items);
+			}
+			
+			ServletUtils.setFileStreamHeaders(response, filename + ".pdf");
+			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, response.getOutputStream());
+			
+		} catch(Throwable t) {
+			logger.error("Error in action PrintTasks", t);
+			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
+		} finally {
+			IOUtils.closeQuietly(baos);
+		}
+	}
+	
+	public void processGetTaskPreview(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		CoreManager coreMgr = WT.getCoreManager();
+		
+		try {
+			String crud = ServletUtils.getStringParameter(request, "crud", true);
+			if (crud.equals(Crud.READ)) {
+				String id = ServletUtils.getStringParameter(request, "id", true);
+				
+				UserProfile up = getEnv().getProfile();
+				TaskInstanceId instanceId = TaskInstanceId.parse(id);
+				BitFlag<ITasksManager.TaskGetOptions> options = BitFlag.of(ITasksManager.TaskGetOptions.TAGS, ITasksManager.TaskGetOptions.CUSTOM_VALUES);
+				TaskInstance task = manager.getTaskInstance(instanceId, options);
+				if (task == null) throw new WTException("Task not found [{}]", instanceId);
+				
+				ShareRootCategory root = rootByFolder.get(task.getCategoryId());
+				if (root == null) throw new WTException("Root not found [{}]", task.getCategoryId());
+				ShareFolderCategory folder = folders.get(task.getCategoryId());
+				if (folder == null) throw new WTException("Folder not found [{}]", task.getCategoryId());
+				CategoryPropSet pset = folderProps.get(task.getCategoryId());
+
+				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, null, true);
+				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
+				Map<String, CustomField> cfields = new HashMap<>();
+				for (CustomPanel cpanel : cpanels.values()) {
+					for (String fieldId : cpanel.getFields()) {
+						if (!pvwfields.contains(fieldId)) continue;
+						CustomField cfield = coreMgr.getCustomField(SERVICE_ID, fieldId);
+						if (cfield != null) cfields.put(fieldId, cfield);
+					}
+				}
+
+				new JsonResult(new JsTaskPreview(root, folder, pset, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone())).printTo(out);
+			}
+			
+		} catch(Throwable t) {
+			logger.error("Error in GetTaskPreview", t);
+			new JsonResult(t).printTo(out);	
+		}
+	}
+	
+	public void processPrepareSendTaskByEmail(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		ArrayList<MapItem> items = new ArrayList<>();
+		
+		try {
+			String tag = ServletUtils.getStringParameter(request, "uploadTag", true);
+			StringArray ids = ServletUtils.getObjectParameter(request, "ids", StringArray.class, true);
+			List<TaskInstanceId> iids = ids.stream()
+				.map(id -> TaskInstanceId.parse(id))
+				.filter(id -> id != null)
+				.collect(Collectors.toList());
+			
+			HashSet<String> processed = new HashSet();
+			for (TaskInstanceId iid : iids) {
+				TaskObjectWithICalendar taskObj = (TaskObjectWithICalendar)manager.getTaskObject(iid, TaskObjectOutputType.ICALENDAR);
+				if (taskObj == null) continue;
+				if (processed.contains(taskObj.getTaskId())) continue; // Skip iid from same series
+				
+				final String filename = PathUtils.sanitizeFileName(taskObj.getObjectName()) + ".ics";
+				UploadedFile upfile = addAsUploadedFile(tag, filename, "text/icalendar", IOUtils.toInputStream(taskObj.getIcalendar()));
+				items.add(new MapItem()
+					.add("uploadId", upfile.getUploadId())
+					.add("fileName", filename)
+					.add("fileSize", upfile.getSize())
+				);
+				processed.add(taskObj.getTaskId());
+			}
+			new JsonResult(items).printTo(out);
+			
+		} catch(Throwable t) {
+			logger.error("Error in PrepareSendTaskByEmail", t);
+			new JsonResult(t).printTo(out);
+		}
+	}
 	    
-	public void processManageTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+	public void processManageTask(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		CoreManager coreMgr = WT.getCoreManager();
 		UserProfile up = getEnv().getProfile();
 		JsTask item = null;
@@ -582,8 +900,9 @@ public class Service extends BaseService {
 			if (crud.equals(Crud.READ)) {
 				String id = ServletUtils.getStringParameter(request, "id", true);
 				
-				int taskId = Integer.parseInt(id);
-				Task task = manager.getTask(taskId);
+				TaskInstanceId instanceId = TaskInstanceId.parse(id);
+				TaskInstance task = manager.getTaskInstance(instanceId);
+				if (task == null) throw new WTException("Task not found [{}]", instanceId);
 				UserProfileId ownerId = manager.getCategoryOwner(task.getCategoryId());
 				
 				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
@@ -594,13 +913,26 @@ public class Service extends BaseService {
 						if (cfield != null) cfields.put(fieldId, cfield);
 					}
 				}
-				item = new JsTask(ownerId, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone());
+				String parentTaskSubject = null;
+				//if (!StringUtils.isBlank(task.getParentTaskId())) {
+				if (task.getParentInstanceId() != null) {
+					//TaskInstanceId piid = TaskInstanceId.build(task.getParentTaskId(), TaskInstanceId.MASTER_INSTANCE_ID);
+					//TaskInstance ptask = manager.getTaskInstance(piid, BitFlag.none());
+					TaskInstance ptask = manager.getTaskInstance(task.getParentInstanceId(), BitFlag.none());
+					if (ptask != null) {
+						parentTaskSubject = ptask.getSubject();
+					} else {
+						//logger.warn("Referenced parent task not found [{}]", piid);
+						logger.warn("Referenced parent task not found [{}]", task.getParentInstanceId());
+					}
+				}
+				item = new JsTask(ownerId, task, cpanels.values(), cfields, parentTaskSubject, up.getLanguageTag(), up.getTimeZone());
 				new JsonResult(item).printTo(out);
 				
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = pl.data.toTask(up.getTimeZone());
+				TaskEx task = pl.data.createTaskForAdd(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
 					TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
@@ -608,7 +940,7 @@ public class Service extends BaseService {
 					att.setFilename(upFile.getFilename());
 					att.setSize(upFile.getSize());
 					att.setMediaType(upFile.getMediaType());
-					task.getAttachments().add(att);
+					task.addAttachment(att);
 				}
                 manager.addTask(task);
 				new JsonResult().printTo(out);
@@ -616,7 +948,7 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsTask> pl = ServletUtils.getPayload(request, JsTask.class);
 				
-				Task task = pl.data.toTask(up.getTimeZone());
+				TaskEx task = pl.data.createTaskForUpdate(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					if (!StringUtils.isBlank(jsatt._uplId)) {
 						UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
@@ -625,33 +957,50 @@ public class Service extends BaseService {
 						att.setFilename(upFile.getFilename());
 						att.setSize(upFile.getSize());
 						att.setMediaType(upFile.getMediaType());
-						task.getAttachments().add(att);
+						task.addAttachment(att);
 					} else {
 						TaskAttachment att = new TaskAttachment();
 						att.setAttachmentId(jsatt.id);
 						att.setFilename(jsatt.name);
 						att.setSize(jsatt.size);
-						task.getAttachments().add(att);
+						task.addAttachment(att);
 					}
 				}
-                manager.updateTask(task);
+				
+				TaskInstanceId iid = TaskInstanceId.parse(pl.data.id);
+				manager.updateTaskInstance(iid, task);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.DELETE)) {
-				IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", IntegerArray.class, true);
+				StringArray iids = ServletUtils.getObjectParameter(request, "iids", StringArray.class, true);
+				String target = ServletUtils.getStringParameter(request, "target", false);
 				
-				manager.deleteTask(ids);
+				boolean single = iids.size() == 1;
+				List<TaskInstanceId> instanceIds = new ArrayList<>();
+				for (String iid : iids) {
+					TaskInstanceId id = TaskInstanceId.parse(iid);
+					if (id != null) {
+						if (single && "all".equals(target)) {
+							// Control over target is performed by tweaking the instance ID: all series tasks
+							// will be deleted by referring to the series (00000000 as instance).
+							instanceIds.add(TaskInstanceId.build(id.getTaskId(), TaskInstanceId.MASTER_INSTANCE_ID));
+						} else {
+							instanceIds.add(id);
+						}
+					}
+				}
+				
+				manager.deleteTaskInstance(instanceIds);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.MOVE)) {
-				String id = ServletUtils.getStringParameter(request, "id", true);
+				String iid = ServletUtils.getStringParameter(request, "iid", true);
 				Integer categoryId = ServletUtils.getIntParameter(request, "targetCategoryId", true);
 				boolean copy = ServletUtils.getBooleanParameter(request, "copy", false);
 				
-				int taskId = Integer.parseInt(id);
-				manager.moveTask(copy, taskId, categoryId);
+				TaskInstanceId instanceId = TaskInstanceId.parse(iid);
+				manager.moveTaskInstance(copy, instanceId, categoryId);
 				new JsonResult().printTo(out);
-				
 			}
 			
 		} catch(Throwable t) {
@@ -667,9 +1016,10 @@ public class Service extends BaseService {
 			String attachmentId = ServletUtils.getStringParameter(request, "attachmentId", null);
 			
 			if (!StringUtils.isBlank(attachmentId)) {
-				Integer taskId = ServletUtils.getIntParameter(request, "taskId", true);
+				String iid = ServletUtils.getStringParameter(request, "iid", true);
 				
-				TaskAttachmentWithBytes attData = manager.getTaskAttachment(taskId, attachmentId);
+				TaskInstanceId instanceId = TaskInstanceId.parse(iid);
+				TaskAttachmentWithBytes attData = manager.getTaskInstanceAttachment(instanceId, attachmentId);
 				InputStream is = null;
 				try {
 					is = new ByteArrayInputStream(attData.getBytes());
@@ -702,10 +1052,11 @@ public class Service extends BaseService {
 		
 		try {
 			ServletUtils.StringArray tags = ServletUtils.getObjectParameter(request, "tags", ServletUtils.StringArray.class, true);
-			Integer taskId = ServletUtils.getIntParameter(request, "taskId", false);
+			String iid = ServletUtils.getStringParameter(request, "iid", false);
 			
+			TaskInstanceId instanceId = TaskInstanceId.parse(iid);
 			Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, tags);
-			Map<String, CustomFieldValue> cvalues = (taskId != null) ? manager.getTaskCustomValues(taskId) : null;
+			Map<String, CustomFieldValue> cvalues = (instanceId != null) ? manager.getTaskInstanceCustomValues(instanceId) : null;
 			Map<String, CustomField> cfields = new HashMap<>();
 			for (CustomPanel cpanel : cpanels.values()) {
 				for (String fieldId : cpanel.getFields()) {
@@ -721,39 +1072,60 @@ public class Service extends BaseService {
 		}
 	}
 	
-	public void processPrintTasksDetail(HttpServletRequest request, HttpServletResponse response) {
-		ArrayList<RBTaskDetail> items = new ArrayList<>();
-		ByteArrayOutputStream baos = null;
-	
+	public void processImportTasksFromICal(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
+		UserProfile up = getEnv().getProfile();
+		
 		try {
-			String filename = ServletUtils.getStringParameter(request, "filename", "print");
-			ServletUtils.IntegerArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.IntegerArray.class, true);
+			String oid = ServletUtils.getStringParameter(request, "oid", true);
+			String op = ServletUtils.getStringParameter(request, "op", true);
+			String uploadId = ServletUtils.getStringParameter(request, "uploadId", true);
 			
-			Task task = null;
-			Category category = null;
-			for(Integer id : ids) {
-				task = manager.getTask(id);
-				if (task == null) continue;
+			UploadedFile upl = getUploadedFile(uploadId);
+			if (upl == null) throw new WTException("Uploaded file not found [{0}]", uploadId);
+			File file = new File(WT.getTempFolder(), upl.getUploadId());
+			
+			if (op.equals("do")) {
+				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
+				ITasksManager.ImportMode mode = ServletUtils.getEnumParameter(request, "importMode", ITasksManager.ImportMode.COPY, ITasksManager.ImportMode.class);
 				
-				category = manager.getCategory(task.getCategoryId());
-				items.add(new RBTaskDetail(category, task));
+				WebTopSession wts = getWts();
+				
+				ICalendarInput in = new ICalendarInput(up.getTimeZone())
+					.withLogHandler(new LogHandler() {
+						@Override
+						public void handle(Collection<LogEntry> entries) {
+							if (entries != null) wts.notify(toTaskImportLogSMs(oid, true, entries));
+						}
+					});
+				FileInputStream fis = null;
+				try {	
+					fis = new FileInputStream(file);
+					manager.importTasks(categoryId, in, fis, mode, new LogHandler() {
+						@Override
+						public void handle(Collection<LogEntry> entries) {
+							if (entries != null) wts.notify(toTaskImportLogSMs(oid, false, entries));
+						}
+					});
+				} finally {
+					IOUtils.closeQuietly(fis);
+				}
+				removeUploadedFile(uploadId);
+				new JsonResult(new JsWizardData(null)).printTo(out);
 			}
 			
-			ReportConfig.Builder builder = reportConfigBuilder();
-			RptTasksDetail rpt = new RptTasksDetail(builder.build());
-			rpt.setDataSource(items);
-			
-			baos = new ByteArrayOutputStream();
-			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, baos);
-			ServletUtils.setContentDispositionHeader(response, "inline", filename + ".pdf");
-			ServletUtils.writeContent(response, baos, "application/pdf");
-			
 		} catch(Exception ex) {
-			logger.error("Error in action PrintTasksDetail", ex);
-			ServletUtils.writeErrorHandlingJs(response, ex.getMessage());
-		} finally {
-			IOUtils.closeQuietly(baos);
+			logger.error("Error in ImportContactsFromICal", ex);
+			new JsonResult(false, ex.getMessage()).printTo(out);
 		}
+	}
+	
+	private ServiceMessage toTaskImportLogSMs(String operationId, boolean pushDown, Collection<LogEntry> entries) {
+		StringJoiner sj = new StringJoiner("\n");
+		for (LogEntry entry : entries) {
+			if (pushDown) entry.pushDown();
+			sj.add(entry.toString());
+		}
+		return new TaskImportLogSM(SERVICE_ID, operationId, sj.toString());
 	}
 	
 	public void processPortletTasks(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
@@ -761,29 +1133,33 @@ public class Service extends BaseService {
 		
 		try {
 			String query = ServletUtils.getStringParameter(request, "query", null);
+			UserProfile userProfile = getEnv().getProfile();
+			DateTimeZone userTimeZone = userProfile.getTimeZone();
 			
 			if (query == null) {
 				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
-				final Set<Integer> ids = manager.listCategoryIds();
-				for (TaskLookup item : manager.listUpcomingTasks(ids)) {
-					final ShareFolderCategory folder = folders.get(item.getCategoryId());
-					if (folder == null) continue;
+				final Set<Integer> ids = manager.listMyCategoryIds();
+				List<TaskLookupInstance> instances = manager.listTaskInstances(ids, ITasksManager.TaskListView.UPCOMING, userTimeZone);
+				//TODO: sort
+				
+				for (TaskLookupInstance instance : instances) {
+					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
+					if (fold == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(item.getCategoryId());
-					items.add(new JsPletTasks(root, folder, pset, item, DateTimeZone.UTC));
+					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+					items.add(new JsPletTasks(root, fold, pset, instance, userTimeZone));
 				}
 				
 			} else {
 				String pattern = LangUtils.patternizeWords(query);
-				ListTasksResult result = manager.listTasks(folders.keySet(), TaskQuery.toCondition(pattern));
-				for (TaskLookup item : result.items) {
-					final ShareRootCategory root = rootByFolder.get(item.getCategoryId());
+				for (TaskLookupInstance instance : manager.listTaskInstances(folders.keySet(), TaskQuery.toCondition(pattern), null, userTimeZone)) {
+					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
 					if (root == null) continue;
-					final ShareFolderCategory fold = folders.get(item.getCategoryId());
-					if (fold == null) continue;
+					final ShareFolderCategory folder = folders.get(instance.getCategoryId());
+					if (folder == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(item.getCategoryId());
-					items.add(new JsPletTasks(root, fold, pset, item, DateTimeZone.UTC));
+					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+					items.add(new JsPletTasks(root, folder, pset, instance, userTimeZone));
 				}
 			}
 			
@@ -961,7 +1337,7 @@ public class Service extends BaseService {
 		return node;
 	}
 	
-	private ExtTreeNode createFolderNode(boolean chooser, ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms) {
+	private ExtTreeNode createFolderNode(boolean chooser, ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms, boolean isDefault) {
 		Category cat = folder.getCategory();
 		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
 		String color = cat.getColor();
@@ -986,7 +1362,7 @@ public class Service extends BaseService {
 		node.put("_builtIn", cat.getBuiltIn());
 		node.put("_color", Category.getHexColor(color));
 		node.put("_sync", EnumUtils.toSerializedName(sync));
-		node.put("_default", cat.getIsDefault());
+		node.put("_default", isDefault);
 		node.put("_active", active);
 		if (!chooser) node.setChecked(active);
 		

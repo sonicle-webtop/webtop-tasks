@@ -33,11 +33,51 @@
  */
 Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	extend: 'WTA.sdk.ServiceApi',
+	uses: [
+		'Sonicle.String'
+	],
 	
 	/**
 	 * Create an instance of the events portlet body.
 	 */
-	createTasksPortletBody: function(cfg) {		
+	createTasksPortletBody: function(cfg) {
 		return Ext.create('Sonicle.webtop.tasks.portlet.TasksBody', Ext.apply(cfg||{},{ mys: this.service }));
+	},
+	
+	openReminder: function(type, id) {
+		if (Sonicle.String.isIn(type, ['task', 'task-recurring'])) {
+			this.service.openTaskUI(true, id, false);
+		} else {
+			Ext.raise('Reminder type not supported [' + type + ']');
+		}
+	},	
+	
+	/**
+	 * Starts adding a new task opening editing view.
+	 * @param {Object} data data An object containing entity data.
+	 * @param {String} [data.subject] The subject.
+	 * @param {String} [data.location] The location.
+	 * @param {String} [data.description] The extended description.
+	 * @param {Date} [data.start] The start date.
+	 * @param {Date} [data.due] The due date.
+	 * @param {Number} [data.progress] The progress percentage (integer value between 0-100).
+	 * @param {NA|CO|IP|CA|WA} [data.status] The completion status.
+	 * @param {0|1|2} [data.importance] The assigned importance.
+	 * @param {0|5|10|15|30|45|60|120|180|240|300|360|420|480|540|600|660|720|1080|1440|2880|10080|20160} [data.reminder]
+	 * @param {String} [data.docRef] The reference document.
+	 * @param {Object} opts An object containing configuration.
+	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
+	 * @param {Object} [opts.scope] The callback method scope.
+	 * @param {Boolean} [opts.dirty] The dirty state of the model.
+	 * @param {Boolean} [opts.uploadTag] A custom upload tag.
+	 */
+	addTask: function(data, opts) {
+		opts = opts || {};
+		this.service.addTask2(data, {
+			callback: opts.callback,
+			scope: opts.scope,
+			dirty: opts.dirty,
+			uploadTag: opts.uploadTag
+		});
 	}
 });

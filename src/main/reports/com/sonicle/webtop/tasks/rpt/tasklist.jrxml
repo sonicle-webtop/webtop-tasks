@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.15.0.final using JasperReports Library version 6.15.0-dd49bfb94918336b8321d5507193f0169ead4e95  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tasklist" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="814" leftMargin="14" rightMargin="14" topMargin="19" bottomMargin="19" resourceBundle="addressbook" uuid="47fa44bf-1a8e-4a18-a0df-8b26982ff32e">
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<style name="PageTitle" fontName="DejaVu Sans" fontSize="12"/>
+	<style name="PageFooter" forecolor="#666666" fontName="Arimo" fontSize="8"/>
+	<style name="MemoTitle" fontName="DejaVu Sans" fontSize="12" isBold="true">
+		<box>
+			<bottomPen lineWidth="1.5"/>
+		</box>
+	</style>
+	<style name="ColumnCaption" mode="Opaque" backcolor="#BFBFBF" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="10" isBold="true">
+		<box>
+			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="ColumnValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9"/>
+	<style name="FieldCaption" mode="Transparent" backcolor="rgba(171, 205, 239, 0.0)" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9" isBold="true">
+		<box>
+			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="FieldValue" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="9"/>
+	<style name="Section" mode="Opaque" backcolor="#F2F0F0" vTextAlign="Middle" isBlankWhenNull="true" fontName="Arimo" fontSize="10" isBold="true">
+		<box>
+			<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+			<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+	</style>
+	<parameter name="REPORT_PATH" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="WT_GENERATED_BY" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["WebTop"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="WT_PRINTED_BY" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="WT_DATE_FORMAT_SHORT" class="java.lang.String" isForPrompting="false">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+		<defaultValueExpression><![CDATA["dd/MM/yyyy"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="WT_DATE_FORMAT_LONG" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["MMM dd, yyyy"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="WT_TIME_FORMAT_SHORT" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["HH:mm"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="WT_TIME_FORMAT_LONG" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["HH:mm:ss"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SVG_TASKTYPE_DEFAULT" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
+	<parameter name="SVG_TASKTYPE_SERIES" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
+	<parameter name="SVG_TASKTYPE_BROKEN" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[]]>
+	</queryString>
+	<field name="importance" class="java.lang.String"/>
+	<field name="taskType" class="java.lang.String"/>
+	<field name="subject" class="java.lang.String"/>
+	<field name="location" class="java.lang.String"/>
+	<field name="startDate" class="java.util.Date"/>
+	<field name="dueDate" class="java.util.Date"/>
+	<field name="progressPerc" class="java.lang.Float"/>
+	<field name="status" class="java.lang.String"/>
+	<field name="completedOnDate" class="java.util.Date"/>
+	<field name="documentRef" class="java.lang.String"/>
+	<field name="categoryOwner" class="java.lang.String"/>
+	<field name="categoryName" class="java.lang.String"/>
+	<field name="categoryColor" class="java.lang.String"/>
+	<field name="showNested" class="java.lang.Boolean"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="19" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="pixel"/>
+			<textField isBlankWhenNull="true">
+				<reportElement style="PageFooter" x="496" y="0" width="312" height="12" uuid="cf53f968-4370-4a8e-ae40-f0ca7213fab3"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$P{WT_PRINTED_BY}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="18" splitType="Stretch">
+			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"/>
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<textField>
+				<reportElement style="ColumnCaption" x="0" y="0" width="18" height="18" uuid="037ddc2d-3680-4750-b7aa-ecd1f443f33c">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+					<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[""]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="18" y="0" width="211" height="18" uuid="65fcf824-f5e7-40dc-9b17-db2d9c052019">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="2.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.subject}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="229" y="0" width="100" height="18" uuid="1ba22b92-292b-442d-83ee-bbb825d0046d">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.start}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="329" y="0" width="100" height="18" uuid="5545de18-23b3-4583-8f25-35c1f231d89a">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.due}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="429" y="0" width="117" height="18" uuid="3bab3e98-00bd-40f6-bb53-fd9a358257a9">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.4"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.status}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="546" y="0" width="100" height="18" uuid="ef0baa2f-39c9-4550-bd5f-f0f1c806fc1e">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.completedOn}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement style="ColumnCaption" x="646" y="0" width="84" height="18" uuid="6f2f4bbe-c34b-4713-a3b3-030a0c977353">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.0"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$R{fld.documentRef}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnCaption" x="730" y="0" width="84" height="18" uuid="fa0d42f8-d632-40dd-a5e3-5a6b87971b67"/>
+				<textFieldExpression><![CDATA[$R{fld.category}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="18" splitType="Stretch">
+			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"/>
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<frame>
+				<reportElement x="0" y="0" width="18" height="18" uuid="146b0a17-10e7-465a-81f5-f9ad23ebe990">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
+					<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+					<reportElement positionType="Float" x="3" y="3" width="12" height="12" backcolor="#FFFFFF" uuid="689be9a8-d7cd-4f2e-80df-70f9268c8835">
+						<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+						<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+						<property name="com.jaspersoft.layout.grid.weight.x" value="1.0"/>
+						<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+						<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+						<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+						<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+						<property name="com.jaspersoft.studio.unit.y" value="pixel"/>
+					</reportElement>
+					<box>
+						<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<imageExpression><![CDATA[IF(EQUALS($F{taskType},null),null,$P{REPORT_PARAMETERS_MAP}.get("SVG_TASKTYPE_"+$F{taskType}))]]></imageExpression>
+				</image>
+			</frame>
+			<textField textAdjust="StretchHeight">
+				<reportElement style="ColumnValue" x="18" y="0" width="211" height="18" uuid="27eb3d44-5d82-4565-a51b-8c9e9f538e75">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="2.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+				</reportElement>
+				<textElement markup="styled"/>
+				<textFieldExpression><![CDATA[IF($F{showNested}, "<style forecolor='#a8a8a8' fontName='Sonicle'>\ue900</style> ", "") + "" + IF(EQUALS($F{importance}, "0"), "<style forecolor='#4da07d' fontName='FontAwesome' isBold='true'>\uf12a</style> ", IF(EQUALS($F{importance}, "2"), "<style forecolor='#CC4B31' fontName='FontAwesome' isBold='true'>\uf12a</style> ", "")) + $F{subject} + IF(EQUALS($F{location},null), "", " @ " + $F{location})]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement style="ColumnValue" x="229" y="0" width="100" height="18" uuid="d68d62bb-f3a6-4b70-94ad-c1340da3834f">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{startDate}]]></textFieldExpression>
+				<patternExpression><![CDATA[$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}]]></patternExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement style="ColumnValue" x="329" y="0" width="100" height="18" uuid="90e6da32-2a0b-4759-b3e3-1311b5f82562">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression>
+				<patternExpression><![CDATA[$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}]]></patternExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement style="ColumnValue" x="429" y="0" width="117" height="18" uuid="f4fb5a67-c18f-474d-be7c-b2ea23e46f0b">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.4"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+				</reportElement>
+				<textElement markup="styled"/>
+				<textFieldExpression><![CDATA[IF(EQUALS($F{status}, "CO"), "<style forecolor='#b4b4b4' fontName='FontAwesome' isBold='true'>\uf00c</style>", IF(EQUALS($F{status}, "IP"), "<style forecolor='#4da07d' fontName='FontAwesome'>\uf144</style>", IF(EQUALS($F{status}, "CA"), "<style forecolor='#529fbe' fontName='FontAwesome' isBold='true'>\uf1da</style>", IF(EQUALS($F{status}, "WA"), "<style forecolor='#e9b665' fontName='FontAwesome'>\uf256</style>", "<style forecolor='#cc4b31' fontName='FontAwesome'>\uf28b</style>")))) + " " + IF(EQUALS($F{status},null),null,str("status."+$F{status}))+" ("+new DecimalFormat("#,##0.##%").format($F{progressPerc})+")"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnValue" x="546" y="0" width="100" height="18" uuid="762b48b0-a17d-4b85-9e76-16309fc4b2c7">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="b92bb776-f7d4-4e23-a31d-3a9df4e30f94"/>
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.5"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{completedOnDate}]]></textFieldExpression>
+				<patternExpression><![CDATA[$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}]]></patternExpression>
+			</textField>
+			<textField>
+				<reportElement style="ColumnValue" x="646" y="0" width="84" height="18" uuid="606a4f2e-3d8d-44b9-94ae-64fdfdf69398">
+					<property name="com.jaspersoft.layout.grid.x" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.y" value="-1"/>
+					<property name="com.jaspersoft.layout.grid.weight.y" value="1.0"/>
+					<property name="com.jaspersoft.layout.grid.rowspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.colspan" value="1"/>
+					<property name="com.jaspersoft.layout.grid.weight.fixed" value="false"/>
+					<property name="com.jaspersoft.layout.grid.weight.x" value="1.0"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{documentRef}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement style="ColumnValue" x="730" y="0" width="84" height="18" uuid="8346a2db-7e4a-4d3b-a5fb-eb8b3b771261"/>
+				<textElement markup="styled"/>
+				<textFieldExpression><![CDATA[IF(EQUALS($F{categoryColor}, "FFFFFF"), "<style forecolor='#a8a8a8' fontName='FontAwesome'>\uf0c8</style>", "<style forecolor='#"+$F{categoryColor}+"' fontName='FontAwesome' isBold='true'>\uf0c8</style>") + " " + IF(EQUALS($F{categoryOwner},null), "" , "<style forecolor='#808080'>" + $F{categoryOwner} + "</style> ") + $F{categoryName}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="12" splitType="Stretch">
+			<textField>
+				<reportElement style="PageFooter" x="360" y="0" width="39" height="12" uuid="13be2147-0f6a-404e-a5f5-16d679de89b0"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER} + " /"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement style="PageFooter" x="400" y="0" width="40" height="12" uuid="a8aeebb8-0ec7-43d9-9045-ee4fa415781a"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement style="PageFooter" x="578" y="0" width="230" height="12" uuid="fbc2093c-c1e2-4b06-a26a-677d5a872207">
+					<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
+				</reportElement>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[DATEFORMAT(new java.util.Date(),$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}) + " ("+$P{REPORT_TIME_ZONE}.getID()+")"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement style="PageFooter" x="0" y="0" width="150" height="12" forecolor="#666666" uuid="4a5676f0-5f81-4209-81f6-03d16ddbd4d7"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$P{WT_GENERATED_BY}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

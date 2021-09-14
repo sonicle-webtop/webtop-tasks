@@ -38,7 +38,7 @@ import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.ShareRootCategory;
-import com.sonicle.webtop.tasks.model.TaskLookup;
+import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
 
@@ -47,30 +47,30 @@ import org.joda.time.DateTimeZone;
  * @author malbinola
  */
 public class JsPletTasks {
-	public Integer taskId;
+	public String id;
 	public Integer categoryId;
 	public String categoryName;
     public String categoryColor;
 	public String subject;
-	public String description;
-	public String dueDate;
+	public String body;
+	public String due;
 	public String _owner;
 	public String _frights;
 	public String _erights;
 	
-	public JsPletTasks(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet pset, TaskLookup task, DateTimeZone profileTz) {
+	public JsPletTasks(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet pset, TaskLookupInstance task, DateTimeZone profileTz) {
 		final Category category = folder.getCategory();
 		
-		taskId = task.getTaskId();
-		categoryId = task.getCategoryId();
-		categoryName = category.getName();
-		categoryColor = category.getColor();
-		subject = task.getSubject();
-		description = StringUtils.left(task.getDescription(), 250);
-		dueDate = DateTimeUtils.printYmdHmsWithZone(task.getDueDate(), profileTz);
+		this.id = task.getId().toString();
+		this.categoryId = task.getCategoryId();
+		this.categoryName = category.getName();
+		this.categoryColor = category.getColor();
+		this.subject = task.getSubject();
+		this.body = StringUtils.left(task.getDescription(), 250);
+		this.due = DateTimeUtils.printYmdHmsWithZone(task.getDue(), profileTz);
 		
-		_owner = (root instanceof MyShareRootCategory) ? "" : root.getDescription();
-		_frights = folder.getPerms().toString();
-		_erights = folder.getElementsPerms().toString();
+		this._owner = (root instanceof MyShareRootCategory) ? "" : root.getDescription();
+		this._frights = folder.getPerms().toString();
+		this._erights = folder.getElementsPerms().toString();
 	}
 }

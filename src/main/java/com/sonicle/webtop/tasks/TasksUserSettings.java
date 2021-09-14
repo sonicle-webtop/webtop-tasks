@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.web.json.bean.IntegerSet;
 import com.sonicle.commons.web.json.bean.StringSet;
 import com.sonicle.webtop.core.sdk.BaseUserSettings;
@@ -48,6 +49,20 @@ public class TasksUserSettings extends BaseUserSettings {
 	public TasksUserSettings(String serviceId, UserProfileId profileId) {
 		super(serviceId, profileId);
 		ss = new TasksServiceSettings(serviceId, profileId.getDomainId());
+	}
+	
+	public GridView getGridView() {
+		GridView value = getEnum(GRID_VIEW, null, GridView.class);
+		if (value != null) return value;
+		return ss.getDefaultGridView();
+	}
+	
+	public boolean setGridView(GridView value) {
+		return setEnum(GRID_VIEW, value);
+	}
+	
+	public boolean setGridView(String value) {
+		return setGridView(EnumUtils.forSerializedName(value, GridView.class));
 	}
 	
 	public String getTaskReminderDelivery() {
@@ -74,6 +89,14 @@ public class TasksUserSettings extends BaseUserSettings {
 	
 	public boolean setInactiveCategoryFolders(IntegerSet value) {
 		return setObject(INACTIVE_CATEGORY_FOLDERS, value, IntegerSet.class);
+	}
+	
+	public Integer getDefaultCategoryFolder() {
+		return getInteger(DEFAULT_CATEGORY_FOLDER, null);
+	}
+	
+	public boolean setDefaultCategoryFolder(Integer categoryId) {
+		return setInteger(DEFAULT_CATEGORY_FOLDER, categoryId);
 	}
 	
 	/**

@@ -52,7 +52,7 @@ public class TaskCustomValueDAO extends BaseDAO {
 		return INSTANCE;
 	}
 	
-	public List<OTaskCustomValue> selectByTask(Connection con, int taskId) throws DAOException {
+	public List<OTaskCustomValue> selectByTask(Connection con, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
@@ -86,7 +86,7 @@ public class TaskCustomValueDAO extends BaseDAO {
 				TASKS_CUSTOM_VALUES.DATE_VALUE,
 				TASKS_CUSTOM_VALUES.TEXT_VALUE
 			)
-			.values((Integer)null, null, null, null, null, null, null)
+			.values((String)null, null, null, null, null, null, null)
 		);
 		for (OTaskCustomValue value : values) {
 			batch.bind(
@@ -102,7 +102,7 @@ public class TaskCustomValueDAO extends BaseDAO {
 		return batch.execute();
 	}
 	
-	public int deleteByTaskFields(Connection con, int taskId, Collection<String> customFieldIds) throws DAOException {
+	public int deleteByTaskFields(Connection con, String taskId, Collection<String> customFieldIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_CUSTOM_VALUES)

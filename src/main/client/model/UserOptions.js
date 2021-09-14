@@ -36,6 +36,7 @@ Ext.define('Sonicle.webtop.tasks.model.UserOptions', {
 	
 	proxy: WTF.optionsProxy('com.sonicle.webtop.tasks'),
 	fields: [
+		WTF.field('gridView', 'string', true),
 		WTF.field('taskReminderDelivery', 'string', false)
 	]
 });

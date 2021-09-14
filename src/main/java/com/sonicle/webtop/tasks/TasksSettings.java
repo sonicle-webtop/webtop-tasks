@@ -57,6 +57,13 @@ public class TasksSettings {
 	
 	/**
 	 * [user][default]
+	 * [enum {all:ALL, today:TODAY, next7:NEXT7, notStarted:NOT_STARTED, late:LATE, completed:COMPLETED, notCompleted:NOT_COMPLETED](today)
+	 * Tasks grid default view
+	 */
+	public static final String GRID_VIEW = "grid.view";
+	
+	/**
+	 * [user][default]
 	 * [string]
 	 * Set reminder delivery mode
 	 */
@@ -77,4 +84,11 @@ public class TasksSettings {
 	 * List of deactivated folders (groups).
 	 */
 	public static final String INACTIVE_CATEGORY_FOLDERS = "category.folders.inactive";
+	
+	/**
+	 * [user]
+	 * [int]
+	 * ID of the folder choosen as default.
+	 */
+	public static final String DEFAULT_CATEGORY_FOLDER = "category.folder.default";
 }

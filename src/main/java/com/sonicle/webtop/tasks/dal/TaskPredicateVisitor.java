@@ -42,10 +42,12 @@ import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.app.sdk.JOOQPredicateVisitorWithCValues;
 import com.sonicle.webtop.core.app.sdk.QueryBuilderWithCValues;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_RECURRENCES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues;
 import com.sonicle.webtop.tasks.jooq.tables.TasksTags;
-import com.sonicle.webtop.tasks.model.BaseTask;
+import com.sonicle.webtop.tasks.model.TaskBase;
+import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.jooq.Field;
@@ -59,9 +61,55 @@ import static org.jooq.impl.DSL.*;
 public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	private final TasksCustomValues PV_TASKS_CUSTOM_VALUES = TASKS_CUSTOM_VALUES.as("pvis_cv");
 	private final TasksTags PV_TASKS_TAGS = TASKS_TAGS.as("pvis_ct");
+	protected final Target target;
+	protected InstanceIdDecoder instanceIdDecoder;
+	protected DateTime rangeStart = null;
+	protected DateTime rangeEnd = null;
 	
-	public TaskPredicateVisitor() {
+	public TaskPredicateVisitor(Target target) {
 		super(false);
+		this.target = target;
+	}
+	
+	public TaskPredicateVisitor withInstanceIdDecoder(InstanceIdDecoder instanceIdDecoder) {
+		this.instanceIdDecoder = instanceIdDecoder;
+		return this;
+	}
+	
+	public DateTime getRangeStart() {
+		return rangeStart;
+	}
+	
+	public DateTime getRangeStartOfDefault(DateTime deflt) {
+		return (rangeStart != null) ? rangeStart : deflt;
+	}
+	
+	public DateTime getRangeEnd() {
+		return rangeEnd;
+	}
+	
+	public DateTime getRangeEndOfDefault(DateTime deflt) {
+		return (rangeEnd != null) ? rangeEnd : deflt;
+	}
+	
+	@Deprecated
+	public boolean hasFromRange() {
+		return rangeStart != null;
+	}
+	
+	@Deprecated
+	public boolean hasToRange() {
+		return rangeEnd != null;
+	}
+	
+	@Deprecated
+	public DateTime getFromRange() {
+		return rangeStart;
+	}
+	
+	@Deprecated
+	public DateTime getToRange() {
+		return rangeEnd;
 	}
 
 	@Override
@@ -69,22 +117,51 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 		if ("subject".equals(fieldName)) {
 			return defaultCondition(TASKS.SUBJECT, operator, values);
 			
+		} else if ("location".equals(fieldName)) {
+			return defaultCondition(TASKS.LOCATION, operator, values);
+			
 		} else if ("description".equals(fieldName)) {
 			return defaultCondition(TASKS.DESCRIPTION, operator, values);
 			
 		} else if ("after".equals(fieldName)) {
-			DateTime after = (DateTime)single(values);
-			return TASKS.START_DATE.greaterOrEqual(after);
+			rangeStart = (DateTime)single(values);
+			if (target == null) {
+				return null;
+			} else {
+				if (Target.RECURRING.equals(target)) {
+					return TASKS_RECURRENCES.START.greaterOrEqual(rangeStart)
+						.or(TASKS_RECURRENCES.UNTIL.greaterOrEqual(rangeStart));
+				} else {
+					return TASKS.START.greaterOrEqual(rangeStart);
+				}
+			}
 			
 		} else if ("before".equals(fieldName)) {
-			DateTime before = (DateTime)single(values);
-			return TASKS.START_DATE.lessThan(before);
+			rangeEnd = (DateTime)single(values);
+			if (rangeEnd != null) rangeEnd = rangeEnd.plusDays(1);
+			if (target == null) {
+				return null;
+			} else {
+				if (Target.RECURRING.equals(target)) {
+					return TASKS_RECURRENCES.START.lessThan(rangeEnd)
+							.or(TASKS_RECURRENCES.UNTIL.lessThan(rangeEnd));
+				} else {
+					return TASKS.START.lessThan(rangeEnd);
+				}
+			}
+			
+		} else if ("status".equals(fieldName)) {
+			return defaultCondition(TASKS.STATUS, operator, values);
 			
 		} else if ("done".equals(fieldName)) {
-			return TASKS.STATUS.equal(EnumUtils.toSerializedName(BaseTask.Status.COMPLETED));
+			Boolean value = singleAsBoolean(values);
+			return false == value ? TASKS.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED)) : TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
 			
 		} else if ("private".equals(fieldName)) {
 			return defaultCondition(TASKS.IS_PRIVATE, operator, values);
+			
+		} else if ("document".equals(fieldName)) {
+			return defaultCondition(TASKS.DOCUMENT_REF, operator, values);
 			
 		} else if ("tag".equals(fieldName)) {
 			return exists(
@@ -100,6 +177,15 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 			String singleAsString = valueToLikePattern(singleAsString(values));
 			return TASKS.SUBJECT.likeIgnoreCase(singleAsString)
 				.or(TASKS.DESCRIPTION.likeIgnoreCase(singleAsString));
+			
+		} else if ("parent".equals(fieldName)) {
+			String taskId = singleAsString(values);
+			TaskInstanceId iid = TaskInstanceId.parse(taskId);
+			if (iid != null && instanceIdDecoder != null) {
+				String realTaskId = instanceIdDecoder.realTaskId(iid);
+				if (realTaskId != null) taskId = realTaskId;
+			}
+			return TASKS.PARENT_TASK_ID.equal(taskId);
 			
 		} else if (StringUtils.startsWith(fieldName, "CV")) {
 			CId fn = new CId(fieldName, 2);
@@ -162,5 +248,13 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 		} else {
 			return null;
 		}
+	}
+	
+	public static enum Target {
+		NORMAL, RECURRING;
+	}
+	
+	public static interface InstanceIdDecoder {
+		public String realTaskId(TaskInstanceId instanceId);
 	}
 }
