@@ -611,7 +611,8 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
-				QueryObj queryObj = applyTasksQueryObjDefaults(ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class));
+				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
+				if (view != null) queryObj = applyTasksQueryObjDefaults(queryObj);
 				SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
 				
 				ArrayList<JsGridTask> items = new ArrayList<>();
@@ -751,7 +752,8 @@ public class Service extends BaseService {
 					
 				} else {
 					ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
-					QueryObj queryObj = applyTasksQueryObjDefaults(ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class));
+					QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
+					if (view != null) queryObj = applyTasksQueryObjDefaults(queryObj);
 					SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
 					
 					String lastParent = null;

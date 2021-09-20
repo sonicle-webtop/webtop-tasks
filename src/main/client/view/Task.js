@@ -359,7 +359,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					deferredRender: false,
 					items: [
 						me.createMainCfg(),
-						me.createAssigneesCfg(),
+						//me.createAssigneesCfg(),
 						me.createRecurCfg(),
 						me.createAttachCfg(),
 						me.createCustomFieldsCfg()
@@ -538,8 +538,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							hidden: '{foLocationIsMeeting}'
 						},
 						fieldLabel: me.mys.res('task.fld-location.lbl'),
-						anchor: '100%',
-						hidden: true
+						anchor: '100%'
 					}, {
 						xtype: 'wtmeetingfield',
 						bind: {

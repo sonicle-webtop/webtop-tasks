@@ -89,7 +89,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				tagsStore = WT.getTagsStore(),
 				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.getVar('cfieldsSearchable'));
 		
-		me.activeMode = 'list';
+		me.activeView = 'list';
 		me.activeGridView = me.getVar('gridView');
 		me.initActions();
 		me.initCxm();
@@ -168,14 +168,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							fields: Ext.Array.pluck(scfields, 'name')
 						}
 					],
-					
 					tooltip: me.res('fld-search.tip'),
 					searchTooltip: me.res('fld-search.tip'),
 					emptyText: me.res('fld-search.emp'),
 					listeners: {
 						query: function(s, value, qObj) {
 							if (Ext.isEmpty(value)) {
-								me.activateMode(me.activeMode);
+								me.activateView(me.activeView);
 							} else {
 								me.queryTasks(qObj);
 							}
@@ -274,7 +273,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'container',
 					reference: 'pnlcard',
 					layout: 'card',
-					activeItem: me.activeMode,
+					activeItem: me.activeView,
 					items: [
 						me.createGridConfig(tagsStore, true, {
 							reference: 'gptaskslist',
@@ -317,7 +316,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'today',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'today'});
+										me.reloadTasks({view: 'list', gridView: 'today'});
 									}
 								}, {
 									xtype: 'sotogglebutton',
@@ -329,7 +328,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'next7',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'next7'});
+										me.reloadTasks({view: 'list', gridView: 'next7'});
 									}
 								}, '-', {
 									xtype: 'sotogglebutton',
@@ -341,7 +340,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'notStarted',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'notStarted'});
+										me.reloadTasks({view: 'list', gridView: 'notStarted'});
 									}
 								}, {
 									xtype: 'sotogglebutton',
@@ -353,7 +352,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'late',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'late'});
+										me.reloadTasks({view: 'list', gridView: 'late'});
 									}
 								}, {
 									xtype: 'sotogglebutton',
@@ -365,7 +364,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'completed',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'completed'});
+										me.reloadTasks({view: 'list', gridView: 'completed'});
 									}
 								}, {
 									xtype: 'sotogglebutton',
@@ -377,7 +376,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'notCompleted',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'notCompleted'});
+										me.reloadTasks({view: 'list', gridView: 'notCompleted'});
 									}
 								}, {
 									xtype: 'sotogglebutton',
@@ -389,7 +388,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									allowDepress: false,
 									pressed: me.activeGridView === 'all',
 									toggleHandler: function() {
-										me.reloadTasks({view: 'all'});
+										me.reloadTasks({view: 'list', gridView: 'all'});
 									}
 								},
 								'->',
@@ -480,6 +479,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('moveTask');
 									me.updateDisabled('deleteTask');
 									me.updateDisabled('tags');
+									me.updateDisabled('setTaskImportance');
+									me.updateDisabled('setTaskProgress');
+									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
 								},
 								rowdblclick: function(s, rec) {
@@ -529,7 +531,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								{
 									type: 'close',
 									callback: function() {
-										me.activateMode('list');
+										me.activateView('list');
 									}
 								}
 							],
@@ -543,6 +545,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('moveTask');
 									me.updateDisabled('deleteTask');
 									me.updateDisabled('tags');
+									me.updateDisabled('setTaskImportance');
+									me.updateDisabled('setTaskProgress');
+									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
 								},
 								rowdblclick: function(s, rec) {
@@ -882,17 +887,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	pnlPreview: function() {
 		return this.getMainComponent().lookupReference('pnlpreview');
 	},
-	
-	activateMode: function(mode) {
+		
+	activateView: function(view) {
 		var me = this, cmp;
-		if (Sonicle.String.isIn(mode, ['list', 'search'])) {
-			me.activeMode = mode;
-			if ('search' === mode) {
+		if (Sonicle.String.isIn(view, ['list', 'search'])) {
+			if ('search' === view) {
 				cmp = me.gpTasksResults();
 				cmp.setTitle(WT.res('word.search') + ': ' + Sonicle.String.deflt(arguments[1], ''));
 				me.pnlCard().setActiveItem(cmp);
-			} else if ('list' === mode) {
+			} else if ('list' === view) {
 				me.pnlCard().setActiveItem(me.gpTasksList());
+				me.activeMode = view;
 			}
 		}
 	},
@@ -1504,32 +1509,32 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					allText: isString ? query : query.anyText,
 					conditions: isString ? [] : query.conditionArray
 				};
-		this.reloadTasks({mode: 'search', query: Ext.JSON.encode(obj), squery: value});
+		this.reloadTasks({view: 'search', query: Ext.JSON.encode(obj), squery: value});
 	},
 	
 	reloadTasks: function(opts) {
 		opts = opts || {};
-		var me = this, curMode, sto, pars = {};
+		var me = this, curView, sto, pars = {};
 		
-		if (Ext.isString(opts.mode) && 'search' !== opts.mode) me.activeMode = opts.mode;
-		if (Ext.isString(opts.view)) me.activeGridView = opts.view;
+		if (Ext.isString(opts.gridView)) me.activeGridView = opts.gridView;
 		if (me.isActive()) {
-			curMode = opts.mode || me.activeMode;
-			if (Sonicle.String.isIn(curMode, ['list', 'search'])) {
-				if ('search' === curMode) {
+			curView = opts.view || me.activeView;
+			if (Sonicle.String.isIn(curView, ['list', 'search'])) {
+				if ('search' === curView) {
 					sto = me.gpTasksResults().getStore();
 				} else {
 					sto = me.gpTasksList().getStore();
 				}
 				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query});
 				WTU.loadWithExtraParams(sto, pars);
-				if ('search' === curMode) {
-					me.activateMode(curMode, opts.squery);
+				if ('search' === curView) {
+					me.activateView(curView, opts.squery);
 				} else {
-					me.activateMode(curMode);
+					me.activateView(curView);
 				}
 			}
 		} else {
+			if (Ext.isString(opts.view) && 'search' !== opts.view) me.activeMode = opts.view;
 			me.needsReload = true;
 		}
 	},
@@ -2296,6 +2301,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					return false;
 				}
 			case 'tags':
+			case 'setTaskImportance':
+			case 'setTaskProgress':
+			case 'setTaskCompleted':
 					sel = me.getSelectedTasks();
 					if (sel.length === 0) {
 						return true;
