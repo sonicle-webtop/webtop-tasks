@@ -17,7 +17,8 @@ SET "task_id_NEW" = replace(CAST(uuid_in(md5(random()::text || clock_timestamp()
 -- Sequence seq_categories
 -- ----------------------------
 CREATE SEQUENCE "tasks"."seq_categories";
-SELECT setval('"tasks".seq_categories'::regclass, (SELECT MAX("category_id") FROM "tasks_old"."categories")+1);
+CREATE TABLE "tasks"."_tempsetval" AS SELECT setval('"tasks".seq_categories'::regclass, (SELECT MAX("category_id") FROM "tasks_old"."categories")+1);
+DROP TABLE "tasks"."_tempsetval";
 
 -- ----------------------------
 -- Table categories
@@ -99,33 +100,6 @@ ALTER TABLE "tasks"."tasks" ADD FOREIGN KEY ("parent_task_id") REFERENCES "tasks
 CREATE UNIQUE INDEX "tasks_ak1" ON "tasks"."tasks" ("series_task_id", "series_instance_id");
 CREATE INDEX "tasks_ak2" ON "tasks"."tasks" ("category_id", "revision_status", "href");
 CREATE INDEX "tasks_ak3" ON "tasks"."tasks" ("revision_status", "start", "reminder", "reminded_on");
-
-/*
-CREATE INDEX "tasks_ak1" ON "tasks"."tasks" ("category_id", "revision_status", "recurrence_id", "start_date", "end_date");
-CREATE INDEX "tasks_ak3" ON "tasks"."tasks" ("category_id", "revision_status", "recurrence_id", "title");
-CREATE INDEX "tasks_ak2" ON "tasks"."tasks" ("category_id", "revision_status", "start_date", "end_date", "reminder", "reminded_on");
-*/
-
-/*
-ALTER TABLE "tasks"."tasks"
-ADD COLUMN "owner_id" varchar(100),
-ADD COLUMN "owner" varchar(320),
-ADD COLUMN "public_uid" varchar(255),
-ADD COLUMN "subject" varchar(100),
-ADD COLUMN "body" text,
-ADD COLUMN "body_type" varchar(4) NOT NULL,
-ADD COLUMN "start" timestamptz(6),
-ADD COLUMN "due" timestamptz(6),
-ADD COLUMN "completed_on" timestamptz(6),
-ADD COLUMN "completion_perc" int2 DEFAULT 0 NOT NULL,
-ADD COLUMN "status" varchar(15) DEFAULT 'NS' NOT NULL,
-ADD COLUMN "importance" int2 DEFAULT 0 NOT NULL,
-ADD COLUMN "is_private" bool DEFAULT false NOT NULL,
-ADD COLUMN "href" varchar(2048),
-ADD COLUMN "etag" varchar(255),
-ADD COLUMN "reminder" timestamptz(6),
-ADD COLUMN "reminded_on" timestamptz(6)
-*/
 
 -- ----------------------------
 -- Table structure for tasks_assignees
