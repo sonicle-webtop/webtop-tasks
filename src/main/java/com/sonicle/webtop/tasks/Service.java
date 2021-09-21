@@ -996,12 +996,18 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.MOVE)) {
-				String iid = ServletUtils.getStringParameter(request, "iid", true);
+				StringArray ids = ServletUtils.getObjectParameter(request, "iids", StringArray.class, true);
+				List<TaskInstanceId> iids = ids.stream()
+					.map(id -> TaskInstanceId.parse(id))
+					.filter(id -> id != null)
+					.collect(Collectors.toList());
+				//String iid = ServletUtils.getStringParameter(request, "iid", true);
 				Integer categoryId = ServletUtils.getIntParameter(request, "targetCategoryId", true);
 				boolean copy = ServletUtils.getBooleanParameter(request, "copy", false);
 				
-				TaskInstanceId instanceId = TaskInstanceId.parse(iid);
-				manager.moveTaskInstance(copy, instanceId, categoryId);
+				//TaskInstanceId instanceId = TaskInstanceId.parse(iid);
+				//manager.moveTaskInstance(copy, instanceId, categoryId);
+				manager.moveTaskInstance(copy, iids, categoryId);
 				new JsonResult().printTo(out);
 			}
 			

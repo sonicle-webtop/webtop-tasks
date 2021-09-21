@@ -770,7 +770,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'start',
 					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
 					header: me.res('gptasks.start.lbl'),
-					width: 120
+					width: 140
 				}, {
 					dataIndex: 'due',
 					xtype: 'sodatecolumn',
@@ -783,7 +783,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return '';
 					},
 					header: me.res('gptasks.due.lbl'),
-					width: 120
+					width: 140
 				}, {
 					xtype: 'sodatecolumn',
 					dataIndex: 'completedOn',
@@ -802,7 +802,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					header: me.res('gptasks.completedOn.lbl'),
 					sortable: nest ? false : true,
 					hidden: true,
-					width: 120
+					width: 140
 				}, {
 					dataIndex: 'status',
 					header: me.res('gptasks.status.lbl'),
@@ -2035,22 +2035,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	/*
-	updateCheckedFolders: function(rootId, checked, opts) {
-		opts = opts || {};
-		var me = this;
-		WT.ajaxReq(me.ID, 'UpdateCheckedFolders', {
-			params: {
-				rootId: rootId,
-				checked: checked
-			},
-			callback: function(success, json) {
-				Ext.callback(opts.callback, opts.scope || me, [success, json]);
-			}
-		});
-	},
-	*/
-	
 	addTask: function(categoryId, opts) {
 		opts = opts || {};
 		var me = this,
@@ -2141,7 +2125,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	moveTask: function(copy, iid, targetCategoryId, opts) {
+	moveTask: function(copy, iids, targetCategoryId, opts) {
 		opts = opts || {};
 		var me = this;
 		
@@ -2149,7 +2133,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			params: {
 				crud: 'move',
 				copy: copy,
-				iid: iid,
+				iids: Sonicle.Utils.toJSONArray(iids),
 				targetCategoryId: targetCategoryId
 			},
 			callback: function(success, json) {

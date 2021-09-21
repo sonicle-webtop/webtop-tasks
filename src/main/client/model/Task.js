@@ -60,7 +60,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('start', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.field('due', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.field('progress', 'int', true, {defaultValue: 0}),
-		WTF.field('status', 'string', true, {defaultValue: 'NS'}),
+		WTF.field('status', 'string', true, {defaultValue: 'NA'}),
 		WTF.field('importance', 'string', false, {defaultValue: 1}),
 		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('docRef', 'string', true),

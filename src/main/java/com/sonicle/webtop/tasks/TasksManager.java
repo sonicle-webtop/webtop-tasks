@@ -1664,7 +1664,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return info.taskId;
 			
 		} else {
-			return null;
+			return info.taskId;
 		}
 	}
 	
@@ -1677,8 +1677,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			if (task.getParentInstanceId() != null) {
-				String brokenTaskId = doGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
-				task.setParentInstanceId(ManagerUtils.toParentInstanceId(brokenTaskId));
+				String newParentTaskId = doGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
+				task.setParentInstanceId(ManagerUtils.toParentInstanceId(newParentTaskId));
 			}
 			
 			BitFlag<TaskProcessOpts> processOpts = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES, TaskProcessOpts.CONTACT_REF, TaskProcessOpts.DOCUMENT_REF);

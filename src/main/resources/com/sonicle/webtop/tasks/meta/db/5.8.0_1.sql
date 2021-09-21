@@ -314,4 +314,4 @@ INSERT INTO "core"."user_settings" ("domain_id", "user_id", "service_id", "key",
 SELECT DISTINCT ON ("oldcats"."domain_id", "oldcats"."user_id") "oldcats"."domain_id", "oldcats"."user_id", 'com.sonicle.webtop.tasks', 'category.folder.default', "oldcats"."category_id"
 FROM "tasks_old"."categories" AS "oldcats"
 WHERE "oldcats"."is_default" IS TRUE
-)
+);

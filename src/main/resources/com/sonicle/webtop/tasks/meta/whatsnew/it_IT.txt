@@ -1,0 +1,8 @@
+$	5.8.0
+	%	Versione 5.8.0
+	*	<h1>Gestione migliorata</h1>
+		<p>La gestione delle attività è stata completamente ridisegnata: viste rapide, sotto-attività soddisfano completamente tutte le esigenze di pianificazione del proprio lavoro.</p>
+		<img src="5.8.0_newtasks.png"/>
+	*	<h1>Categoria predefinita</h1>
+		<p>E' ora possibile impostare una categoria come predefinita scegliendo fra quelle disponibili (condivise e non).</p>
+		<img src="5.8.0_defaultcategory.png"/>
