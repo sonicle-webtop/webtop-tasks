@@ -266,6 +266,13 @@ FROM "tasks_old"."tasks" AS ot1
 INNER JOIN "tasks_old"."categories" AS ot2 ON (ot1."category_id" = ot2."category_id");
 
 -- ----------------------------
+-- Fix data copied from OLD tasks
+-- ----------------------------
+UPDATE "tasks"."tasks" 
+SET "completed_on" = "due" 
+WHERE "tasks"."status" = 'CO' AND "tasks"."due" IS NOT NULL AND "tasks"."completed_on" IS NULL;
+
+-- ----------------------------
 -- Copy data from OLD tasks_attachments
 -- ----------------------------
 INSERT INTO "tasks"."tasks_attachments" ("task_attachment_id", "task_id", "revision_timestamp", "revision_sequence", "filename", "size", "media_type")

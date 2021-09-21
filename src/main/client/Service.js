@@ -40,6 +40,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Icon',
 		'Sonicle.grid.column.Nest',
 		'Sonicle.grid.column.Tag',
+		'Sonicle.grid.plugin.StateResetMenu',
 		'Sonicle.tree.Column',
 		'WTA.ux.field.Search',
 		'WTA.ux.menu.TagMenu',
@@ -305,6 +306,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								type: 'rowmodel',
 								mode : 'MULTI'
 							},
+							plugins: [
+								{
+									ptype: 'so-gridstateresetmenu',
+									menuStateResetText: WT.res('act-clearColumnState.lbl'),
+									menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
+									listeners: {
+										stateresetclick: function(s, grid) {
+											WT.clearState(grid);
+										}
+									}
+								}
+							],
 							tbar: [
 								{
 									xtype: 'sotogglebutton',
@@ -433,14 +446,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 												checked: false,
 												group: sortDirGroup,
 												checkHandler: me.onViewOptionsSortDirChange
-											},
-											'-',
-											{
-												text: WT.res('act-clearColumnState.lbl'),
-												tooltip: WT.res('act-clearColumnState.lbl'),
-												handler: function() {
-													WT.clearState(me.gpTasksList());
-												}
 											}
 										],
 										listeners: {
@@ -527,6 +532,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								type: 'rowmodel',
 								mode : 'MULTI'
 							},
+							plugins: [
+								{
+									ptype: 'so-gridstateresetmenu',
+									menuStateResetText: WT.res('act-clearColumnState.lbl'),
+									menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
+									listeners: {
+										stateresetclick: function(s, grid) {
+											WT.clearState(grid);
+										}
+									}
+								}
+							],
 							tools: [
 								{
 									type: 'close',
