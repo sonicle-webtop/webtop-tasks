@@ -612,7 +612,7 @@ public class Service extends BaseService {
 			if (crud.equals(Crud.READ)) {
 				ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
 				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
-				if (view != null) queryObj = applyTasksQueryObjDefaults(queryObj);
+				if (view == null) queryObj = applyTasksQueryObjDefaults(queryObj);
 				SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
 				
 				ArrayList<JsGridTask> items = new ArrayList<>();
@@ -700,10 +700,12 @@ public class Service extends BaseService {
 	private QueryObj applyTasksQueryObjDefaults(QueryObj queryObj) {
 		// If status is not used in query, filter-out completed tasks by default!
 		if (!queryObj.hasCondition("is", "done") && !queryObj.hasCondition("status")) {
-			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION), false);
-			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.IN_PROGRESS), false);
-			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.CANCELLED), false);
-			queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.WAITING), false);
+			queryObj.addCondition("is", "done", true);
+			//FIXME: using many conditions seems that provides unexpected search results. I think that there is a problem on how precedences are translated using QBuilder object.
+			//queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION), false);
+			//queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.IN_PROGRESS), false);
+			//queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.CANCELLED), false);
+			//queryObj.addCondition("status", EnumUtils.toSerializedName(TaskBase.Status.WAITING), false);
 		}
 		return queryObj;
 	}
@@ -753,7 +755,7 @@ public class Service extends BaseService {
 				} else {
 					ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
 					QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
-					if (view != null) queryObj = applyTasksQueryObjDefaults(queryObj);
+					if (view == null) queryObj = applyTasksQueryObjDefaults(queryObj);
 					SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
 					
 					String lastParent = null;
