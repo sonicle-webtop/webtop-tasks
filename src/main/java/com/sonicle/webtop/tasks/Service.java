@@ -620,7 +620,7 @@ public class Service extends BaseService {
 				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
 				SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.toCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
 					if (root == null) continue;
 					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
@@ -762,7 +762,7 @@ public class Service extends BaseService {
 					Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 					List<Integer> visibleCategoryIds = getActiveFolderIds();
 					SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.toCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 						final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
 						if (root == null) continue;
 						final ShareFolderCategory fold = folders.get(instance.getCategoryId());
@@ -1162,7 +1162,7 @@ public class Service extends BaseService {
 				
 			} else {
 				String pattern = LangUtils.patternizeWords(query);
-				for (TaskLookupInstance instance : manager.listTaskInstances(folders.keySet(), TaskQuery.toCondition(pattern), null, userTimeZone)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(folders.keySet(), TaskQuery.createCondition(pattern), null, userTimeZone)) {
 					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
 					if (root == null) continue;
 					final ShareFolderCategory folder = folders.get(instance.getCategoryId());
