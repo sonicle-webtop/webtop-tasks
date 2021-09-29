@@ -80,7 +80,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 		return rangeStart;
 	}
 	
-	public DateTime getRangeStartOfDefault(DateTime deflt) {
+	public DateTime getRangeStartOrDefault(DateTime deflt) {
 		return (rangeStart != null) ? rangeStart : deflt;
 	}
 	
@@ -88,7 +88,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 		return rangeEnd;
 	}
 	
-	public DateTime getRangeEndOfDefault(DateTime deflt) {
+	public DateTime getRangeEndOrDefault(DateTime deflt) {
 		return (rangeEnd != null) ? rangeEnd : deflt;
 	}
 	

@@ -32,7 +32,6 @@
  */
 package com.sonicle.webtop.tasks;
 
-import com.google.gson.annotations.SerializedName;
 import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
@@ -40,11 +39,8 @@ import com.sonicle.commons.PathUtils;
 import com.sonicle.commons.cache.AbstractPassiveExpiringBulkMap;
 import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.beans.SortInfo;
-import com.sonicle.commons.time.DateTimeRange;
-import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
-import com.sonicle.commons.web.ServletUtils.IntegerArray;
 import com.sonicle.commons.web.ServletUtils.StringArray;
 import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.commons.web.json.PayloadAsList;
@@ -87,8 +83,6 @@ import com.sonicle.webtop.core.sdk.ServiceMessage;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
-import com.sonicle.webtop.core.util.ICalendarUtils;
-import com.sonicle.webtop.core.util.LogEntries;
 import com.sonicle.webtop.core.util.RRuleStringify;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
@@ -100,19 +94,14 @@ import com.sonicle.webtop.tasks.bol.js.JsTaskPreview;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.bol.model.RBTaskList;
 import com.sonicle.webtop.tasks.io.ICalendarInput;
-import com.sonicle.webtop.tasks.io.ICalendarOutput;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ListTasksResult;
-import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
-import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import com.sonicle.webtop.tasks.model.TaskInstanceId;
-import com.sonicle.webtop.tasks.model.TaskLookup;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
 import com.sonicle.webtop.tasks.model.TaskQuery;
@@ -132,7 +121,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -369,8 +357,8 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 			
-		} catch(Exception ex) {
-			logger.error("Error in ManageFoldersTree", ex);
+		} catch (Throwable t) {
+			logger.error("Error in ManageFoldersTree", t);
 		}
 	}
 	
@@ -392,9 +380,9 @@ public class Service extends BaseService {
 			
 			new JsonResult("roots", items, items.size()).printTo(out);
 			
-		} catch(Exception ex) {
-			logger.error("Error in LookupCategoryRoots", ex);
-			new JsonResult(false, "Error").printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in LookupCategoryRoots", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -415,9 +403,9 @@ public class Service extends BaseService {
 			}
 			new JsonResult("folders", items, items.size()).printTo(out);
 			
-		} catch(Exception ex) {
-			logger.error("Error in LookupCategoryFolders", ex);
-			new JsonResult(false, "Error").printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in LookupCategoryFolders", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -439,9 +427,9 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 			
-		} catch(Exception ex) {
-			logger.error("Error in ManageSharing", ex);
-			new JsonResult(false, "Error").printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in ManageSharing", t);
+			new JsonResult().printTo(out);
 		}
 	}
 	
@@ -487,9 +475,9 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 			
-		} catch(Exception ex) {
-			logger.error("Error in ManageCategory", ex);
-			new JsonResult(ex).printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in ManageCategory", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -535,8 +523,9 @@ public class Service extends BaseService {
 				new JsonResult(pids).printTo(out);
 			}
 			
-		} catch(Exception ex) {
-			new JsonResult(ex).printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in ManageHiddenCategories", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -548,7 +537,7 @@ public class Service extends BaseService {
 			Integer defltCategoryId = manager.getDefaultCategoryId();
 			new JsonResult(String.valueOf(defltCategoryId)).printTo(out);
 				
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in SetDefaultCategory", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -562,7 +551,7 @@ public class Service extends BaseService {
 			updateCategoryFolderColor(id, color);
 			new JsonResult().printTo(out);
 				
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in SetCategoryColor", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -576,7 +565,7 @@ public class Service extends BaseService {
 			updateCategoryFolderSync(id, EnumUtils.forSerializedName(sync, Category.Sync.class));
 			new JsonResult().printTo(out);
 				
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in SetCategorySync", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -597,7 +586,7 @@ public class Service extends BaseService {
 			}
 			new JsonResult(items).printTo(out);
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in GetTaskChildren", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -691,7 +680,7 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 		
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in ManageGridTasks", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -812,7 +801,7 @@ public class Service extends BaseService {
 			ServletUtils.setFileStreamHeaders(response, filename + ".pdf");
 			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, response.getOutputStream());
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in action PrintTasks", t);
 			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
 		} finally {
@@ -854,7 +843,7 @@ public class Service extends BaseService {
 				new JsonResult(new JsTaskPreview(root, folder, pset, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone())).printTo(out);
 			}
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in GetTaskPreview", t);
 			new JsonResult(t).printTo(out);	
 		}
@@ -888,7 +877,7 @@ public class Service extends BaseService {
 			}
 			new JsonResult(items).printTo(out);
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in PrepareSendTaskByEmail", t);
 			new JsonResult(t).printTo(out);
 		}
@@ -1013,7 +1002,7 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in ManageTasks", t);
 			new JsonResult(t).printTo(out);	
 		}
@@ -1050,7 +1039,7 @@ public class Service extends BaseService {
 				}
 			}
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in DownloadTaskAttachment", t);
 			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
 		}
@@ -1076,9 +1065,9 @@ public class Service extends BaseService {
 			}
 			new JsonResult(new JsCustomFieldDefsData(cpanels.values(), cfields, cvalues, up.getLanguageTag(), up.getTimeZone())).printTo(out);
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			logger.error("Error in GetCustomFieldsDefsData", t);
-			new JsonResult(false, "Error").printTo(out);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -1123,9 +1112,9 @@ public class Service extends BaseService {
 				new JsonResult(new JsWizardData(null)).printTo(out);
 			}
 			
-		} catch(Exception ex) {
-			logger.error("Error in ImportContactsFromICal", ex);
-			new JsonResult(false, ex.getMessage()).printTo(out);
+		} catch (Throwable t) {
+			logger.error("Error in ImportContactsFromICal", t);
+			new JsonResult(t).printTo(out);
 		}
 	}
 	
@@ -1175,9 +1164,9 @@ public class Service extends BaseService {
 			
 			new JsonResult(items).printTo(out);
 			
-		} catch(Exception ex) {
-			logger.error("Error in PortletTasks", ex);
-			new JsonResult(false, "Error").printTo(out);	
+		} catch (Throwable t) {
+			logger.error("Error in PortletTasks", t);
+			new JsonResult(t).printTo(out);	
 		}
 	}
 	

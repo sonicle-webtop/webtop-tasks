@@ -986,8 +986,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				from = (viewRange != null) ? viewRange.getStart() : null;
 				to = (viewRange != null) ? viewRange.getEnd() : null;
-				from = tpv.getRangeStartOfDefault(from);
-				to = tpv.getRangeEndOfDefault(to);
+				from = tpv.getRangeStartOrDefault(from);
+				to = tpv.getRangeEndOrDefault(to);
 				
 				Days daysInRange = DateTimeUtils.daysBetween(from, to);
 				if (daysInRange != null) noOfRecurringInst = daysInRange.getDays() + 2;
