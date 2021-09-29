@@ -1888,16 +1888,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				SU = Sonicle.Utils,
 				obj = {},
-				fname,
-				epars,
-				url;
+				apnl, fname, epars, url;
 		
 		if (!Ext.isArray(ids) || Ext.isEmpty(ids)) {
-			if ('search' === me.activeMode) {
-				epars = me.gpTasksResults().getStore().getProxy().getExtraParams();
-			} else if ('list' === me.activeMode) {
-				epars = me.gpTasksList().getStore().getProxy().getExtraParams();
-			}
+			apnl = me.pnlCard().getLayout().getActiveItem();
+			epars = apnl.getStore().getProxy().getExtraParams();
 			SU.applyProp(obj, true, epars, 'view');
 			SU.applyProp(obj, true, epars, 'query');
 		}
