@@ -1137,10 +1137,9 @@ public class Service extends BaseService {
 			
 			if (query == null) {
 				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
+				//TODO: evaluate to add a user-setting to specify categories in which look for
 				final Set<Integer> ids = manager.listMyCategoryIds();
 				List<TaskLookupInstance> instances = manager.listTaskInstances(ids, ITasksManager.TaskListView.UPCOMING, userTimeZone);
-				//TODO: sort
-				
 				for (TaskLookupInstance instance : instances) {
 					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
 					if (fold == null) continue;

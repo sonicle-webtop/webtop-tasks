@@ -166,7 +166,6 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.joda.time.DateTimeComparator;
 import org.joda.time.Days;
-import org.joda.time.LocalTime;
 
 /**
  *
@@ -956,10 +955,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (view != null) {
 				DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 				queryCondition = tasDao.toCondition(view, now);
-				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view) || TaskListView.COMPLETED.equals(view) || TaskListView.NOT_COMPLETED.equals(view)) {
+				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view) || TaskListView.COMPLETED.equals(view)) {
 					to = now.toLocalDate().plusDays(1).toDateTimeAtStartOfDay(targetTimezone);
 				} else if (TaskListView.NEXT_7.equals(view) || TaskListView.UPCOMING.equals(view)) {
 					to = now.toLocalDate().plusDays(8).toDateTimeAtStartOfDay(targetTimezone);
+				} else if (TaskListView.NOT_COMPLETED.equals(view)) {
+					to = now.toLocalDate().plusDays(367).toDateTimeAtStartOfDay(targetTimezone);
+					noOfRecurringInst = 1;
 				}
 				if (TaskListView.UPCOMING.equals(view)) nestResults = false;
 				
@@ -1153,7 +1155,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			if (!instanceId.hasNoInstance()) {
 				if (task.getStart() == null) throw new WTException("Start date cannot be null");
-				task.setStart(task.getStart().withDate(instanceId.getInstanceAsDate()));
+				
+				Integer dueDays = (task.getDue() != null) ? Math.abs(Days.daysBetween(task.getStart().toLocalDate(), task.getDue().toLocalDate()).getDays()) : null;
+				task.setStart(instanceDateToDateTime(instanceId.getInstanceAsDate(), task.getStart(), task.getTimezoneObject()));
+				if (dueDays != null) {
+					task.setDue(instanceDateToDateTime(instanceId.getInstanceAsDate().plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
+				}
 			}
 			
 			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.FOLDER, "READ");
@@ -1164,6 +1171,16 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
+	}
+	
+	private DateTime instanceDateToDateTime(LocalDate instanceDate, DateTime targetDateTime, DateTimeZone targetTimezone) {
+		// In order to rebuild a valid DateTime from an instanceDate, since that 
+		// instanceDate is conventionally in UTC, we need to extract the time from
+		// a target DateTime and converts it into UTC. Secondly, we can build 
+		// a new DateTime starting from the instanceDate (always in UTC timezone),
+		// and finally set the target timezone, transporting the entire DateTime 
+		// to the right zone.
+		return instanceDate.toDateTime(targetDateTime.withZone(DateTimeZone.UTC).toLocalTime(), DateTimeZone.UTC).withZone(targetTimezone);
 	}
 	
 	private InstanceInfo doGetInstanceInfo(Connection con, TaskInstanceId instanceId) {
@@ -1989,9 +2006,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (taskStart == null) {
 			logger.warn("Task has no valid start [{}]", taskId);
 		} else {
-			LocalTime taskStartTime = taskStart.withZone(timezone).toLocalTime();
-			LocalTime taskDueTime = (taskDue != null) ? taskDue.withZone(timezone).toLocalTime() : null;
-			int dueDays = (taskDue != null) ? Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays() : -1;
+			Integer dueDays = (taskDue != null) ? Math.abs(Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays()) : null;
 			
 			try {
 				OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, taskId);
@@ -2007,8 +2022,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					Set<LocalDate> exclDates = recDao.selectRecurrenceExByTask(con, taskId);
 					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), exclDates, false, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
 					for (LocalDate date : dates) {
-						DateTime start = date.toDateTime(taskStartTime, timezone);
-						DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
+						DateTime start = instanceDateToDateTime(date, taskStart, timezone);
+						DateTime due = (taskDue != null) ? instanceDateToDateTime(date.plusDays(dueDays), taskDue, timezone) : null;
+						//DateTime start = date.toDateTime(taskStartTime, timezone);
+						//DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
 						TaskInstanceId id = TaskInstanceId.build(taskId, start);
 						//DateTime start = date.toDateTime(taskStartTime, timezone).withZone(userTimezone);
 						//TaskInstanceId id = TaskInstanceId.build(taskId, date);
@@ -2684,7 +2701,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
 			// 1 - Inserts new broken item (rr is not supported here)
-			task.setStart(task.getStart().withDate(info.seriesInstanceDate));
+			task.setStart(instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
 			BitFlag<TaskProcessOpts> processOpts2 = processOpts.copy().unset(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS);
 			TaskInsertResult insert = doTaskInsert(con, task, info.masterTaskId, info.seriesInstance, null, processOpts2, BitFlag.none());
 			
@@ -2825,7 +2842,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
-			task.setStart(task.getStart().withDate(info.seriesInstanceDate));
+			task.setStart(instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE
