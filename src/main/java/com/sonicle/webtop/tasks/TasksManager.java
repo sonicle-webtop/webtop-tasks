@@ -1906,7 +1906,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					if (recur == null) throw new WTException("Unable to parse rrule [{}]", orec.getRule());
 
 					Set<LocalDate> exclDates = recDao.selectRecurrenceExByTask(con, taskId);
-					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), exclDates, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
+					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), false, exclDates, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
 					for (LocalDate date : dates) {
 						DateTime start = date.toDateTime(taskStartTime, timezone);
 						DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
