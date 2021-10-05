@@ -96,6 +96,7 @@ CREATE TABLE "tasks"."tasks" (
 );
 
 ALTER TABLE "tasks"."tasks" ADD PRIMARY KEY ("task_id");
+ALTER TABLE "tasks"."tasks" ADD FOREIGN KEY ("series_task_id") REFERENCES "tasks"."tasks" ("task_id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "tasks"."tasks" ADD FOREIGN KEY ("parent_task_id") REFERENCES "tasks"."tasks" ("task_id") ON DELETE SET NULL ON UPDATE CASCADE;
 CREATE UNIQUE INDEX "tasks_ak1" ON "tasks"."tasks" ("series_task_id", "series_instance_id");
 CREATE INDEX "tasks_ak2" ON "tasks"."tasks" ("category_id", "revision_status", "href");

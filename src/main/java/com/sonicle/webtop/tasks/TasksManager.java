@@ -2482,6 +2482,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (tasDao.logicDeleteById(con, taskId, revision) == 1) {
 				deleted.add(taskId);
 			}
+			deleted.addAll(tasDao.logicDeleteBySeries(con, taskId, revision));
 			deleted.addAll(tasDao.logicDeleteByParent(con, taskId, revision));
 			return deleted;
 		} else {

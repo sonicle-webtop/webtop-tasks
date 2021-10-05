@@ -1822,7 +1822,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				});
 			} else {
-				WT.confirm(me.res('task.confirm.delete', s) + (recs[0].isParent() ? more : ''), function(bid) {
+				WT.confirm(me.res(recs[0].isSeriesMaster() ? 'task.confirm.delete.series' : 'task.confirm.delete', s) + (recs[0].isParent() ? more : ''), function(bid) {
 					if (bid === 'yes') {
 						me.deleteTasks(ids, {
 							callback: cb

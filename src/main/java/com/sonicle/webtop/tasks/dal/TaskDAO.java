@@ -1322,6 +1322,28 @@ public class TaskDAO extends BaseDAO {
 			.execute();
 	}
 	
+	public Set<String> logicDeleteBySeries(Connection con, String seriesTaskId, DateTime revisionTimestamp) throws DAOException {
+		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
+		DSLContext dsl = getDSL(con);
+		Result<TasksRecord> result = dsl
+			.update(TASKS)
+			.set(TASKS.PARENT_TASK_ID, (String)null)
+			.set(TASKS.REVISION_STATUS, DELETED)
+			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.where(	
+				TASKS.SERIES_TASK_ID.equal(seriesTaskId)
+				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
+			)
+			.returning(
+				TASKS.TASK_ID
+			)
+			.fetch();
+		
+		return result.stream()
+			.map(rec -> rec.getTaskId())
+			.collect(Collectors.toSet());
+	}
+	
 	public Set<String> logicDeleteByParent(Connection con, String parentTaskId, DateTime revisionTimestamp) throws DAOException {
 		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
