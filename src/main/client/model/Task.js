@@ -106,7 +106,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 				due = me.get('due'), v;
 		
 		if (!Ext.isEmpty(me.get('rrule')) && !Ext.isDate(date)) return;
-		v = me.setDatePart('start', date);
+		v = me.setDatePart('start', date, 15, 'up');
 		if (Ext.isDate(v) && Ext.isDate(due) && v > due) me.set('due', v);
 	},
 	
@@ -123,7 +123,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		var me = this,
 				start = me.get('start'), v;
 		
-		v = me.setDatePart('due', date);
+		v = me.setDatePart('due', date, 15, 'up');
 		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
 	},
 	
@@ -133,70 +133,26 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 				
 		v = me.setTimePart('due', date);
 		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
-	}
-	
-	
-	/*
-	setRecurStart: function(date) {
-		var me = this, sta;
-		me.setDatePart('rstart', date);
-		if (me.phantom && Ext.isDate(date)) {
-			sta = me.get('start');
-			if (Ext.isDate(sta)) me.setStartDate(Ext.Date.clone(Sonicle.Date.min(date, sta)));
-		}
-	}
-	*/
-	
-	/*
-	setStartDate: function(date) {
-		var me = this,
-				due = me.get('due'), dt;
-		dt = me.setDatePart('start', date);
-		if(!Ext.isDate(dt) || !Ext.isDate(due)) return;
-		if(dt > due) me.set('due', dt);
 	},
 	
-	setDueDate: function(date) {
+	/**
+	 * !!! Copied here from new ModelUtil mixin, not yet merged. !!!
+	 * 
+	 * Sets the date part only into the specified field.
+	 * If null, the field will be initialized using the current date value, properly rounded if necessary.
+	 * Passed field name must refer to a date field.
+	 * @param {String} field The name of the field to update.
+	 * @param {Date} date The value from which copy the date part.
+	 * @param {Integer} [roundMinutes] Minutes interval to round to.
+	 * @param {String} [roundMethod=nearest] Round method.
+	 * @returns {Date} The value set
+	 */
+	setDatePart: function(field, date, roundMinutes, roundMethod) {
 		var me = this,
-				start = me.get('start'), dt;
-		dt = me.setDatePart('due', date);
-		if(!Ext.isDate(dt) || !Ext.isDate(start)) return;
-		if(dt < start) me.set('start', dt);
-	},
-	*/
-	/*'
-	setReminderDate: function(date) {
-		var me = this,
-			dt = me.setDatePart('reminderDate', date);
-		if(Ext.isDate(dt)) me.set('reminderDate', dt);
-	},
-	
-	setReminderTime: function(date) {
-		var me = this,
-			dt = me.setTimePart('reminderDate', date);
-		if(Ext.isDate(dt)) me.set('reminderDate', dt);
-	},
-	*/
-	
-	
-	
-	/*
-	setDatePart: function(field, date) {
-		var me = this,
-				v = me.get(field) || new Date(), dt;
-		dt = !Ext.isDate(date) ? null : Sonicle.Date.copyDate(date, v);
-		me.set(field, dt);
-		return dt;
-	},
-	
-	setTimePart: function(field, date) {
-		var me = this,
-				v = me.get(field) || new Date(), dt;
-		if(!Ext.isDate(date) || !Ext.isDate(v)) return;
-		dt = Sonicle.Date.copyTime(date, v);
+				SoD = Sonicle.Date,
+				v = me.get(field) || SoD.roundTime(new Date(), roundMinutes, roundMethod), dt;
+		dt = !Ext.isDate(date) ? null : SoD.copyDate(date, v);
 		me.set(field, dt);
 		return dt;
 	}
-	
-	*/
 });

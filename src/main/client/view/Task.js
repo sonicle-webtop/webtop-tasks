@@ -951,9 +951,10 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						rawFieldEmptyText: WT.res('sorrfield.raw.emp'),
 						listeners: {
 							select: function(s, freq) {
-								var mo = me.getModel();
+								var mo = me.getModel(), due;
 								if (freq !== 'none' && !Ext.isDate(mo.get('start'))) {
-									mo.setStartDate(new Date());
+									due = mo.get('due');
+									mo.setStartDate(Ext.isDate(due) ? due : new Date());
 								}
 							},
 							rawpasteinvalid: function() {

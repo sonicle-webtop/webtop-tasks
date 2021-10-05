@@ -166,6 +166,7 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.joda.time.DateTimeComparator;
 import org.joda.time.Days;
+import org.joda.time.LocalTime;
 
 /**
  *
@@ -809,32 +810,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	/*
-	public TaskObject getTaskObject(int categoryId, String taskId, TaskObjectOutputType outputType) throws WTException {
-		CoreManager coreMgr = getCoreManager();
-		TaskDAO tasDao = TaskDAO.getInstance();
-		Connection con = null;
-		
-		try {
-			checkRightsOnCategory(categoryId, CheckRightsTarget.FOLDER, "READ");
-			con = WT.getConnection(SERVICE_ID);
-			
-			VTaskObject vtask = tasDao.viewTaskObjectById(con, taskId);
-			if (vtask == null) {
-				return null;
-			} else {
-				Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
-				return doTaskObjectPrepare(con, vtask, outputType, tagIdsByNameMap);
-			}
-			
-		} catch (SQLException | DAOException ex) {
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	*/
-	
-	/*
 	public List<TaskLookupInstance> listTaskInstances_(Collection<Integer> categoryIds, Condition<TaskQuery> conditionPredicate, DateTimeZone targetTimezone) throws WTException {
 		return listTaskInstances_(categoryIds, null, (DateTimeRange)null, conditionPredicate, targetTimezone, true);
 	}
@@ -1157,9 +1132,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				if (task.getStart() == null) throw new WTException("Start date cannot be null");
 				
 				Integer dueDays = (task.getDue() != null) ? Math.abs(Days.daysBetween(task.getStart().toLocalDate(), task.getDue().toLocalDate()).getDays()) : null;
-				task.setStart(instanceDateToDateTime(instanceId.getInstanceAsDate(), task.getStart(), task.getTimezoneObject()));
+				task.setStart(ManagerUtils.instanceDateToDateTime(instanceId.getInstanceAsDate(), task.getStart(), task.getTimezoneObject()));
 				if (dueDays != null) {
-					task.setDue(instanceDateToDateTime(instanceId.getInstanceAsDate().plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
+					task.setDue(ManagerUtils.instanceDateToDateTime(instanceId.getInstanceAsDate().plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
 				}
 			}
 			
@@ -1171,16 +1146,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
-	}
-	
-	private DateTime instanceDateToDateTime(LocalDate instanceDate, DateTime targetDateTime, DateTimeZone targetTimezone) {
-		// In order to rebuild a valid DateTime from an instanceDate, since that 
-		// instanceDate is conventionally in UTC, we need to extract the time from
-		// a target DateTime and converts it into UTC. Secondly, we can build 
-		// a new DateTime starting from the instanceDate (always in UTC timezone),
-		// and finally set the target timezone, transporting the entire DateTime 
-		// to the right zone.
-		return instanceDate.toDateTime(targetDateTime.withZone(DateTimeZone.UTC).toLocalTime(), DateTimeZone.UTC).withZone(targetTimezone);
 	}
 	
 	private InstanceInfo doGetInstanceInfo(Connection con, TaskInstanceId instanceId) {
@@ -1577,84 +1542,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	/*
-	@Deprecated
-	@Override
-	public Task getTask(String taskId) throws WTException {
-		return getTask(taskId, BitFlag.of(TaskGetOptions.ATTACHMENTS, TaskGetOptions.TAGS, TaskGetOptions.CUSTOM_VALUES));
-	}
-	
-	@Deprecated
-	@Override
-	public Task getTask(String taskId, BitFlag<TaskGetOptions> options) throws WTException {
-		Connection con = null;
-		
-		try {
-			con = WT.getConnection(SERVICE_ID);
-			Task task = doTaskGet(con, taskId, TaskProcessOpts.parseTaskGetOptions(options));
-			if (task == null) return null;
-			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.FOLDER, "READ");
-			
-		} catch(SQLException | DAOException ex) {
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-		return null;
-	}
-	
-	@Deprecated
-	@Override
-	public TaskAttachmentWithBytes getTaskAttachment(String taskId, String attachmentId) throws WTException {
-		TaskDAO tasDao = TaskDAO.getInstance();
-		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
-		Connection con = null;
-		
-		try {
-			con = WT.getConnection(SERVICE_ID);
-			Integer catId = tasDao.selectCategoryId(con, taskId);
-			if (catId == null) return null;
-			checkRightsOnCategory(catId, CheckRightsTarget.FOLDER, "READ");
-			
-			OTaskAttachment oatt = attDao.selectByIdTask(con, attachmentId, taskId);
-			if (oatt == null) return null;
-			
-			OTaskAttachmentData oattData = attDao.selectBytesById(con, attachmentId);
-			return ManagerUtils.fillTaskAttachment(new TaskAttachmentWithBytes(oattData.getBytes()), oatt);
-		
-		} catch(SQLException | DAOException ex) {
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	
-	@Deprecated
-	@Override
-	public Map<String, CustomFieldValue> getTaskCustomValues(String taskId) throws WTException {
-		TaskDAO tasDao = TaskDAO.getInstance();
-		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
-		Connection con = null;
-		
-		try {
-			con = WT.getConnection(SERVICE_ID);
-			Integer catId = tasDao.selectCategoryId(con, taskId);
-			if (catId == null) return null;
-			checkRightsOnCategory(catId, CheckRightsTarget.FOLDER, "READ");
-			
-			List<OTaskCustomValue> ovals = cvalDao.selectByTask(con, taskId);
-			return ManagerUtils.createCustomValuesMap(ovals);
-			
-		} catch (Throwable t) {
-			throw ExceptionUtils.wrapThrowable(t);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	*/
-	
-	
-	
 	@Override
 	public Task addTask(final TaskEx task) throws WTException {
 		return addTask(task, null);
@@ -1979,9 +1866,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return alerts;
 	}
 	
-	
-	
-	
 	private boolean needsTreatAsPrivate(UserProfileId runningProfile, boolean taskIsPrivate, int taskCategoryId) {
 		if (!taskIsPrivate) return false;
 		UserProfileId ownerProfile = ownerCache.get(taskCategoryId);
@@ -2006,6 +1890,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (taskStart == null) {
 			logger.warn("Task has no valid start [{}]", taskId);
 		} else {
+			LocalTime taskStartTime = taskStart.withZone(timezone).toLocalTime();
+			LocalTime taskDueTime = (taskDue != null) ? taskDue.withZone(timezone).toLocalTime() : null;
 			Integer dueDays = (taskDue != null) ? Math.abs(Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays()) : null;
 			
 			try {
@@ -2020,15 +1906,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					if (recur == null) throw new WTException("Unable to parse rrule [{}]", orec.getRule());
 
 					Set<LocalDate> exclDates = recDao.selectRecurrenceExByTask(con, taskId);
-					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), exclDates, false, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
+					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), exclDates, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
 					for (LocalDate date : dates) {
-						DateTime start = instanceDateToDateTime(date, taskStart, timezone);
-						DateTime due = (taskDue != null) ? instanceDateToDateTime(date.plusDays(dueDays), taskDue, timezone) : null;
-						//DateTime start = date.toDateTime(taskStartTime, timezone);
-						//DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
-						TaskInstanceId id = TaskInstanceId.build(taskId, start);
-						//DateTime start = date.toDateTime(taskStartTime, timezone).withZone(userTimezone);
-						//TaskInstanceId id = TaskInstanceId.build(taskId, date);
+						DateTime start = date.toDateTime(taskStartTime, timezone);
+						DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
+						TaskInstanceId id = TaskInstanceId.build(taskId, start, timezone);
 
 						instances.add(instanceMapper.createInstance(id, start, due));
 					}
@@ -2701,7 +2583,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
 			// 1 - Inserts new broken item (rr is not supported here)
-			task.setStart(instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
+			task.setStart(ManagerUtils.instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
 			BitFlag<TaskProcessOpts> processOpts2 = processOpts.copy().unset(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS);
 			TaskInsertResult insert = doTaskInsert(con, task, info.masterTaskId, info.seriesInstance, null, processOpts2, BitFlag.none());
 			
@@ -2842,7 +2724,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
-			task.setStart(instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
+			task.setStart(ManagerUtils.instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE

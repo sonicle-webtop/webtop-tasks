@@ -64,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
 
 /**
  *
@@ -460,7 +462,20 @@ public class ManagerUtils {
 		return tgt;
 	}
 	
+	/**
+	 * Construct a date-time using date from instanceDate parameter and time 
+	 * part from targetDateTime object, appropriately moved to desired timezone 
+	 * (the timezone of the task).
+	 * @param instanceDate Instance local date.
+	 * @param targetDateTime Target date-time from which extract the time part.
+	 * @param targetTimezone Target timezone
+	 * @return The built date-time object
+	 */
+	static DateTime instanceDateToDateTime(LocalDate instanceDate, DateTime targetDateTime, DateTimeZone targetTimezone) {
+		return instanceDate.toDateTime(targetDateTime.withZone(targetTimezone).toLocalTime(), targetTimezone);
+	}
+	
 	static TaskInstanceId toParentInstanceId(String parentTaskId) {
-		return StringUtils.isBlank(parentTaskId) ? null : TaskInstanceId.build(parentTaskId, TaskInstanceId.MASTER_INSTANCE_ID);
+		return StringUtils.isBlank(parentTaskId) ? null : TaskInstanceId.buildMaster(parentTaskId);
 	}
 }

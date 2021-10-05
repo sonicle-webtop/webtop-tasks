@@ -976,7 +976,7 @@ public class Service extends BaseService {
 						if (single && "all".equals(target)) {
 							// Control over target is performed by tweaking the instance ID: all series tasks
 							// will be deleted by referring to the series (00000000 as instance).
-							instanceIds.add(TaskInstanceId.build(id.getTaskId(), TaskInstanceId.MASTER_INSTANCE_ID));
+							instanceIds.add(TaskInstanceId.buildMaster(id.getTaskId()));
 						} else {
 							instanceIds.add(id);
 						}

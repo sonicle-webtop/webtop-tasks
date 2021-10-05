@@ -174,7 +174,7 @@ public class Eas extends EasApi {
 			if (cal == null) return respErrorBadRequest();
 			///TODO: maybe check if passed folder is set to OFF
 			
-			TaskInstanceId iid = TaskInstanceId.build(id, TaskInstanceId.MASTER_INSTANCE_ID);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
 			TaskObjectWithBean obj = (TaskObjectWithBean)manager.getTaskObject(iid, TaskObjectOutputType.BEAN);
 			if (obj != null) {
 				return respOk(createSyncTask(obj));
@@ -203,7 +203,7 @@ public class Eas extends EasApi {
 			newTask.setCategoryId(folderId);
 			
 			Task task = manager.addTask(newTask);
-			TaskInstanceId iid = TaskInstanceId.build(task.getTaskId(), TaskInstanceId.MASTER_INSTANCE_ID);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(task.getTaskId());
 			TaskObject obj = manager.getTaskObject(iid, TaskObjectOutputType.STAT);
 			if (obj == null) return respErrorNotFound();
 			
@@ -226,7 +226,7 @@ public class Eas extends EasApi {
 		
 		try {
 			//TODO: maybe check if passed folder is set to OFF
-			TaskInstanceId iid = TaskInstanceId.build(id, TaskInstanceId.MASTER_INSTANCE_ID);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
 			TaskObjectWithBean objwb = (TaskObjectWithBean)manager.getTaskObject(iid, TaskObjectOutputType.BEAN);
 			if (objwb == null) return respErrorNotFound();
 			
@@ -255,7 +255,7 @@ public class Eas extends EasApi {
 		
 		try {
 			//TODO: maybe check if passed folder is set to OFF
-			TaskInstanceId iid = TaskInstanceId.build(id, TaskInstanceId.MASTER_INSTANCE_ID);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
 			manager.deleteTaskInstance(iid);
 			return respOkNoContent();
 			
