@@ -472,7 +472,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
 			if (bid === 'yes') {
 				me.wait();
-				me.deleteTasks(rec.getId(), {
+				me.mys.deleteTasks(rec.getId(), {
 					callback: function(success, data, json) {
 						me.unwait();
 						if (success) {
