@@ -930,7 +930,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			if (view != null) {
 				DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 				queryCondition = tasDao.toCondition(view, now);
-				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view) || TaskListView.COMPLETED.equals(view)) {
+				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view)) {
 					to = now.toLocalDate().plusDays(1).toDateTimeAtStartOfDay(targetTimezone);
 				} else if (TaskListView.NEXT_7.equals(view) || TaskListView.UPCOMING.equals(view)) {
 					to = now.toLocalDate().plusDays(8).toDateTimeAtStartOfDay(targetTimezone);
@@ -946,7 +946,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						Connection con1 = null;
 						try {
 							con1 = WT.getConnection(SERVICE_ID);
-							return doGetInstanceInfo(con1, instanceId).taskId;
+							return doTaskGetInstanceInfo(con1, instanceId).taskId;
 
 						} catch(SQLException | DAOException ex) {
 							return null;
@@ -1130,12 +1130,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			if (!instanceId.hasNoInstance()) {
 				if (task.getStart() == null) throw new WTException("Start date cannot be null");
-				
-				Integer dueDays = (task.getDue() != null) ? Math.abs(Days.daysBetween(task.getStart().toLocalDate(), task.getDue().toLocalDate()).getDays()) : null;
-				task.setStart(ManagerUtils.instanceDateToDateTime(instanceId.getInstanceAsDate(), task.getStart(), task.getTimezoneObject()));
-				if (dueDays != null) {
-					task.setDue(ManagerUtils.instanceDateToDateTime(instanceId.getInstanceAsDate().plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
-				}
+				recalculateStartForInstanceDate(instanceId.getInstanceAsDate(), task);
 			}
 			
 			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.FOLDER, "READ");
@@ -1148,10 +1143,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private InstanceInfo doGetInstanceInfo(Connection con, TaskInstanceId instanceId) {
-		TaskDAO tasDao = TaskDAO.getInstance();
-		return new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
+	private void recalculateStartForInstanceDate(LocalDate instanceDate, TaskBase task) {
+		Integer dueDays = (task.getDue() != null) ? Math.abs(Days.daysBetween(task.getStart().toLocalDate(), task.getDue().toLocalDate()).getDays()) : null;
+		task.setStart(ManagerUtils.instanceDateToDateTime(instanceDate, task.getStart(), task.getTimezoneObject()));
+		if (dueDays != null) {
+			task.setDue(ManagerUtils.instanceDateToDateTime(instanceDate.plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
+		}
 	}
+	
+	
 	
 	@Override
 	public TaskAttachmentWithBytes getTaskInstanceAttachment(final TaskInstanceId instanceId, final String attachmentId) throws WTException {
@@ -1161,7 +1161,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			InstanceInfo info = doGetInstanceInfo(con, instanceId);
+			InstanceInfo info = doTaskGetInstanceInfo(con, instanceId);
 			String taskId = info.realTaskId();
 			Integer catId = tasDao.selectCategoryId(con, taskId);
 			checkRightsOnCategory(catId, CheckRightsTarget.FOLDER, "READ");
@@ -1547,31 +1547,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return addTask(task, null);
 	}
 	
-	private String doGetOrCreateBrokenInstance(Connection con, TaskInstanceId instanceId, int categoryId) throws WTException {
-		TaskDAO tasDao = TaskDAO.getInstance();
-		InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-		
-		if (info.belongsToSeries && info.taskId == null) {
-			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "UPDATE");
-			
-			Task origTask = doTaskGet(con, info.realTaskId(), BitFlag.none());
-			if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
-			
-			TaskInsertResult result = null;
-			try {
-				result = doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.none());
-			} catch (IOException ex1) {/* Due configuration here this will never happen! */}
-			
-			return result.otask.getTaskId();
-			
-		} else if (info.belongsToSeries && info.isBroken) {
-			return info.taskId;
-			
-		} else {
-			return info.taskId;
-		}
-	}
-	
 	private Task addTask(TaskEx task, String rawICalendar) throws WTException {
 		CoreManager coreMgr = getCoreManager();
 		Connection con = null;
@@ -1581,7 +1556,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			if (task.getParentInstanceId() != null) {
-				String newParentTaskId = doGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
+				String newParentTaskId = doTaskGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
 				task.setParentInstanceId(ManagerUtils.toParentInstanceId(newParentTaskId));
 			}
 			
@@ -2179,6 +2154,36 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		public int value() { return this.value; }
 	}
 	
+	private InstanceInfo doTaskGetInstanceInfo(Connection con, TaskInstanceId instanceId) {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		return new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
+	}
+	
+	private String doTaskGetOrCreateBrokenInstance(Connection con, TaskInstanceId instanceId, int categoryId) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
+		
+		if (info.belongsToSeries && info.taskId == null) {
+			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "UPDATE");
+			
+			Task origTask = doTaskGet(con, info.realTaskId(), BitFlag.none());
+			if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
+			
+			TaskInsertResult result = null;
+			try {
+				result = doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.none());
+			} catch (IOException ex1) {/* Due configuration here this will never happen! */}
+			
+			return result.otask.getTaskId();
+			
+		} else if (info.belongsToSeries && info.isBroken) {
+			return info.taskId;
+			
+		} else {
+			return info.taskId;
+		}
+	}
+	
 	private String doTaskGetInstanceTaskId(Connection con, TaskInstanceId instanceId) throws DAOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		return tasDao.selectIdBySeriesInstance(con, instanceId.getTaskId(), instanceId.getInstance());
@@ -2584,7 +2589,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
 			// 1 - Inserts new broken item (rr is not supported here)
-			task.setStart(ManagerUtils.instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
+			recalculateStartForInstanceDate(info.seriesInstanceDate, task);
 			BitFlag<TaskProcessOpts> processOpts2 = processOpts.copy().unset(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS);
 			TaskInsertResult insert = doTaskInsert(con, task, info.masterTaskId, info.seriesInstance, null, processOpts2, BitFlag.none());
 			
@@ -2725,7 +2730,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
-			task.setStart(ManagerUtils.instanceDateToDateTime(info.seriesInstanceDate, task.getStart(), task.getTimezoneObject()));
+			recalculateStartForInstanceDate(info.seriesInstanceDate, task);
 			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE

@@ -175,8 +175,9 @@ public class RBTaskList {
 	}
 	
 	private String toTaskType(ITaskInstanceStatable task) {
-		if (TasksUtils.isTaskSeriesMaster(task) || TasksUtils.isTaskSeriesItem(task)) return "SERIES";
-		else if (TasksUtils.isTaskSeriesBroken(task)) return "BROKEN";
+		if (TasksUtils.isTaskSeriesMaster(task)) return "SERIESMASTER";
+		else if (TasksUtils.isTaskSeriesItem(task)) return "SERIESITEM";
+		else if (TasksUtils.isTaskSeriesBroken(task)) return "SERIESBROKEN";
 		else return "DEFAULT";
 	}
 }

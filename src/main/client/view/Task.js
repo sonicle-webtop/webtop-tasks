@@ -203,7 +203,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						me.addAct('openSeries', {
 							text: null,
 							tooltip: me.res('act-openSeries.lbl'),
-							iconCls: 'wttasks-icon-taskType-series',
+							iconCls: 'wttasks-icon-taskType-seriesMaster',
+							hidden: true,
 							handler: function() {
 								me.openSeriesTask();
 							}
@@ -213,7 +214,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							tooltip: WT.res('act-print.lbl'),
 							iconCls: 'wt-icon-print',
 							handler: function() {
-								//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
+								//TODO: add 'Save' action to allow printing without closing and reopening view
 								me.printTask(me.getModel().getId());
 							}
 						}),
@@ -375,7 +376,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		vm.bind('{foIsSeriesMaster}', function(nv, ov) {
 			if (ov === undefined && nv === true) {
 				me.setViewTitle(me.res('task.series.tit'));
-				me.setViewIconCls('wttasks-icon-taskType-series');
+				me.setViewIconCls('wttasks-icon-taskType-seriesMaster');
 			}
 		});
 		vm.bind('{foIsSeriesInstance}', function(nv, ov) {
@@ -465,22 +466,20 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	
 	deleteTask: function() {
 		var me = this,
-				rec = me.getModel();
+				rec = me.getModel(),
+				s = Ext.String.ellipsis(rec.get('subject'), 40);
 		
-		WT.confirm(WT.res('confirm.delete'), function(bid) {
+		WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
 			if (bid === 'yes') {
 				me.wait();
-				WT.ajaxReq(me.mys.ID, 'ManageTask', {
-					params: {
-						crud: 'delete',
-						ids: WTU.arrayAsParam([rec.getId()])
-					},
-					callback: function(success) {
+				me.deleteTasks(rec.getId(), {
+					callback: function(success, data, json) {
 						me.unwait();
-						if(success) {
+						if (success) {
 							me.fireEvent('viewsave', me, true, rec);
 							me.closeView(false);
 						}
+						WT.handleError(success, json);
 					}
 				});
 			}
@@ -954,7 +953,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								var mo = me.getModel(), due;
 								if (freq !== 'none' && !Ext.isDate(mo.get('start'))) {
 									due = mo.get('due');
-									mo.setStartDate(Ext.isDate(due) ? due : new Date());
+									if (Ext.isDate(due)) {
+										mo.set('start', Sonicle.Date.clone(due));
+									} else {
+										mo.setStartDate(new Date());
+									}
 								}
 							},
 							rawpasteinvalid: function() {

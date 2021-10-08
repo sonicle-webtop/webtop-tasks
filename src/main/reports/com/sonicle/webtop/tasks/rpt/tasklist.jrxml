@@ -63,8 +63,9 @@
 		<defaultValueExpression><![CDATA["HH:mm:ss"]]></defaultValueExpression>
 	</parameter>
 	<parameter name="SVG_TASKTYPE_DEFAULT" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
-	<parameter name="SVG_TASKTYPE_SERIES" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
-	<parameter name="SVG_TASKTYPE_BROKEN" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
+	<parameter name="SVG_TASKTYPE_SERIESMASTER" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
+	<parameter name="SVG_TASKTYPE_SERIESITEM" class="net.sf.jasperreports.engine.JRRenderable"/>
+	<parameter name="SVG_TASKTYPE_SERIESBROKEN" class="net.sf.jasperreports.engine.JRRenderable" isForPrompting="false"/>
 	<queryString>
 		<![CDATA[]]>
 	</queryString>
@@ -255,8 +256,8 @@
 					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
-				<textFieldExpression><![CDATA[$F{startDate}]]></textFieldExpression>
-				<patternExpression><![CDATA[$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}]]></patternExpression>
+				<textFieldExpression><![CDATA[IF(EQUALS($F{taskType}, "SERIESMASTER"), str("repeated.info"), $F{startDate})]]></textFieldExpression>
+				<patternExpression><![CDATA[IF(EQUALS($F{taskType}, "SERIESMASTER"), null, $P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT})]]></patternExpression>
 			</textField>
 			<textField textAdjust="StretchHeight">
 				<reportElement style="ColumnValue" x="329" y="0" width="100" height="18" uuid="90e6da32-2a0b-4759-b3e3-1311b5f82562">
@@ -269,8 +270,8 @@
 					<property name="com.jaspersoft.layout.grid.weight.fixed" value="true"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
-				<textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression>
-				<patternExpression><![CDATA[$P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT}]]></patternExpression>
+				<textFieldExpression><![CDATA[IF(EQUALS($F{taskType}, "SERIESMASTER"), str("repeated.info"), $F{dueDate})]]></textFieldExpression>
+				<patternExpression><![CDATA[IF(EQUALS($F{taskType}, "SERIESMASTER"), null, $P{WT_DATE_FORMAT_SHORT}+" "+$P{WT_TIME_FORMAT_SHORT})]]></patternExpression>
 			</textField>
 			<textField textAdjust="StretchHeight">
 				<reportElement style="ColumnValue" x="429" y="0" width="117" height="18" uuid="f4fb5a67-c18f-474d-be7c-b2ea23e46f0b">

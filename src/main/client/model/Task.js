@@ -101,6 +101,10 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		return !Ext.isEmpty(id) && !Sonicle.String.endsWith(id, '.00000000');
 	},
 	
+	isParent: function() {
+		return this.get('_childTotalCount') > 0;
+	},
+	
 	setStartDate: function(date) {
 		var me = this,
 				due = me.get('due'), v;
