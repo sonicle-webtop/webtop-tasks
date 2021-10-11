@@ -68,6 +68,9 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 		var me = this;
 		me.callParent([cfg]);
 		
+		var durRes = function(sym) { return WT.res('word.dur.'+sym); },
+			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+		
 		WTU.applyFormulas(me.getVM(), {
 			foIsEditable: WTF.foGetFn('record', '_erights', function(val) {
 				var er = WTA.util.FoldersTree.toRightsObj(val);
@@ -106,8 +109,15 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				var s = '', ret;
 				if (Ext.isDate(val)) {
 					if ('CO' !== this.get('record.status')) {
-						var diff = Sonicle.Date.diffDays(val, new Date());
-						if (diff > 0) s += '&nbsp;<span class="wt-theme-text-lighter2">('+me.mys.res('taskPreview.single.task.due.late', '+'+diff)+')</span>';
+						var SoD = Sonicle.Date,
+							diff = SoD.diffDays(val, new Date()),
+							hrd;
+						if (diff > 0) {
+							hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+							if (!Ext.isEmpty(hrd)) {
+								s += '&nbsp;<span class="wt-theme-text-lighter2">('+me.mys.res('taskPreview.single.task.due.late', '+'+hrd)+')</span>';
+							}
+						}
 					}
 					ret = Ext.Date.format(val, 'D ' + WT.getLongDateFmt() + ' ' + WT.getShortTimeFmt()) + s;
 				}

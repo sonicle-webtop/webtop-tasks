@@ -629,7 +629,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	createGridConfig: function(tagsStore, nest, cfg) {
-		var me = this;
+		var me = this,
+				durRes = function(sym) { return WT.res('word.dur.'+sym); },
+				durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+		
 		return Ext.apply({
 			xtype: 'grid',
 			viewConfig: {
@@ -774,7 +777,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							meta.tdCls = 'wt-theme-text-lighter2';
 							return me.res('task.repeated.info');
 						} else {
-							return this.defaultRenderer(v);
+							return this.defaultRenderer.apply(this, arguments);
 						}
 					},
 					width: 140
@@ -785,8 +788,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					header: me.res('gptasks.due.lbl'),
 					getTip: function(v, rec) {
 						if (Ext.isDate(v) && !rec.isCompleted()) {
-							var diff = Sonicle.Date.diffDays(v, new Date());
-							return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), Math.abs(diff));
+							var SoD = Sonicle.Date,
+									diff = SoD.diffDays(v, new Date()),
+									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+							return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), hrd);
 						}
 						return '';
 					},
@@ -796,10 +801,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							meta.tdCls = 'wt-theme-text-lighter2';
 							return me.res('task.repeated.info');
 						} else {
-							return this.defaultRenderer(v);
+							return this.defaultRenderer.apply(this, arguments);
 						}
 					},
 					width: 140
+				}, {
+					dataIndex: 'start',
+					header: me.res('gptasks.duration.lbl'),
+					renderer : function(v, meta, rec) {
+						if (rec.isSeriesMaster()) {
+							meta.tdCls = 'wt-theme-text-lighter2';
+							return me.res('task.repeated.info');
+						} else {
+							var SoD = Sonicle.Date,
+									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
+							return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
+						}
+					}
 				}, {
 					xtype: 'sodatecolumn',
 					dataIndex: 'completedOn',
@@ -808,9 +826,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						if (Ext.isDate(v)) {
 							var due = rec.get('due'), key;
 							if (Ext.isDate(due)) {
-								var diff = Sonicle.Date.diffDays(due, v);
-								key = (diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip';
-								return Ext.String.format(me.res(key), diff);
+								var SoD = Sonicle.Date,
+										diff = SoD.diffDays(due, v),
+										hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+								return Ext.String.format(me.res((diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip'), hrd);
 							}
 						}
 						return '';
