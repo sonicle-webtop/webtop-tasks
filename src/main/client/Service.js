@@ -600,7 +600,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							me.openTaskUI(true, id);
 						},
 						setcompleted: function(s, ids) {
-							WT.confirm(me.res('task.confirm.complete.selection') + '\n' + me.res('task.warn.complete.parent'), function(bid) {
+							WT.confirm(me.res('task.confirm.complete.selection'), function(bid) {
 								if (bid === 'yes') {
 									me.setTaskItemsCompleted(ids, {
 										callback: function(success) {
@@ -635,7 +635,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			viewConfig: {
 				getRowClass: function (rec, idx) {
 					if (rec.isCompleted()) return 'wt-text-striked wt-theme-text-lighter2';
-					if (rec.isOverdue()) return 'wt-theme-text-error';
+					if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-text-error';
 					return '';
 				}
 			},
@@ -690,13 +690,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					},
 					getIconCls: function(v, rec) {
 						var type = 'default';
-						//var type = '';
 						//if (rec.isParent()) type = 'parent';
-						if (rec.isSeriesMaster()) type = 'series';
-						else if (rec.isSeriesBroken()) type = 'broken';
-						else if (rec.isSeriesItem()) type = 'series';
+						if (rec.isSeriesMaster()) type = 'seriesMaster';
+						else if (rec.isSeriesBroken()) type = 'seriesBroken';
+						else if (rec.isSeriesItem()) type = 'seriesItem';
 						return Ext.isEmpty(type) ? '' : 'wttasks-icon-taskType-'+type;
-						//return 'wttasks-icon-taskType-'+type;
 					},
 					getTip: function(v, rec) {
 						var type = 'default';
@@ -770,11 +768,21 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'start',
 					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
 					header: me.res('gptasks.start.lbl'),
+					usingDefaultRenderer: true, // Necessary for renderer usage below
+					renderer : function(v, meta, rec) {
+						if (rec.isSeriesMaster()) {
+							meta.tdCls = 'wt-theme-text-lighter2';
+							return me.res('task.repeated.info');
+						} else {
+							return this.defaultRenderer(v);
+						}
+					},
 					width: 140
 				}, {
 					dataIndex: 'due',
 					xtype: 'sodatecolumn',
 					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
+					header: me.res('gptasks.due.lbl'),
 					getTip: function(v, rec) {
 						if (Ext.isDate(v) && !rec.isCompleted()) {
 							var diff = Sonicle.Date.diffDays(v, new Date());
@@ -782,7 +790,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						}
 						return '';
 					},
-					header: me.res('gptasks.due.lbl'),
+					usingDefaultRenderer: true, // Necessary for renderer usage below
+					renderer : function(v, meta, rec) {
+						if (rec.isSeriesMaster()) {
+							meta.tdCls = 'wt-theme-text-lighter2';
+							return me.res('task.repeated.info');
+						} else {
+							return this.defaultRenderer(v);
+						}
+					},
 					width: 140
 				}, {
 					xtype: 'sodatecolumn',
@@ -1788,14 +1804,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						}
 					});
 				},
-				more = '\n' + me.res('task.warn.complete.parent');
+				rec, s;
 		
 		if (recs.length === 1) {
-			WT.confirm(me.res('task.confirm.complete', Ext.String.ellipsis(recs[0].get('subject'), 40)) + (recs[0].isParent() ? more : ''), function(bid) {
+			rec = recs[0];
+			s = Ext.String.ellipsis(rec.get('subject'), 40);
+			WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.complete.series', s) : (me.res('task.confirm.complete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.complete.warn.parent')) : '')), function(bid) {
 				if (bid === 'yes') doFn();
 			}, me);
 		} else {
-			WT.confirm(me.res('task.confirm.complete.selection') + more, function(bid) {
+			WT.confirm(me.res('task.confirm.complete.selection'), function(bid) {
 				if (bid === 'yes') doFn();
 			}, me);
 		}	
@@ -1808,12 +1826,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				cb = function(success) {
 					if (success) me.reloadTasks();
 				},
-				more = '\n' + me.res('task.warn.delete.parent'),
-				s;
+				rec, s;
+		
 		if (recs.length === 1) {
-			s = Ext.String.ellipsis(recs[0].get('subject'), 40);
-			if (recs[0].isSeriesItem()) {
-				me.confirmOnRecurring(me.res('task.confirm.recurring.delete', s) + (recs[0].isParent() ? more : ''), function(bid, value) {
+			rec = recs[0];
+			s = Ext.String.ellipsis(rec.get('subject'), 40);
+			if (rec.isSeriesItem()) {
+				me.confirmOnRecurring(me.res('task.confirm.delete.recurring', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : ''), function(bid, value) {
 					if (bid === 'ok') {
 						me.deleteTasks(ids, {
 							callback: cb,
@@ -1822,7 +1841,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				});
 			} else {
-				WT.confirm(me.res(recs[0].isSeriesMaster() ? 'task.confirm.delete.series' : 'task.confirm.delete', s) + (recs[0].isParent() ? more : ''), function(bid) {
+				WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
 					if (bid === 'yes') {
 						me.deleteTasks(ids, {
 							callback: cb
@@ -1831,7 +1850,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}, me);
 			}
 		} else {
-			WT.confirm(me.res('task.confirm.delete.selection') + more, function(bid) {
+			WT.confirm(me.res('task.confirm.delete.selection'), function(bid) {
 				if (bid === 'yes') {
 					me.deleteTasks(ids, {
 						callback: cb

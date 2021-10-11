@@ -13,9 +13,9 @@
 .wttasks-icon-deleteCategory { background-image: url('category-delete_16.svg') !important; background-size: contain; }
 .wttasks-icon-task { background-image: url('task_16.svg') !important; background-size: contain; }
 .wttasks-icon-taskType-default { background-image: url('tasktype-default_16.svg') !important; background-size: contain; }
-.wttasks-icon-taskType-series { background-image: url('tasktype-series_16.svg') !important; background-size: contain; }
-.wttasks-icon-taskType-broken { background-image: url('tasktype-broken_16.svg') !important; background-size: contain; }
-.wttasks-icon-taskType-parent { background-image: url('tasktype-parent_16.svg') !important; background-size: contain; }
+.wttasks-icon-taskType-seriesMaster { background-image: url('tasktype-series-master_16.svg') !important; background-size: contain; }
+.wttasks-icon-taskType-seriesItem { background-image: url('tasktype-series-item_16.svg') !important; background-size: contain; }
+.wttasks-icon-taskType-seriesBroken { background-image: url('tasktype-series-broken_16.svg') !important; background-size: contain; }
 .wttasks-icon-newTask { background-image: url('task-new_16.svg') !important; background-size: contain; }
 .wttasks-icon-addTask { background-image: url('task-add_16.svg') !important; background-size: contain; }
 .wttasks-icon-importTask { background-image: url('task-import_16.svg') !important; background-size: contain; }

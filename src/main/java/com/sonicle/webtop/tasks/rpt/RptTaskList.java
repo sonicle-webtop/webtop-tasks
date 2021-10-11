@@ -58,8 +58,9 @@ public class RptTaskList extends AbstractReport {
 		ClassLoader cl = LangUtils.findClassLoader(this.getClass());
 		
 		addSvgStreamAsParam("SVG_TASKTYPE_DEFAULT", cl, basepath + "/tasktype-default_16.svg", StandardCharsets.UTF_8);
-		addSvgStreamAsParam("SVG_TASKTYPE_SERIES", cl, basepath + "/tasktype-series_16.svg", StandardCharsets.UTF_8);
-		addSvgStreamAsParam("SVG_TASKTYPE_BROKEN", cl, basepath + "/tasktype-broken_16.svg", StandardCharsets.UTF_8);
+		addSvgStreamAsParam("SVG_TASKTYPE_SERIESMASTER", cl, basepath + "/tasktype-series-master_16.svg", StandardCharsets.UTF_8);
+		addSvgStreamAsParam("SVG_TASKTYPE_SERIESITEM", cl, basepath + "/tasktype-series-item_16.svg", StandardCharsets.UTF_8);
+		addSvgStreamAsParam("SVG_TASKTYPE_SERIESBROKEN", cl, basepath + "/tasktype-series-broken_16.svg", StandardCharsets.UTF_8);
 		
 		// Example on how to pass an SVG, with color properly changed, as a JRRenderable object.
 		// In jrxml expression it will be used in this way: $P{REPORT_PARAMETERS_MAP}.get("SVG_TASKIMPORTANCE_" + $F{importance})

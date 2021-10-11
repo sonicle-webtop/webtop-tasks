@@ -53,6 +53,7 @@ import jakarta.mail.internet.InternetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -87,13 +88,14 @@ public class JsTaskPreview {
 	
 	public JsTaskPreview(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps, TaskInstance item, Collection<CustomPanel> customPanels, Map<String, CustomField> customFields, String profileLanguageTag, DateTimeZone profileTz) {
 		Category category = folder.getCategory();
+		boolean isSeriesMaster = StringUtils.endsWith(item.getId().toString(), ".00000000") && item.getRecurrence() != null;
 		
 		this.id = item.getId().toString();
         this.subject = item.getSubject();
 		this.location = item.getLocation();
         this.description = item.getDescription();
-		this.start = DateTimeUtils.printYmdHmsWithZone(item.getStart(), profileTz);
-		this.due = DateTimeUtils.printYmdHmsWithZone(item.getDue(), profileTz);
+		this.start = !isSeriesMaster ? DateTimeUtils.printYmdHmsWithZone(item.getStart(), profileTz) : null;
+		this.due = !isSeriesMaster ? DateTimeUtils.printYmdHmsWithZone(item.getDue(), profileTz) : null;
 		this.completedOn = DateTimeUtils.printYmdHmsWithZone(item.getCompletedOn(), profileTz);
 		this.status = EnumUtils.toSerializedName(item.getStatus());
         this.progress = item.getProgress();
