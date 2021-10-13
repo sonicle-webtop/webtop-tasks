@@ -817,7 +817,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
 							return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
 						}
-					}
+					},
+					sortable: false,
+					hidden: true,
+					width: 80
 				}, {
 					xtype: 'sodatecolumn',
 					dataIndex: 'completedOn',
