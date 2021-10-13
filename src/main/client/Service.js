@@ -298,6 +298,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 										});
 									},
 									load: function() {
+										// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
+										// 1) Create a daily task with many repetitions
+										// 2) Move to not completed view
+										// 3) Select the task created above, right-click opening context menu and choose "Complete"
+										// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
+										// 5) After some operations, selection breaks returning wrong items on getSelected
+										me.trFolders().focus();
+										// ------------------------------
 										me.pnlPreview().setSelection(me.getSelectedTasks(true));
 									}
 								}
@@ -523,6 +531,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 										});
 									},
 									load: function() {
+										// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
+										// 1) Create a daily task with many repetitions
+										// 2) Move to not completed view
+										// 3) Select the task created above, right-click opening context menu and choose "Complete"
+										// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
+										// 5) After some operations, selection breaks returning wrong items on getSelected
+										me.trFolders().focus();
+										// ------------------------------
 										me.pnlPreview().setSelection(me.getSelectedTasks(true));
 										me.fldSearch().highlight(me.gpTasks().getEl(), '.x-grid-item-container');
 									}
@@ -1090,6 +1106,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			//iconCls: 'fa fa-check wt-theme-text-off',
 			handler: function(s, e) {
+				//var sel = e.getContextMenuData('task') || me.getSelectedTasks();
 				me.completeTasksUI(me.getSelectedTasks());
 			}
 		});
