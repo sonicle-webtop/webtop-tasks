@@ -33,17 +33,22 @@
 Ext.define('Sonicle.webtop.tasks.model.PletTasks', {
 	extend: 'WTA.ux.data.BaseModel',
 	
-	idProperty: 'taskId',
+	idProperty: 'id',
 	fields: [
-		WTF.roField('taskId', 'int'),
+		WTF.roField('id', 'string'),
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string'),
 		WTF.roField('subject', 'string'),
-		WTF.roField('description', 'string'),
-		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('body', 'string'),
+		WTF.roField('due', 'date', {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.roField('_owner', 'string'),
 		WTF.roField('_frights', 'string'),
 		WTF.roField('_erights', 'string')
-	]
+	],
+	
+	isOverdue: function() {
+		var due = this.get('due');
+		return Ext.isDate(due) && Sonicle.Date.compare(new Date(), due, false) > 0;
+	}
 });

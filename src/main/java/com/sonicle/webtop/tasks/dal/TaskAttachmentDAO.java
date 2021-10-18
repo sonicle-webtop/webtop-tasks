@@ -40,6 +40,7 @@ import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ATTACHMENTS_DATA;
 import static com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord;
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.List;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
@@ -54,7 +55,7 @@ public class TaskAttachmentDAO extends BaseDAO {
 		return INSTANCE;
 	}
 	
-	public OTaskAttachment selectByIdTask(Connection con, String attachmentId, int taskId) throws DAOException {
+	public OTaskAttachment selectByIdTask(Connection con, String attachmentId, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
@@ -66,7 +67,7 @@ public class TaskAttachmentDAO extends BaseDAO {
 			.fetchOneInto(OTaskAttachment.class);
 	}
 	
-	public List<OTaskAttachment> selectByTask(Connection con, int taskId) throws DAOException {
+	public List<OTaskAttachment> selectByTask(Connection con, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
@@ -105,11 +106,25 @@ public class TaskAttachmentDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int delete(Connection con, String attachmentId) throws DAOException {
+	public int deleteByIdTask(Connection con, String attachmentId, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_ATTACHMENTS)
-			.where(TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID.equal(attachmentId))
+			.where(
+				TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID.equal(attachmentId)
+				.and(TASKS_ATTACHMENTS.TASK_ID.equal(taskId))
+			)
+			.execute();
+	}
+	
+	public int deleteByIdsTask(Connection con, Collection<String> attachmentIds, String taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.delete(TASKS_ATTACHMENTS)
+			.where(
+				TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID.in(attachmentIds)
+				.and(TASKS_ATTACHMENTS.TASK_ID.equal(taskId))
+			)
 			.execute();
 	}
 	

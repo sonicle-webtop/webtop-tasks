@@ -34,88 +34,129 @@
 Ext.define('Sonicle.webtop.tasks.model.Task', {
 	extend: 'WTA.ux.data.BaseModel',
 	requires: [
+		'Sonicle.Date',
+		'Sonicle.Object',
+		'Sonicle.data.validator.Custom',
 		'Sonicle.webtop.core.ux.data.CustomFieldValueModel',
+		'Sonicle.webtop.tasks.model.TaskAssignee',
 		'Sonicle.webtop.tasks.model.TaskAttachment'
 	],
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageTasks', 'data', {
+	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageTask', 'data', {
 		writer: {
 			type: 'sojson',
 			writeAssociations: true
 		}
 	}),
 	
-	identifier: 'negative',
-	idProperty: 'taskId',
+	identifier: 'negativestring',
+	idProperty: 'id',
 	fields: [
-		WTF.field('taskId', 'int', false),
+		WTF.field('id', 'string', false),
+		WTF.field('parentId', 'string', true),
 		WTF.field('categoryId', 'int', false),
 		WTF.field('subject', 'string', false),
+		WTF.field('location', 'string', true),
 		WTF.field('description', 'string', true),
-		WTF.field('startDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.field('dueDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('start', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('due', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('progress', 'int', true, {defaultValue: 0}),
+		WTF.field('status', 'string', true, {defaultValue: 'NA'}),
 		WTF.field('importance', 'string', false, {defaultValue: 1}),
 		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
-		WTF.field('status', 'string', true, {defaultValue: 'notstarted'}),
-		WTF.field('percentage', 'int', true, {defaultValue: 0}),
-		WTF.field('reminderDate', 'date', true, {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.field('docRef', 'string', true),
+		WTF.field('reminder', 'int', true),
+		WTF.field('contact', 'string', true),
+		WTF.field('contactId', 'string', true),
+		WTF.field('rrule', 'string', true, {
+			validators: [
+				{
+					type: 'socustom',
+					fn: function(v, rec) {
+						return Ext.isEmpty(v) || Sonicle.Object.coalesce(rec.get('_childrenCount'), 0) === 0;
+					}
+				}
+			]
+		}),
+		WTF.field('rstart', 'date', true, {dateFormat: 'Y-m-d'}),
 		WTF.field('tags', 'string', true),
-		WTF.field('_cfdefs', 'string', true)
+		WTF.roField('_childTotalCount', 'int'),
+		WTF.roField('_childComplCount', 'int'),
+		WTF.roField('_parentSubject', 'string'),
+		WTF.roField('_ownerId', 'string'),
+		WTF.roField('_cfdefs', 'string')
 	],
 	hasMany: [
+		WTF.hasMany('assignees', 'Sonicle.webtop.tasks.model.TaskAssignee'),
 		WTF.hasMany('attachments', 'Sonicle.webtop.tasks.model.TaskAttachment'),
 		WTF.hasMany('cvalues', 'Sonicle.webtop.core.ux.data.CustomFieldValueModel')
-	]
+	],
 	
-	/*
+	isSeriesMaster: function() {
+		var id = this.getId();
+		return !Ext.isEmpty(id) && Sonicle.String.endsWith(id, '.00000000') && !Ext.isEmpty(this.get('rrule'));
+	},
+	
+	isSeriesInstance: function() {
+		var id = this.getId();
+		return !Ext.isEmpty(id) && !Sonicle.String.endsWith(id, '.00000000');
+	},
+	
+	isParent: function() {
+		return this.get('_childTotalCount') > 0;
+	},
+	
 	setStartDate: function(date) {
 		var me = this,
-				due = me.get('dueDate'), dt;
-		dt = me.setDatePart('startDate', date);
-		if(!Ext.isDate(dt) || !Ext.isDate(due)) return;
-		if(dt > due) me.set('dueDate', dt);
+				due = me.get('due'), v;
+		
+		if (!Ext.isEmpty(me.get('rrule')) && !Ext.isDate(date)) return;
+		v = me.setDatePart('start', date, 15, 'up');
+		if (Ext.isDate(v) && Ext.isDate(due) && v > due) me.set('due', v);
+	},
+	
+	setStartTime: function(date) {
+		var me = this,
+				due = me.get('due'), v;
+		
+		if (!Ext.isEmpty(me.get('rrule')) && !Ext.isDate(date)) return;
+		v = me.setTimePart('start', date);
+		if (Ext.isDate(v) && Ext.isDate(due) && v > due) me.set('due', v);
 	},
 	
 	setDueDate: function(date) {
 		var me = this,
-				start = me.get('startDate'), dt;
-		dt = me.setDatePart('dueDate', date);
-		if(!Ext.isDate(dt) || !Ext.isDate(start)) return;
-		if(dt < start) me.set('startDate', dt);
-	},
-	*/
-	/*'
-	setReminderDate: function(date) {
-		var me = this,
-			dt = me.setDatePart('reminderDate', date);
-		if(Ext.isDate(dt)) me.set('reminderDate', dt);
+				start = me.get('start'), v;
+		
+		v = me.setDatePart('due', date, 15, 'up');
+		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
 	},
 	
-	setReminderTime: function(date) {
+	setDueTime: function(date) {
 		var me = this,
-			dt = me.setTimePart('reminderDate', date);
-		if(Ext.isDate(dt)) me.set('reminderDate', dt);
-	},
-	*/
-	
-	
-	
-	/*
-	setDatePart: function(field, date) {
-		var me = this,
-				v = me.get(field) || new Date(), dt;
-		dt = !Ext.isDate(date) ? null : Sonicle.Date.copyDate(date, v);
-		me.set(field, dt);
-		return dt;
+				start = me.get('start'), v;
+				
+		v = me.setTimePart('due', date);
+		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
 	},
 	
-	setTimePart: function(field, date) {
+	/**
+	 * !!! Copied here from new ModelUtil mixin, not yet merged. !!!
+	 * 
+	 * Sets the date part only into the specified field.
+	 * If null, the field will be initialized using the current date value, properly rounded if necessary.
+	 * Passed field name must refer to a date field.
+	 * @param {String} field The name of the field to update.
+	 * @param {Date} date The value from which copy the date part.
+	 * @param {Integer} [roundMinutes] Minutes interval to round to.
+	 * @param {String} [roundMethod=nearest] Round method.
+	 * @returns {Date} The value set
+	 */
+	setDatePart: function(field, date, roundMinutes, roundMethod) {
 		var me = this,
-				v = me.get(field) || new Date(), dt;
-		if(!Ext.isDate(date) || !Ext.isDate(v)) return;
-		dt = Sonicle.Date.copyTime(date, v);
+				SoD = Sonicle.Date,
+				v = me.get(field) || SoD.roundTime(new Date(), roundMinutes, roundMethod), dt;
+		dt = !Ext.isDate(date) ? null : SoD.copyDate(date, v);
 		me.set(field, dt);
 		return dt;
 	}
-	
-	*/
 });

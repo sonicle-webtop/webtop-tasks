@@ -33,29 +33,80 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 	extend: 'WTA.ux.data.BaseModel',
+	requires: [
+		'Sonicle.String'
+	],
 	
-	idProperty: 'taskId',
+	idProperty: 'id',
 	fields: [
-		WTF.roField('taskId', 'int'),
+		WTF.roField('id', 'string'),
+		WTF.roField('taskId', 'string'),
+		WTF.roField('parentId', 'string'),
 		WTF.roField('subject', 'string'),
 		WTF.roField('description', 'string'),
-		WTF.roField('startDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('dueDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('importance', 'string'),
-		WTF.roField('isPrivate', 'boolean'),
+		WTF.roField('start', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('due', 'date', {dateFormat: 'Y-m-d H:i:s'}),
+		WTF.roField('completedOn', 'date', {dateFormat: 'Y-m-d H:i:s'}),
 		WTF.roField('status', 'string'),
-		WTF.roField('percentage', 'int'),
-		WTF.calcField('progress', 'number','percentage', function (v, rec) {
-			return Ext.isEmpty(rec.get('percentage'))?0:rec.get('percentage')/100;
+		WTF.roField('progress', 'int'),
+		WTF.calcField('progressPerc', 'number', 'progress', function (v, rec, perc) {
+			return Ext.isEmpty(perc) ? 0 : perc/100;
 		}),
-		WTF.roField('reminderDate', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.calcField('hasReminder', 'boolean', 'reminderDate', function (v, rec) {
-			return Ext.isEmpty(rec.get('reminderDate'));
-		}),
+		WTF.roField('importance', 'int'),
+		WTF.roField('isPrivate', 'boolean'),
+		WTF.roField('docRef', 'string'),
+		WTF.roField('reminder', 'int'),
 		//WTF.roField('publicUid', 'string'),
 		WTF.roField('tags', 'string'),
+		WTF.roField('hasRecur', 'boolean'),
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
-		WTF.roField('categoryColor', 'string')
-	]
+		WTF.roField('categoryColor', 'string'),
+		WTF.roField('ownerId', 'string'),
+		WTF.roField('_frights', 'string'),
+		WTF.roField('_erights', 'string'),
+		WTF.roField('_hierarchy', 'string'),
+		WTF.roField('_depth', 'int'),
+		WTF.roField('_collapsed', 'boolean', {defaultValue: false}), // Used only with default value!
+		WTF.calcField('isParent', 'boolean', '_hierarchy', function(v, rec, hier) {
+			return 'parent' === hier;
+		}),
+		WTF.calcField('isChild', 'boolean', '_hierarchy', function(v, rec, hier) {
+			return 'child' === hier;
+		})
+	],
+	
+	isParent: function() {
+		return this.get('isParent');
+	},
+	
+	isChild: function() {
+		return this.get('isChild');
+	},
+	
+	isSeriesMaster: function() {
+		var SoS = Sonicle.String,
+				id = this.getId();
+		return SoS.startsWith(id, this.get('taskId')) && SoS.endsWith(id, '.00000000') && this.get('hasRecur');
+	},
+	
+	isSeriesItem: function() {
+		var me = this;
+		return !me.isSeriesMaster() && !me.isSeriesBroken() && !Sonicle.String.endsWith(me.getId(), '.00000000');
+	},
+	
+	isSeriesBroken: function() {
+		var SoS = Sonicle.String,
+				id = this.getId();
+		return !SoS.startsWith(id, this.get('taskId')) && !SoS.endsWith(id, '.00000000');
+	},
+	
+	isCompleted: function() {
+		return 'CO' === this.get('status');
+	},
+	
+	isOverdue: function() {
+		var due = this.get('due');
+		return Ext.isDate(due) && Sonicle.Date.compare(new Date(), due, false) > 0;
+	}
 });

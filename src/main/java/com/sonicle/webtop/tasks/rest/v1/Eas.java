@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks.rest.v1;
 
+import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
@@ -42,14 +43,19 @@ import com.sonicle.webtop.core.model.SharePermsElements;
 import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
+import com.sonicle.webtop.core.sdk.WTException;
+import com.sonicle.webtop.tasks.ITasksManager.TaskUpdateOptions;
 import com.sonicle.webtop.tasks.TaskObjectOutputType;
 import com.sonicle.webtop.tasks.TasksManager;
-import com.sonicle.webtop.tasks.model.BaseTask;
+import com.sonicle.webtop.tasks.TasksUserSettings;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.Task;
+import com.sonicle.webtop.tasks.model.TaskBase;
+import com.sonicle.webtop.tasks.model.TaskEx;
+import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import com.sonicle.webtop.tasks.model.TaskObject;
 import com.sonicle.webtop.tasks.model.TaskObjectWithBean;
 import com.sonicle.webtop.tasks.swagger.v1.api.EasApi;
@@ -92,12 +98,14 @@ public class Eas extends EasApi {
 		}
 		
 		try {
-			Map<Integer, Category> cats = manager.listCategories();
+			Integer defltCategoryId = manager.getDefaultCategoryId();
+			Map<Integer, Category> cats = manager.listMyCategories();
 			Map<Integer, DateTime> revisions = manager.getCategoriesLastRevision(cats.keySet());
 			for (Category cat : cats.values()) {
 				if (Category.Sync.OFF.equals(cat.getSync())) continue;
 				
-				items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), null, ShareFolderCategory.realElementsPerms(cat.getSync())));
+				final boolean isDefault = cat.getCategoryId().equals(defltCategoryId);
+				items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), null, ShareFolderCategory.realElementsPerms(cat.getSync()), isDefault));
 			}
 			
 			List<ShareRootCategory> shareRoots = manager.listIncomingCategoryRoots();
@@ -111,7 +119,8 @@ public class Eas extends EasApi {
 					CategoryPropSet catProps = props.get(cat.getCategoryId());
 					if (Category.Sync.OFF.equals(catProps.getSyncOrDefault(Category.Sync.OFF))) continue;
 					
-					items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), folder.getPerms(), folder.getRealElementsPerms(catProps.getSync())));
+					final boolean isDefault = cat.getCategoryId().equals(defltCategoryId);
+					items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), folder.getPerms(), folder.getRealElementsPerms(catProps.getSync()), isDefault));
 				}
 			}
 			
@@ -153,7 +162,7 @@ public class Eas extends EasApi {
 	}
 	
 	@Override
-	public Response getMessage(Integer folderId, Integer id) {
+	public Response getMessage(Integer folderId, String id) {
 		TasksManager manager = getManager();
 		
 		if (logger.isDebugEnabled()) {
@@ -165,7 +174,8 @@ public class Eas extends EasApi {
 			if (cal == null) return respErrorBadRequest();
 			///TODO: maybe check if passed folder is set to OFF
 			
-			TaskObjectWithBean obj = (TaskObjectWithBean)manager.getTaskObject(folderId, id, TaskObjectOutputType.BEAN);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
+			TaskObjectWithBean obj = (TaskObjectWithBean)manager.getTaskObject(iid, TaskObjectOutputType.BEAN);
 			if (obj != null) {
 				return respOk(createSyncTask(obj));
 			} else {
@@ -189,11 +199,12 @@ public class Eas extends EasApi {
 		
 		try {
 			//TODO: maybe check if passed folder is set to OFF
-			Task newTask = mergeTask(new Task(), body);
+			TaskEx newTask = mergeTask(true, new TaskEx(), body);
 			newTask.setCategoryId(folderId);
 			
 			Task task = manager.addTask(newTask);
-			TaskObject obj = manager.getTaskObject(folderId, task.getTaskId(), TaskObjectOutputType.STAT);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(task.getTaskId());
+			TaskObject obj = manager.getTaskObject(iid, TaskObjectOutputType.STAT);
 			if (obj == null) return respErrorNotFound();
 			
 			return respOkCreated(createSyncTaskStat(obj));
@@ -205,7 +216,7 @@ public class Eas extends EasApi {
 	}
 
 	@Override
-	public Response updateMessage(Integer folderId, Integer id, SyncTaskUpdate body) {
+	public Response updateMessage(Integer folderId, String id, SyncTaskUpdate body) {
 		TasksManager manager = getManager();
 		
 		if (logger.isDebugEnabled()) {
@@ -215,12 +226,15 @@ public class Eas extends EasApi {
 		
 		try {
 			//TODO: maybe check if passed folder is set to OFF
-			Task task = manager.getTask(id);
-			if (task == null) return respErrorNotFound();
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
+			TaskObjectWithBean objwb = (TaskObjectWithBean)manager.getTaskObject(iid, TaskObjectOutputType.BEAN);
+			if (objwb == null) return respErrorNotFound();
 			
-			mergeTask(task, body);
-			manager.updateTask(task, false);
-			TaskObject obj = manager.getTaskObject(folderId, id, TaskObjectOutputType.STAT);
+			TaskEx task = mergeTask(false, objwb.getTask(), body);
+			BitFlag<TaskUpdateOptions> options = BitFlag.none();
+			manager.updateTaskInstance(iid, task, options);
+			
+			TaskObject obj = manager.getTaskObject(iid, TaskObjectOutputType.STAT);
 			if (obj == null) return respErrorNotFound();
 			
 			return respOk(createSyncTaskStats(Arrays.asList(obj)));
@@ -232,7 +246,7 @@ public class Eas extends EasApi {
 	}
 
 	@Override
-	public Response deleteMessage(Integer folderId, Integer id) {
+	public Response deleteMessage(Integer folderId, String id) {
 		TasksManager manager = getManager();
 		
 		if (logger.isDebugEnabled()) {
@@ -241,7 +255,8 @@ public class Eas extends EasApi {
 		
 		try {
 			//TODO: maybe check if passed folder is set to OFF
-			manager.deleteTask(id);
+			TaskInstanceId iid = TaskInstanceId.buildMaster(id);
+			manager.deleteTaskInstance(iid);
 			return respOkNoContent();
 			
 		} catch(WTNotFoundException ex) {
@@ -252,7 +267,7 @@ public class Eas extends EasApi {
 		}
 	}
 	
-	private SyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, SharePerms folderPerms, SharePerms elementPerms) {
+	private SyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, SharePerms folderPerms, SharePerms elementPerms, boolean isDefault) {
 		String displayName = cat.getName();
 		if (!currentProfileId.equals(cat.getProfileId())) {
 			UserProfile.Data owud = WT.getUserData(cat.getProfileId());
@@ -265,7 +280,7 @@ public class Eas extends EasApi {
 				.id(cat.getCategoryId())
 				.displayName(displayName)
 				.etag(buildEtag(lastRevisionTimestamp))
-				.deflt(cat.getIsDefault())
+				.deflt(isDefault)
 				.foAcl((folderPerms == null) ? SharePermsFolder.full().toString() : folderPerms.toString())
 				.elAcl((elementPerms == null) ? SharePermsElements.full().toString() : elementPerms.toString())
 				.ownerId(cat.getProfileId().toString());
@@ -284,32 +299,30 @@ public class Eas extends EasApi {
 	}
 	
 	private SyncTask createSyncTask(TaskObjectWithBean obj) {
-		Task task = obj.getTask();
+		TaskEx task = obj.getTask();
 		
 		return new SyncTask()
 				.id(obj.getTaskId())
 				.etag(buildEtag(obj.getRevisionTimestamp()))
 				.subject(task.getSubject())
-				.start(DateTimeUtils.print(ISO_DATETIME_FMT, task.getStartDate()))
-				.due(DateTimeUtils.print(ISO_DATETIME_FMT, task.getDueDate()))
+				.start(DateTimeUtils.print(ISO_DATETIME_FMT, task.getStart()))
+				.due(DateTimeUtils.print(ISO_DATETIME_FMT, task.getDue()))
 				.status(EnumUtils.toSerializedName(task.getStatus()))
-				.complOn(DateTimeUtils.print(ISO_DATETIME_FMT, task.getCompletedDate()))
+				.complOn(DateTimeUtils.print(ISO_DATETIME_FMT, task.getCompletedOn()))
 				.impo((int)task.getImportance())
 				.prvt(task.getIsPrivate())
 				//.reminder(event.getReminder())
 				.notes(task.getDescription());
 	}
 	
-	private <T extends Task> T mergeTask(T tgt, SyncTaskUpdate src) {
-		boolean isNew = tgt.getTaskId() == null;
-		
+	private <T extends TaskEx> T mergeTask(boolean isNew, T tgt, SyncTaskUpdate src) {
 		tgt.setSubject(src.getSubject());
-		tgt.setStartDate(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getStart()));
-		tgt.setDueDate(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getDue()));
+		tgt.setStart(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getStart()));
+		tgt.setDue(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getDue()));
 		DateTime complOn = DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getComplOn());
 		if (complOn != null) {
-			tgt.setCompletedDate(complOn);
-			tgt.setStatus(BaseTask.Status.COMPLETED);
+			tgt.setCompletedOn(complOn);
+			tgt.setStatus(TaskBase.Status.COMPLETED);
 		}
 		tgt.setImportance(src.getImpo().shortValue());
 		tgt.setIsPrivate(src.isPrvt());

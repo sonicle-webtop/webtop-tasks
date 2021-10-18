@@ -36,7 +36,7 @@ import com.sonicle.webtop.core.sdk.UserProfileId;
 
 /**
  *
- * @author rfullone
+ * @author malbinola
  */
 public class VTask extends OTask {
 	private String categoryDomainId;

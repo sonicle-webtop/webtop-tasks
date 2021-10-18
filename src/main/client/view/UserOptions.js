@@ -34,6 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.UserOptions', {
 	extend: 'WTA.sdk.UserOptionsView',
 	requires: [
+		'Sonicle.webtop.tasks.store.GridView',
 		'Sonicle.webtop.tasks.store.ReminderDelivery'
 	],
 		
@@ -46,11 +47,27 @@ Ext.define('Sonicle.webtop.tasks.view.UserOptions', {
 			title: WT.res(me.ID, 'opts.main.tit'),
 			items: [
 				WTF.lookupCombo('id', 'desc', {
-					bind: '{record.taskReminderDelivery}',
-					store: Ext.create('Sonicle.webtop.tasks.store.ReminderDelivery', {
+					bind: '{record.gridView}',
+					store: {
+						xclass: 'Sonicle.webtop.tasks.store.GridView',
 						autoLoad: true
-					}),
-					fieldLabel: WT.res(me.ID, 'opts.main.fld-taskReminderDelivery.lbl'),
+					},
+					fieldLabel: WT.res(me.ID, 'opts.fld-gridView.lbl'),
+					width: 280,
+					listeners: {
+						blur: {
+							fn: me.onBlurAutoSave,
+							scope: me
+						}
+					}
+				}),
+				WTF.lookupCombo('id', 'desc', {
+					bind: '{record.taskReminderDelivery}',
+					store: {
+						xclass: 'Sonicle.webtop.tasks.store.ReminderDelivery',
+						autoLoad: true
+					},
+					fieldLabel: WT.res(me.ID, 'opts.fld-taskReminderDelivery.lbl'),
 					width: 280,
 					listeners: {
 						blur: {

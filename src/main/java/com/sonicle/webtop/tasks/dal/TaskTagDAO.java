@@ -40,6 +40,7 @@ import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.Set;
+import org.jooq.BatchBindStep;
 import org.jooq.DSLContext;
 import static org.jooq.impl.DSL.*;
 
@@ -53,7 +54,7 @@ public class TaskTagDAO extends BaseDAO {
 		return INSTANCE;
 	}
 	
-	public Set<String> selectTagsByTask(Connection con, int taskId) throws DAOException {
+	public Set<String> selectTagsByTask(Connection con, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
@@ -69,13 +70,31 @@ public class TaskTagDAO extends BaseDAO {
 			.fetchSet(TASKS_TAGS.TAG_ID);
 	}
 	
-	public int insert(Connection con, int taskId, String tagId) throws DAOException {
+	public int insert(Connection con, String taskId, String tagId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.insertInto(TASKS_TAGS)
 			.set(TASKS_TAGS.TASK_ID, taskId)
 			.set(TASKS_TAGS.TAG_ID, tagId)
 			.execute();
+	}
+	
+	public int[] batchInsert(Connection con, String taskId, Collection<String> tagIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		BatchBindStep batch = dsl.batch(
+			dsl.insertInto(TASKS_TAGS, 
+				TASKS_TAGS.TASK_ID, 
+				TASKS_TAGS.TAG_ID
+			)
+			.values((String)null, null)
+		);
+		for (String tagId : tagIds) {
+			batch.bind(
+				taskId,
+				tagId
+			);
+		}
+		return batch.execute();
 	}
 	
 	public int insertByCategory(Connection con, int categoryId, String tagId) throws DAOException {
@@ -106,7 +125,7 @@ public class TaskTagDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int insertByCategoriesTasks(Connection con, Collection<Integer> categoryIds, Collection<Integer> taskIds, String tagId) throws DAOException {
+	public int insertByCategoriesTasks(Connection con, Collection<Integer> categoryIds, Collection<String> taskIds, String tagId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		TasksTags tt1 = TASKS_TAGS.as("tt1");
 		return dsl
@@ -135,7 +154,7 @@ public class TaskTagDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int delete(Connection con, int taskId, String tagId) throws DAOException {
+	public int delete(Connection con, String taskId, String tagId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_TAGS)
@@ -146,7 +165,18 @@ public class TaskTagDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int deleteByTask(Connection con, int taskId) throws DAOException {
+	public int deleteByIdTags(Connection con, String taskId, Collection<String> tagIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.delete(TASKS_TAGS)
+			.where(
+				TASKS_TAGS.TASK_ID.equal(taskId)
+				.and(TASKS_TAGS.TAG_ID.in(tagIds))
+			)
+			.execute();
+	}
+	
+	public int deleteByTask(Connection con, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_TAGS)
@@ -193,7 +223,7 @@ public class TaskTagDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int deleteByCategoriesTasks(Connection con, Collection<Integer> categoryIds, Collection<Integer> taskIds) throws DAOException {
+	public int deleteByCategoriesTasks(Connection con, Collection<Integer> categoryIds, Collection<String> taskIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_TAGS)
@@ -212,7 +242,7 @@ public class TaskTagDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int deleteByCategoriesTasksTags(Connection con, Collection<Integer> categoryIds, Collection<Integer> taskIds, Collection<String> tagIds) throws DAOException {
+	public int deleteByCategoriesTasksTags(Connection con, Collection<Integer> categoryIds, Collection<String> taskIds, Collection<String> tagIds) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(TASKS_TAGS)

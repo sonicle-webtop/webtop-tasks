@@ -45,26 +45,26 @@ public class JsCategoryLkp {
 	public Integer categoryId;
 	public String name;
 	public String color;
-	public Boolean isDefault;
 	public Boolean tasPrivate;
+	public Boolean _default;
 	public String _profileId;
 	public String _profileDescription;
 	public Boolean _writable;
 	public Integer _order;
 	
-	public JsCategoryLkp(Category cat) {
-		categoryId = cat.getCategoryId();
-		name = cat.getName();
-		color = cat.getColor();
-		isDefault = cat.getIsDefault();
-		tasPrivate = cat.getIsPrivate();
-		_profileId = cat.getProfileId().toString();
+	public JsCategoryLkp(Category cat, boolean isDefault) {
+		this.categoryId = cat.getCategoryId();
+		this.name = cat.getName();
+		this.color = cat.getColor();
+		this.tasPrivate = cat.getIsPrivate();
+		this._default = isDefault;
+		this._profileId = cat.getProfileId().toString();
 	}
 	
-	public JsCategoryLkp(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps, int order) {
-		this(folder.getCategory().applyPropSet(folderProps));
-		_profileDescription = root.getDescription();
-		_writable = folder.getElementsPerms().implies("CREATE");
-		_order = order;
+	public JsCategoryLkp(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps, boolean isDefault, int order) {
+		this(folder.getCategory().applyPropSet(folderProps), isDefault);
+		this._profileDescription = root.getDescription();
+		this._writable = folder.getElementsPerms().implies("CREATE");
+		this._order = order;
 	}
 }

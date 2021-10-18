@@ -37,8 +37,27 @@ package com.sonicle.webtop.tasks.bol;
  * @author malbinola
  */
 public class VTaskObject extends OTask {
+	// We extend OTask for convenience, not all fields are needed!
+	protected String tags;
+	protected Boolean hasRecurrence;
 	protected Boolean hasIcalendar;
+	
+	public String getTags() {
+		return tags;
+	}
 
+	public void setTags(String tags) {
+		this.tags = tags;
+	}
+	
+	public Boolean getHasRecurrence() {
+		return hasRecurrence;
+	}
+
+	public void setHasRecurrence(Boolean hasRecurrence) {
+		this.hasRecurrence = hasRecurrence;
+	}
+	
 	public Boolean getHasIcalendar() {
 		return hasIcalendar;
 	}

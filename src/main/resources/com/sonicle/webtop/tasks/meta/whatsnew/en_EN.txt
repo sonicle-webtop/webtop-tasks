@@ -1,0 +1,8 @@
+$	5.8.0
+	%	Version 5.8.0
+	*	<h1>Tasks revamped</h1>
+		<p>Tasks management has been completely redesigned: quick views, sub-activities completely satisfy the planning needs of your work.</p>
+		<img src="5.8.0_newtasks.png"/>
+	*	<h1>Default category</h1>
+		<p>It's now possible to set a category as default by choosing from those available (shared or not).</p>
+		<img src="5.8.0_defaultcategory.png"/>

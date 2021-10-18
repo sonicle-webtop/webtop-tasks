@@ -118,7 +118,7 @@
           "in" : "path",
           "description" : "Message ID",
           "required" : true,
-          "type" : "integer",
+          "type" : "string",
           "x-example" : 1234
         } ],
         "responses" : {
@@ -154,7 +154,7 @@
           "in" : "path",
           "description" : "Message ID",
           "required" : true,
-          "type" : "integer",
+          "type" : "string",
           "x-example" : 1234
         }, {
           "in" : "body",
@@ -195,7 +195,7 @@
           "in" : "path",
           "description" : "Message ID",
           "required" : true,
-          "type" : "integer",
+          "type" : "string",
           "x-example" : 1234
         } ],
         "responses" : {
@@ -275,7 +275,7 @@
       "required" : [ "etag", "id" ],
       "properties" : {
         "id" : {
-          "type" : "integer",
+          "type" : "string",
           "description" : "Task ID (internal)"
         },
         "etag" : {
@@ -290,7 +290,7 @@
       "required" : [ "etag", "id", "impo", "prvt", "status" ],
       "properties" : {
         "id" : {
-          "type" : "integer",
+          "type" : "string",
           "description" : "Task ID (internal)"
         },
         "etag" : {

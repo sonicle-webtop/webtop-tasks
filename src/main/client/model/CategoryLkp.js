@@ -37,6 +37,18 @@ Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
 	idProperty: 'categoryId',
 	fields: [
 		WTF.field('categoryId', 'int', false),
+		WTF.field('name', 'string', false),
+		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
+		WTF.field('tasPrivate', 'boolean', false, {defaultValue: false}),
+		WTF.roField('_default', 'boolean', {defaultValue: false}),
+		WTF.roField('_profileId', 'string'),
+		WTF.roField('_profileDescription', 'string'),
+		WTF.calcField('_label', 'string', ['name', '_profileDescription'], function(v, rec) {
+			return Ext.String.format('[{0}] {1}', rec.get('_profileDescription'), rec.get('name'));
+		}),
+		WTF.roField('_writable', 'boolean'),
+		WTF.roField('_order', 'int'),
+		
 		// For backward compatibility
 		WTF.calcField('domainId', 'string', ['_profileId'], function(v, rec) {
 			return Sonicle.String.substrAfterLast(rec.get('_profileId'), '@');
@@ -44,17 +56,6 @@ Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
 		// For backward compatibility
 		WTF.calcField('userId', 'string', ['_profileId'], function(v, rec) {
 			return Sonicle.String.substrBeforeLast(rec.get('_profileId'), '@');
-		}),
-		WTF.field('name', 'string', false),
-		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
-		WTF.field('isDefault', 'boolean', false, {defaultValue: false}),
-		WTF.field('tasPrivate', 'boolean', false, {defaultValue: false}),
-		WTF.roField('_profileId', 'string'),
-		WTF.roField('_profileDescription', 'string'),
-		WTF.calcField('_label', 'string', ['name', '_profileDescription'], function(v, rec) {
-			return Ext.String.format('[{0}] {1}', rec.get('_profileDescription'), rec.get('name'));
-		}),
-		WTF.roField('_writable', 'boolean'),
-		WTF.roField('_order', 'int')
+		})
 	]
 });

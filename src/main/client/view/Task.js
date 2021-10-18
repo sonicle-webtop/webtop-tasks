@@ -35,16 +35,21 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.String',
+		'Sonicle.form.Text',
 		'Sonicle.form.field.ComboBox',
 		'Sonicle.form.field.TagDisplay',
+		'Sonicle.form.field.rr.Recurrence',
+		'Sonicle.toolbar.LinkItem',
 		'Sonicle.plugin.FileDrop',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.ValueModel',
 		'WTA.ux.field.SuggestCombo',
+		'WTA.ux.field.RecipientSuggestCombo',
 		'WTA.ux.grid.Attachments',
 		'WTA.ux.panel.CustomFieldsEditor',
-		'Sonicle.webtop.tasks.store.Importance',
-		'Sonicle.webtop.tasks.store.Status',
+		'Sonicle.webtop.tasks.store.TaskImportance',
+		'Sonicle.webtop.tasks.store.TaskReminder',
+		'Sonicle.webtop.tasks.store.TaskStatus',
 		'Sonicle.webtop.tasks.model.Task',
 		'Sonicle.webtop.tasks.model.CategoryLkp'
 	],
@@ -56,7 +61,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		title: '{task.tit}',
 		iconCls: 'wttasks-icon-task',
 		width: 700,
-		height: 480
+		height: 500
 	},
 	confirm: 'yn',
 	autoToolbar: false,
@@ -69,27 +74,45 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		
 		WTU.applyFormulas(me.getVM(), {
 			startDate: {
-				bind: {bindTo: '{record.startDate}'},
+				bind: {bindTo: '{record.start}'},
 				get: function(val) {
-					return (val) ? Ext.Date.clone(val): null;
+					return (val) ? Ext.Date.clone(val) : null;
 				},
 				set: function(val) {
-					this.get('record').setDatePart('startDate', val);
+					this.get('record').setStartDate(val);
+				}
+			},
+			startTime: {
+				bind: {bindTo: '{record.start}'},
+				get: function(val) {
+					return (val) ? Ext.Date.clone(val) : null;
+				},
+				set: function(val) {
+					this.get('record').setStartTime(val);
 				}
 			},
 			dueDate: {
-				bind: {bindTo: '{record.dueDate}'},
+				bind: {bindTo: '{record.due}'},
 				get: function(val) {
-					return (val) ? Ext.Date.clone(val): null;
+					return (val) ? Ext.Date.clone(val) : null;
 				},
 				set: function(val) {
-					this.get('record').setDatePart('dueDate', val);
+					this.get('record').setDueDate(val);
+				}
+			},
+			dueTime: {
+				bind: {bindTo: '{record.due}'},
+				get: function(val) {
+					return val ? Ext.Date.clone(val) : null;
+				},
+				set: function(val) {
+					this.get('record').setDueTime(val);
 				}
 			},
 			reminderDate: {
 				bind: {bindTo: '{record.reminderDate}'},
 				get: function(val) {
-					return (val) ? Ext.Date.clone(val): null;
+					return (val) ? Ext.Date.clone(val) : null;
 				},
 				set: function(val) {
 					this.get('record').setDatePart('reminderDate', val);
@@ -98,7 +121,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			reminderTime: {
 				bind: {bindTo: '{record.reminderDate}'},
 				get: function(val) {
-					return (val) ? Ext.Date.clone(val): null;
+					return (val) ? Ext.Date.clone(val) : null;
 				},
 				set: function(val) {
 					this.get('record').setTimePart('reminderDate', val);
@@ -116,7 +139,36 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				}, function(v) {
 					return Sonicle.String.join('|', v);
 			}),
-			foHasTags: WTF.foIsEmpty('record', 'tags', true)
+			foHasTags: WTF.foIsEmpty('record', 'tags', true),
+			foIsSeriesMaster: WTF.foGetFn('record', 'id', function(val) {
+				var rec = this.get('record');
+				return !rec.phantom && rec.isSeriesMaster();
+			}),
+			foIsSeriesInstance: WTF.foGetFn('record', 'id', function(val) {
+				var rec = this.get('record');
+				return !rec.phantom && rec.isSeriesInstance();
+			}),
+			foRRDisabled: WTF.foGetFn('record', 'id', function(val) {
+				var rec = this.get('record');
+				return (!rec.phantom && rec.isSeriesInstance()) || rec.get('_childTotalCount') > 0;
+			}),
+			foHasHierarchy: WTF.foGetFn('record', 'parentId', function(val) {
+				var rec = this.get('record');
+				return rec.get('_childTotalCount') > 0 || !Ext.isEmpty(rec.get('parentId'));
+			}),
+			foIsParent: WTF.foGetFn('record', '_childTotalCount', function(val) {
+				return val > 0;
+			}),
+			foIsChild: WTF.foIsEmpty('record', 'parentId', true),
+			foLocationIsMeeting: WTF.foGetFn('record', 'location', function(val) {
+				return WT.isMeetingUrl(val);
+			}),
+			foHasMeeting: WTF.foGetFn('record', 'extractedUrl', function(val) {
+				return WT.isMeetingUrl(val);
+			}),
+			foContactIconCls: WTF.foGetFn('record', 'contactId', function(val) {
+				return Ext.isEmpty(val) ? '' : 'fa fa-link';
+			})
 		});
 	},
 	
@@ -148,12 +200,21 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							}
 						}),
 						'-',
+						me.addAct('openSeries', {
+							text: null,
+							tooltip: me.res('act-openSeries.lbl'),
+							iconCls: 'wttasks-icon-taskType-seriesMaster',
+							hidden: true,
+							handler: function() {
+								me.openSeriesTask();
+							}
+						}),
 						me.addAct('print', {
 							text: null,
 							tooltip: WT.res('act-print.lbl'),
 							iconCls: 'wt-icon-print',
 							handler: function() {
-								//TODO: aggiungere l'azione 'salva' permettendo così la stampa senza chiudere la form
+								//TODO: add 'Save' action to allow printing without closing and reopening view
 								me.printTask(me.getModel().getId());
 							}
 						}),
@@ -169,17 +230,20 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						WTF.lookupCombo('categoryId', '_label', {
 							xtype: 'socombo',
 							reference: 'fldcategory',
-							bind: '{record.categoryId}',
+							bind: {
+								value: '{record.categoryId}',
+								disabled: '{foIsChild}'
+							},
 							listConfig: {
 								displayField: 'name',
-								groupCls: 'wt-theme-text-greyed'
+								groupCls: 'wt-theme-text-lighter2'
 							},
 							autoLoadOnValue: true,
 							store: {
 								model: me.mys.preNs('model.CategoryLkp'),
 								proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
 								grouper: {
-									property: '_profileId',
+									property: '_ownerId',
 									sortProperty: '_order'
 								},
 								filters: [{
@@ -191,7 +255,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 											if (rec.getId() === mo.get('categoryId')) return true;
 										} else if (mo && me.isMode(me.MODE_EDIT)) {
 											if (rec.getId() === mo.get('categoryId')) return true;
-											if (rec.get('_profileId') === mo.get('_profileId') && rec.get('_writable')) return true;
+											if (rec.get('_ownerId') === mo.get('_ownerId') && rec.get('_writable')) return true;
 										}
 										return false;
 									}
@@ -216,6 +280,44 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								}
 							}
 						})
+					]
+				}, {
+					xtype: 'statusbar',
+					dock: 'bottom',
+					defaults: {
+						cls: 'wt-theme-text-lighter2'
+					},
+					items: [
+						{
+							xtype: 'so-tblink',
+							tooltip: me.mys.res('task.act-showChildren.tip'),
+							bind: {
+								hidden: '{!foIsParent}',
+								link: '{record._childComplCount}/{record._childTotalCount}'
+							},
+							hidden: true,
+							useLinkSyntax: false,
+							disableNavigation: true,
+							preHtml: '<span style="position:relative;bottom:-2px;">' + Sonicle.grid.column.Nest.hierarchySvg(null, null, 'red') + '</span>&nbsp;',
+							handler: function(p1, p2, e) {
+								var cmx = WT.showContextMenu(e, me.getRef('cxmChildren'));
+								cmx.getStore().load();
+							}
+						}, {
+							xtype: 'so-tblink',
+							tooltip: me.mys.res('task.act-showParent.tip'),
+							bind: {
+								hidden: '{!foIsChild}',
+								link: '{record._parentSubject}'
+							},
+							hidden: true,
+							useLinkSyntax: false,
+							disableNavigation: true,
+							preHtml: '<span style="position:relative;bottom:-2px;">' + Sonicle.grid.column.Nest.hierarchySvg(null, 'red') + '</span>&nbsp;',
+							handler: function() {
+								me.mys.openTaskUI(true, me.getModel().get('parentId'));
+							}
+						}
 					]
 				}, {
 					xtype: 'sotagdisplayfield',
@@ -244,229 +346,81 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		
 		me.add({
 			region: 'center',
-			xtype: 'wttabpanel',
-			reference: 'tpnlmain',
-			deferredRender: false,
+			xtype: 'container',
+			layout: {
+				type: 'vbox',
+				align: 'stretch'
+			},
 			items: [
+				me.createTopCfg(),
 				{
-					xtype: 'wtform',
-					title: me.mys.res('task.main.tit'),
-					modelValidation: true,
-					defaults: {
-						labelWidth: 100
-					},
+					xtype: 'wttabpanel',
+					reference: 'tpnlmain',
+					activeTab: 0,
+					deferredRender: false,
 					items: [
-						{
-							xtype: 'wtsuggestcombo',
-							reference: 'fldsubject',
-							bind: '{record.subject}',
-							sid: me.mys.ID,
-							suggestionContext: 'tasksubject',
-							fieldLabel: me.mys.res('task.fld-subject.lbl'),
-							anchor: '100%',
-							listeners: {
-								enterkey: function() {
-									me.getAct('saveClose').execute();
-								}
-							}
-						}, {
-							xtype: 'textareafield',
-							bind: '{record.description}',
-							fieldLabel: me.mys.res('task.fld-description.lbl'),
-							height: 100,
-							anchor: '100%'
-						}, {
-							xtype: 'formseparator'
-						}, {
-							xtype: 'container',
-							layout: 'column',
-							defaults: {
-								xtype: 'wtform',
-								style: 'width:50%'
-							},
-							items: [
-								{
-									items: [
-										WTF.lookupCombo('id', 'desc', {
-											bind: '{record.importance}',
-											store: Ext.create(me.mys.preNs('store.Importance'), {
-												autoLoad: true
-											}),
-											fieldLabel: me.mys.res('task.fld-importance.lbl')
-										})
-									]
-								}, {
-									items: [{
-										xtype: 'checkbox',
-										bind: '{isPrivate}',
-										hideEmptyLabel: true,
-										boxLabel: me.mys.res('task.fld-private.lbl')
-									}]
-								}
-							]
-						}, {
-							xtype: 'formseparator'
-						}, {
-							xtype: 'container',
-							layout: 'column',
-							defaults: {
-								xtype: 'wtform',
-								style: 'width:50%'
-							},
-							items: [
-								{
-									items: [
-										{
-											xtype: 'datefield',
-											bind: '{startDate}',
-											startDay: WT.getStartDay(),
-											format: WT.getShortDateFmt(),
-											triggers: {
-												clear: WTF.clearTrigger()
-											},
-											fieldLabel: me.mys.res('task.fld-startDate.lbl')
-										},
-										WTF.lookupCombo('id', 'desc', {
-											bind: '{record.status}',
-											store: Ext.create(me.mys.preNs('store.Status'), {
-												autoLoad: true
-											}),
-											fieldLabel: me.mys.res('task.fld-status.lbl'),
-											listeners: {
-												select: function(s, rec) {
-													if(rec.get('id') === 'notstarted') me.getModel().set('percentage', 0);
-													if(rec.get('id') === 'completed') me.getModel().set('percentage', 100);
-												}
-											}
-										})
-									]
-								}, {
-									items: [
-										{
-											xtype: 'datefield',
-											bind: '{dueDate}',
-											startDay: WT.getStartDay(),
-											format: WT.getShortDateFmt(),
-											triggers: {
-												clear: WTF.clearTrigger()
-											},
-											fieldLabel: me.mys.res('task.fld-dueDate.lbl'),
-											labelWidth: 120
-										}, {
-											xtype: 'numberfield',
-											step: 25,
-											minValue: 0,
-											maxValue: 100,
-											allowDecimal: false,
-											bind: '{record.percentage}',
-											fieldLabel: me.mys.res('task.fld-percentage.lbl'),
-											labelWidth: 120,
-											listeners: {
-												blur: function(s) {
-													var nv = s.getValue();
-													if (nv === 100) me.getModel().set('status','completed');
-													if (nv === 0) me.getModel().set('status','notstarted');
-												}
-											}
-										}
-									]
-								}
-							]
-						}, {
-							xtype: 'formseparator'
-						}, {
-							xtype: 'fieldcontainer',
-							layout: 'hbox',
-							defaults: {
-								labelWidth: 120,
-								margin: '0 10 0 0'
-							},
-							items: [
-								{
-									width: 100,
-									xtype: 'checkbox',
-									reference: 'fldhasreminder',
-									bind: '{hasReminder}',
-									hideEmptyLabel: true,
-									boxLabel: me.mys.res('task.fld-reminderDate.lbl')
-								},{
-									xtype: 'datefield',
-									bind: {
-										value: '{reminderDate}',
-										disabled: '{!fldhasreminder.checked}'
-									},
-									startDay: WT.getStartDay(),
-									format: WT.getShortDateFmt(),
-									margin: '0 5 0 0',
-									width: 120
-								}, {
-									xtype: 'timefield',
-									bind: {
-										value: '{reminderTime}',
-										disabled: '{!fldhasreminder.checked}'
-									},
-									format: WT.getShortTimeFmt(),
-									margin: '0 5 0 0',
-									width: 90
-								}
-							]
-						}
-					]
-				}, {
-					xtype: 'wtattachmentsgrid',
-					title: me.mys.res('task.attachments.tit'),
-					bind: {
-						store: '{record.attachments}'
-					},
-					sid: me.mys.ID,
-					uploadContext: 'TaskAttachment',
-					uploadTag: WT.uiid(me.getId()),
-					dropElementId: me.getId(),
-					typeField: 'ext',
-					listeners: {
-						attachmentlinkclick: function(s, rec) {
-							me.openAttachmentUI(rec, false);
-						},
-						attachmentdownloadclick: function(s, rec) {
-							me.openAttachmentUI(rec, true);
-						},
-						attachmentdeleteclick: function(s, rec) {
-							s.getStore().remove(rec);
-						},
-						attachmentuploaded: function(s, uploadId, file) {
-							var sto = s.getStore();
-							sto.add(sto.createModel({
-								name: file.name,
-								size: file.size,
-								_uplId: uploadId
-							}));
-							me.lref('tpnlmain').getLayout().setActiveItem(s);
-						}
-					}
-				}, {
-					xtype: 'wtcfieldseditorpanel',
-					reference: 'tabcfields',
-					title: me.mys.res('task.cfields.tit'),
-					bind: {
-						store: '{record.cvalues}',
-						fieldsDefs: '{record._cfdefs}'
-					},
-					defaultLabelWidth: 120
+						me.createMainCfg(),
+						//me.createAssigneesCfg(),
+						me.createRecurCfg(),
+						me.createAttachCfg(),
+						me.createCustomFieldsCfg()
+					],
+					flex: 1
 				}
 			]
 		});
+		
 		me.on('viewload', me.onViewLoad);
 		me.on('viewclose', me.onViewClose);
 		me.on('beforemodelsave', me.onBeforeModelSave, me);
+		vm.bind('{foIsSeriesMaster}', function(nv, ov) {
+			if (ov === undefined && nv === true) {
+				me.setViewTitle(me.res('task.series.tit'));
+				me.setViewIconCls('wttasks-icon-taskType-seriesMaster');
+			}
+		});
+		vm.bind('{foIsSeriesInstance}', function(nv, ov) {
+			if (ov === undefined) {
+				me.setActDisabled('openSeries', !!!nv);
+				me.setActHiddenIfDisabled('openSeries');
+			}
+		});
+		vm.bind('{foIsChild}', function(nv, ov) {
+			if (ov === undefined && nv === true) {
+				me.setViewTitle(me.res('task.child.tit'));
+			}
+		});
+		vm.bind('{foIsParent}', function(nv, ov) {
+			if (ov === undefined && nv === true) {
+				me.setViewTitle(me.res('task.parent.tit'));
+				//me.setViewIconCls('wttasks-icon-taskType-parent');
+			}
+		});
 		vm.bind('{foTags}', me.onTagsChanged, me);
-	},
-	
-	saveView: function(closeAfter) {
-		var me = this,
-				rec = me.getModel();
-		if (!me.lref('fldhasreminder').getValue())
-			rec.set('reminderDate',null);
-		me.callParent(arguments);
+		
+		me.addRef('cxmChildren', Ext.create({
+			xtype: 'sostoremenu',
+			plain: true,
+			store: {
+				model: 'WTA.ux.data.SimpleModel',
+				proxy: WTF.proxy(me.mys.ID, 'GetTaskChildren'),
+				listeners: {
+					beforeload: function(s) {
+						WTU.applyExtraParams(s, {
+							parentId: me.getModel().get('id')
+						});
+					}
+				}
+			},
+			textField: 'desc',
+			loadingIndicator: true,
+			useItemIdPrefix: true,
+			listeners: {
+				click: function(s,itm) {
+					if (itm) me.mys.openTaskUI(true, Sonicle.String.removeStart(itm.getItemId(), s.itemIdPrefix));
+				}
+			}
+		}));
 	},
 	
 	manageTagsUI: function(selTagIds) {
@@ -499,7 +453,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		} else {
 			url = WTF.processBinUrl(me.mys.ID, 'DownloadTaskAttachment', {
 				inline: !download,
-				taskId: me.getModel().getId(),
+				iid: me.getModel().getId(),
 				attachmentId: rec.get('id')
 			});
 		}
@@ -512,38 +466,560 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	
 	deleteTask: function() {
 		var me = this,
-				rec = me.getModel();
+				rec = me.getModel(),
+				s = Ext.String.ellipsis(rec.get('subject'), 40);
 		
-		WT.confirm(WT.res('confirm.delete'), function(bid) {
-			if(bid === 'yes') {
+		WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
+			if (bid === 'yes') {
 				me.wait();
-				WT.ajaxReq(me.mys.ID, 'ManageTasks', {
-					params: {
-						crud: 'delete',
-						ids: WTU.arrayAsParam([rec.get('taskId')])
-					},
-					callback: function(success) {
+				me.mys.deleteTasks(rec.getId(), {
+					callback: function(success, data, json) {
 						me.unwait();
-						if(success) {
+						if (success) {
 							me.fireEvent('viewsave', me, true, rec);
 							me.closeView(false);
 						}
+						WT.handleError(success, json);
 					}
 				});
 			}
 		}, me);
 	},
 	
-	printTask: function(taskId) {
+	openSeriesTask: function() {
+		var me = this;
+		WT.confirm(me.res('task.confirm.openseries'), function(bid) {
+			if (bid === 'yes') {
+				var edit = me.isMode('edit'),
+					id = me.getModel().getId();
+				me.closeView(false);
+				me.mys.openTaskUI(edit, id, true);
+			}
+		}, me);
+	},
+	
+	printTask: function(id) {
 		var me = this;
 		if(me.getModel().isDirty()) {
 			WT.warn(WT.res('warn.print.notsaved'));
 		} else {
-			me.mys.printTasksDetail([taskId]);
+			me.mys.printTasks('detail', [id]);
 		}
 	},
 	
 	privates: {
+		createTopCfg: function() {
+			var me = this;
+			return {
+				xtype: 'wtfieldspanel',
+				modelValidation: true,
+				defaults: {
+					labelWidth: 100
+				},
+				items: [
+					{
+						xtype: 'wtsuggestcombo',
+						reference: 'fldsubject',
+						bind: '{record.subject}',
+						sid: me.mys.ID,
+						suggestionContext: 'tasksubject',
+						listeners: {
+							enterkey: function() {
+								me.getAct('saveClose').execute();
+							}
+						},
+						fieldLabel: me.mys.res('task.fld-subject.lbl'),
+						anchor: '100%'
+					}, {
+						xtype: 'textfield',
+						bind: {
+							value: '{record.location}',
+							hidden: '{foLocationIsMeeting}'
+						},
+						fieldLabel: me.mys.res('task.fld-location.lbl'),
+						anchor: '100%'
+					}, {
+						xtype: 'wtmeetingfield',
+						bind: {
+							value: '{record.location}',
+							hidden: '{!foLocationIsMeeting}'
+						},
+						listeners: {
+							copy: function() {
+								WT.toast(WT.res('meeting.toast.link.copied'));
+							}
+						},
+						fieldLabel: me.mys.res('task.fld-location.lbl'),
+						anchor: '100%',
+						hidden: true
+					}, {
+						xtype: 'fieldcontainer',
+						fieldLabel: me.res('task.fld-start.lbl'),
+						layout: 'hbox',
+						items: [
+							{
+								xtype: 'datefield',
+								bind: {
+									value: '{startDate}',
+									disabled: '{foIsSeriesInstance}'
+								},
+								startDay: WT.getStartDay(),
+								format: WT.getShortDateFmt(),
+								triggers: {
+									clear: WTF.clearTrigger()
+								},
+								listeners: {
+									blur: function(s) {
+										var mo = me.getModel(),
+												val = s.getValue();
+										if (Ext.isEmpty(val) && !Ext.isEmpty(mo.get('rrule'))) {
+											s.setValue(mo.get('start')); // Re-apply model's value to field!
+											WT.warn(me.res('task.warn.startinuse'));
+										}
+									}
+								},
+								emptyText: me.res('task.fld-start.emp'),
+								margin: '0 5 0 0',
+								width: 120
+							}, {
+								xtype: 'timefield',
+								bind: {
+									value: '{startTime}',
+									disabled: '{foIsSeriesInstance}'
+								},
+								format: WT.getShortTimeFmt(),
+								listeners: {
+									blur: function(s) {
+										var mo = me.getModel(),
+												val = s.getValue();
+										if (Ext.isEmpty(val) && !Ext.isEmpty(mo.get('rrule'))) {
+											s.setValue(mo.get('start')); // Re-apply model's value to field!
+											WT.warn(me.res('task.warn.startinuse'));
+										}
+									}
+								},
+								width: 90
+							}, {
+								xtype: 'fieldcontainer',
+								layout: {type: 'hbox', pack: 'end'},
+								items: [
+									WTF.lookupCombo('id', 'desc', {
+										xtype: 'socombo',
+										bind: '{record.status}',
+										store: Ext.create(me.mys.preNs('store.TaskStatus'), {
+											autoLoad: true
+										}),
+										iconField: 'icon',
+										fieldLabel: me.mys.res('task.fld-status.lbl'),
+										labelAlign: 'right',
+										listeners: {
+											select: function(s, rec) {
+												if (rec.get('id') === 'NA') me.getModel().set('progress', 0);
+												if (rec.get('id') === 'CO') me.getModel().set('progress', 100);
+											}
+										},
+										width: 230+105
+									})
+								],
+								flex: 1
+							}
+
+						]
+					}, {
+						xtype: 'fieldcontainer',
+						fieldLabel: me.res('task.fld-due.lbl'),
+						layout: 'hbox',
+						items: [
+							{
+								xtype: 'datefield',
+								bind: '{dueDate}',
+								startDay: WT.getStartDay(),
+								format: WT.getShortDateFmt(),
+								triggers: {
+									clear: WTF.clearTrigger()
+								},
+								emptyText: me.res('task.fld-due.emp'),
+								margin: '0 5 0 0',
+								width: 120
+							}, {
+								xtype: 'timefield',
+								bind: '{dueTime}',
+								format: WT.getShortTimeFmt(),
+								width: 90
+							}, {
+								xtype: 'fieldcontainer',
+								layout: {type: 'hbox', pack: 'end'},
+								items: [
+									{
+										xtype: 'numberfield',
+										step: 25,
+										minValue: 0,
+										maxValue: 100,
+										allowDecimal: false,
+										bind: '{record.progress}',
+										fieldLabel: me.mys.res('task.fld-progress.lbl'),
+										labelAlign: 'right',
+										labelWidth: 120,
+										width: 90+120,
+										listeners: {
+											blur: function(s) {
+												var mo = me.getModel(),
+														status = mo.get('status'),
+														nv = s.getValue();
+												if (nv === 100) {
+													mo.set('status', 'CO');
+												} else if (nv === 0) {
+													mo.set('status', 'NA');
+												} else if ('NA' === status) {
+													mo.set('status', 'IP');
+												}
+											}
+										}
+									}
+								],
+								flex: 1
+							}
+						]
+					}
+				]
+			};
+		},
+
+		createMainCfg: function() {
+			var me = this;
+			return {
+				xtype: 'wtform', // Needed for streching textarea!
+				title: me.res('task.main.tit'),
+				layout: {type: 'vbox', align: 'stretch'}, // Needed for streching textarea!
+				defaults: {
+					labelWidth: 100
+				},
+				items: [
+					{
+						xtype: 'wtfieldspanel',
+						bodyPadding: 0,
+						items: [
+							{
+								xtype: 'wtrcptsuggestcombo',
+								bind: {
+									value: '{record.contact}',
+									idValue: '{record.contactId}',
+									iconCls: '{foContactIconCls}'
+								},
+								autoLast: true,
+								plugins: [
+									{
+										ptype: 'sofieldicon',
+										iconAlign: 'afterInput'
+										//tooltip: me.mys.res('netLink.fld-name.hlp')
+									}
+								],
+								fieldLabel: me.res('task.fld-contact.lbl'),
+								anchor: '100%'
+							}
+						]
+					},
+					{
+						xtype: 'wtfieldspanel',
+						bodyPadding: 0,
+						modelValidation: true,
+						layout: {type: 'vbox', align: 'stretch'},
+						items: [
+							{
+								xtype: 'textareafield',
+								bind: '{record.description}',
+								fieldLabel: me.res('task.fld-description.lbl'),
+								flex: 1 // Needed for streching textarea!
+							}
+						],
+						flex: 1 // Needed for streching textarea!
+					}, {
+						xtype: 'wtfieldspanel',
+						bodyPadding: 0,
+						items: [
+							{
+								xtype: 'fieldcontainer',
+								layout: 'hbox',
+								fieldLabel: me.res('task.fld-reminder.lbl'),
+								items: [
+									{
+										xtype: 'combo',
+										bind: '{record.reminder}',
+										editable: false,
+										store: {
+											xclass: 'Sonicle.webtop.tasks.store.TaskReminder',
+											autoLoad: true
+										},
+										valueField: 'id',
+										displayField: 'desc',
+										triggers: {
+											clear: WTF.clearTrigger()
+										},
+										emptyText:  me.res('task.fld-reminder.emp'),
+										width: 110
+									}, {
+										xtype: 'fieldcontainer',
+										layout: {type: 'hbox', pack: 'end'},
+										items: [
+											{
+												xtype: 'textfield',
+												bind: '{record.docRef}',
+												fieldLabel: me.mys.res('task.fld-docRef.lbl'),
+												labelAlign: 'right',
+												labelWidth: 80,
+												maxWidth: 80+150,
+												flex: 1
+											},
+											WTF.lookupCombo('id', 'desc', {
+												bind: '{record.importance}',
+												store: Ext.create(me.mys.preNs('store.TaskImportance'), {
+													autoLoad: true
+												}),
+												fieldLabel: me.res('task.fld-importance.lbl'),
+												labelAlign: 'right',
+												labelWidth: 80,
+												margin: '0 10 0 0',
+												width: 80+100
+											}),
+											{
+												xtype: 'checkbox',
+												bind: '{isPrivate}',
+												hideEmptyLabel: true,
+												boxLabel: me.res('task.fld-private.lbl')
+											}
+										],
+										flex: 1
+									}
+								]
+							}
+						]
+					}
+				]
+			};
+		},
+		
+		createAssigneesCfg: function() {
+			var me = this;
+			return {
+				xtype: 'gridpanel',
+				reference: 'gpassignees',
+				title: me.res('task.assignees.tit'),
+				bind: {
+					store: '{record.assignees}'
+				},
+				viewConfig: {
+					deferEmptyText: false,
+					emptyText: me.res('task.gp-assignees.emp')
+				},
+				columns: [
+					{
+						dataIndex: 'recipient',
+						editor: {
+							xtype: 'wtrcptsuggestcombo',
+							matchFieldWidth: false,
+							listConfig: {
+								width: 350,
+								minWidth: 350
+							}
+						},
+						renderer: Ext.util.Format.htmlEncode,
+						header: me.mys.res('task.gp-assignees.recipient.lbl'),
+						flex: 1
+					}, /*{
+						dataIndex: 'respStatus',
+						renderer: WTF.resColRenderer({
+							id: me.mys.ID,
+							key: 'store.assigneeRespStatus',
+							keepcase: true
+						}),
+						editor: WTF.localCombo('id', 'desc', {
+							store: {
+								xclass: 'Sonicle.webtop.tasks.store.AssigneeRespStatus',
+								autoLoad: true
+							}
+						}),
+						header: me.mys.res('task.gp-assignees.respStatus.lbl'),
+						width: 110
+					},*/ {
+						xtype: 'soactioncolumn',
+						items: [
+							{
+								glyph: 'xf014@FontAwesome',
+								tooltip: WT.res('act-remove.lbl'),
+								handler: function(g, ridx) {
+									var rec = g.getStore().getAt(ridx);
+									me.deleteAssigneeUI(rec);
+								}
+							}
+						]
+					}
+				],
+				plugins: [
+					{
+						id: 'cellediting',
+						ptype: 'cellediting',
+						clicksToEdit: 1
+					}
+				],
+				tbar: [
+					me.addAct('addAssignee', {
+						text: WT.res('act-add.lbl'),
+						tooltip: null,
+						iconCls: null,
+						handler: function() {
+							me.addAssigneeUI();
+						}
+					})
+				],
+				border: false
+			};
+		},
+		
+		createRecurCfg: function() {
+			var me = this;
+			return {
+				xtype: 'wtfieldspanel',
+				title: me.res('task.recurrence.tit'),
+				modelValidation: true,
+				defaults: {
+					labelWidth: 80
+				},
+				items: [
+					{
+						xtype: 'sotext',
+						bind: {
+							hidden: '{!foIsSeriesInstance}'
+						},
+						hidden: true,
+						iconType: 'info',
+						cls: 'wt-theme-text-lighter1',
+						text: me.res('task.rrnoteditable.series.info')
+					}, {
+						xtype: 'sotext',
+						bind: {
+							hidden: '{!foIsParent}'
+						},
+						hidden: true,
+						iconType: 'info',
+						cls: 'wt-theme-text-lighter1',
+						text: me.res('task.rrnoteditable.parent.info')
+					}, {
+						xtype: 'sorrfield',
+						bind: {
+							value: '{record.rrule}',
+							disabled: '{foRRDisabled}',
+							startDate: '{startDate}'
+						},
+						startDay: WT.getStartDay(),
+						dateFormat: WT.getShortDateFmt(),
+						endsText: WT.res('sorrfield.ends'),
+						frequencyTexts: {
+							'none': WT.res('sorrfield.freq.none'),
+							'raw': WT.res('sorrfield.freq.raw'),
+							'3': WT.res('sorrfield.freq.daily'),
+							'2': WT.res('sorrfield.freq.weekly'),
+							'1': WT.res('sorrfield.freq.monthly'),
+							'0': WT.res('sorrfield.freq.yearly')
+						},
+						onEveryText: WT.res('sorrfield.onEvery'),
+						onEveryWeekdayText: WT.res('sorrfield.onEveryWeekday'),
+						onDayText: WT.res('sorrfield.onDay'),
+						onTheText: WT.res('sorrfield.onThe'),
+						thDayText: WT.res('sorrfield.thDay'),
+						ofText: WT.res('sorrfield.of'),
+						ofEveryText: WT.res('sorrfield.ofEvery'),
+						dayText: WT.res('sorrfield.day'),
+						weekText: WT.res('sorrfield.week'),
+						monthText: WT.res('sorrfield.month'),
+						yearText: WT.res('sorrfield.year'),
+						ordinalsTexts: {
+							'1': WT.res('sorrfield.nth.1st'),
+							'2': WT.res('sorrfield.nth.2nd'),
+							'3': WT.res('sorrfield.nth.3rd'),
+							'4': WT.res('sorrfield.nth.4th'),
+							'-2': WT.res('sorrfield.nth.las2nd'),
+							'-1': WT.res('sorrfield.nth.last')
+						},
+						byDayText: WT.res('sorrfield.byDay'),
+						byWeekdayText: WT.res('sorrfield.byWeekday'),
+						byWeText: WT.res('sorrfield.byWe'),
+						endsNeverText: WT.res('sorrfield.endsNever'),
+						endsAfterText: WT.res('sorrfield.endsAfter'),
+						endsByText: WT.res('sorrfield.endsBy'),
+						occurrenceText: WT.res('sorrfield.occurrence'),
+						rawFieldEmptyText: WT.res('sorrfield.raw.emp'),
+						listeners: {
+							select: function(s, freq) {
+								var mo = me.getModel(), due;
+								if (freq !== 'none' && !Ext.isDate(mo.get('start'))) {
+									due = mo.get('due');
+									if (Ext.isDate(due)) {
+										mo.set('start', Sonicle.Date.clone(due));
+									} else {
+										mo.setStartDate(new Date());
+									}
+								}
+							},
+							rawpasteinvalid: function() {
+								WT.warn(me.res('task.error.rrpaste'));
+							}
+						},
+						fieldLabel: WT.res('sorrfield.repeats')
+					}
+				]
+			};
+		},
+
+		createAttachCfg: function() {
+			var me = this;
+			return {
+				xtype: 'wtattachmentsgrid',
+				title: me.res('task.attachments.tit'),
+				bind: {
+					store: '{record.attachments}'
+				},
+				sid: me.mys.ID,
+				uploadContext: 'TaskAttachment',
+				uploadTag: WT.uiid(me.getId()),
+				dropElementId: me.getId(),
+				typeField: 'ext',
+				listeners: {
+					attachmentlinkclick: function(s, rec) {
+						me.openAttachmentUI(rec, false);
+					},
+					attachmentdownloadclick: function(s, rec) {
+						me.openAttachmentUI(rec, true);
+					},
+					attachmentdeleteclick: function(s, rec) {
+						s.getStore().remove(rec);
+					},
+					attachmentuploaded: function(s, uploadId, file) {
+						var sto = s.getStore();
+						sto.add(sto.createModel({
+							name: file.name,
+							size: file.size,
+							_uplId: uploadId
+						}));
+						me.lref('tpnlmain').getLayout().setActiveItem(s);
+					}
+				}
+			};
+		},
+
+		createCustomFieldsCfg: function() {
+			var me = this;
+			return {
+				xtype: 'wtcfieldseditorpanel',
+				reference: 'tabcfields',
+				title: me.res('task.cfields.tit'),
+				bind: {
+					store: '{record.cvalues}',
+					fieldsDefs: '{record._cfdefs}'
+				},
+				defaultLabelWidth: 120
+			};
+		},
+		
 		setCategoryDefaults: function(cat) {
 			var mo = this.getModel();
 			if (mo) {
@@ -618,18 +1094,36 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			});
 		},
 		
-		getCustomFieldsDefsData: function(tags, taskId, opts) {
+		getCustomFieldsDefsData: function(tags, iid, opts) {
 			opts = opts || {};
 			var me = this;
 			WT.ajaxReq(me.mys.ID, 'GetCustomFieldsDefsData', {
 				params: {
 					tags: WTU.arrayAsParam(tags),
-					taskId: (taskId !== null && taskId > 0) ? taskId : null
+					iid: me.getModel().phantom ? null : iid
 				},
 				callback: function(success, json) {
 					Ext.callback(opts.callback, opts.scope || me, [success, json]);
 				}
 			});
+		},
+		
+		addAssigneeUI: function() {
+			var me = this,
+					sto = me.getModel().assignees(),
+					gp = me.lref('gpassignees'),
+					ed = gp.getPlugin('cellediting');
+
+			ed.cancelEdit();
+			sto.add(sto.createModel({
+				respStatus: 'NA'
+				//notify: true
+			}));
+			ed.startEditByPosition({row: sto.getCount()-1, column: 0});
+		},
+
+		deleteAssigneeUI: function(rec) {
+			this.getModel().assignees().remove(rec);
 		}
 	}
 });

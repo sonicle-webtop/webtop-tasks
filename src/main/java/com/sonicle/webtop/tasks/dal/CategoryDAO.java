@@ -147,6 +147,21 @@ public class CategoryDAO extends BaseDAO {
 			.fetchInto(OCategory.class);
 	}
 	
+	public Integer selectBuiltInIdByProfile(Connection con, String domainId, String userId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				CATEGORIES.CATEGORY_ID
+			)
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+				.and(CATEGORIES.BUILT_IN.equal(true))
+			)
+			.fetchOneInto(Integer.class);
+	}
+	
 	public OCategory selectBuiltInByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl

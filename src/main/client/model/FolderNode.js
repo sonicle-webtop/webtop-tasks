@@ -33,6 +33,16 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 	extend: 'Ext.data.Model',
+	mixins: [
+		'WTA.mixin.FolderNodeInterface'
+	],
+	
+	typeField: '_type',
+	folderIdField: '_catId',
+	profileIdField: '_pid',
+	defaultField: '_default',
+	builtInField: '_builtIn',
+	activeField: '_active',
 	
 	fields: [
 		WTF.field('_type', 'string', false),
@@ -52,51 +62,5 @@ Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 		WTF.calcField('_userId', 'string', '_pid', function(v, rec) {
 			return (rec.get('_pid')) ? rec.get('_pid').split('@')[0] : null;
 		})
-	],
-	
-	isFolderRoot: function() {
-		return this.get('_type') === 'root';
-	},
-	
-	isFolder: function() {
-		return this.get('_type') === 'folder';
-	},
-	
-	hasProfile: function(profileId) {
-		return this.get('_pid') === profileId;
-	},
-	
-	refreshActive: function() {
-		this.set('_active', this.get('checked') === true);
-	},
-	
-	setActive: function(active) {
-		var me = this;
-		me.beginEdit();
-		me.set('checked', active);
-		me.set('_active', active);
-		me.endEdit();
-	},
-	
-	isActive: function() {
-		return this.get('_active') === true;
-	},
-	
-	getFolderNode: function() {
-		return this.isFolder() ? this : null;
-	},
-	
-	getFolderRootNode: function() {
-		return this.isFolderRoot() ? this : this.parentNode;
-	},
-	
-	isPersonalNode: function() {
-		return this.self.isNodePersonal(this.getId());
-	},
-	
-	statics: {
-		isNodePersonal: function(nodeId) {
-			return (nodeId === '0') || Ext.String.startsWith(nodeId, '0|');
-		}
-	}
+	]
 });

@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.db.DbUtils;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
@@ -66,6 +67,7 @@ public class UserOptionsService extends BaseUserOptionsService {
 				JsUserOptions jso = new JsUserOptions(getTargetProfileId().toString());
 				
 				// Main
+				jso.gridView = EnumUtils.toSerializedName(tus.getGridView());
 				jso.taskReminderDelivery = tus.getTaskReminderDelivery();
 				
 				new JsonResult(jso).printTo(out);
@@ -74,6 +76,7 @@ public class UserOptionsService extends BaseUserOptionsService {
 				Payload<MapItem, JsUserOptions> pl = ServletUtils.getPayload(request, JsUserOptions.class);
 				
 				// Main
+				if (pl.map.has("gridView")) tus.setGridView(pl.data.gridView);
 				if (pl.map.has("taskReminderDelivery")) tus.setTaskReminderDelivery(pl.data.taskReminderDelivery);
 				
 				new JsonResult().printTo(out);

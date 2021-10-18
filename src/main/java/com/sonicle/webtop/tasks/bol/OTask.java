@@ -33,6 +33,7 @@
 package com.sonicle.webtop.tasks.bol;
 
 import com.sonicle.webtop.tasks.jooq.tables.pojos.Tasks;
+import org.joda.time.DateTimeZone;
 
 /**
  *
@@ -40,4 +41,7 @@ import com.sonicle.webtop.tasks.jooq.tables.pojos.Tasks;
  */
 public class OTask extends Tasks {
 	
+	public DateTimeZone getTimezoneObject() {
+		return DateTimeZone.forID(getTimezone());
+	}
 }

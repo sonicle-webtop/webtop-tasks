@@ -50,6 +50,10 @@ public class TasksServiceSettings extends BaseServiceSettings {
 		return getEnum(DEFAULT_PREFIX + CATEGORY_SYNC, Category.Sync.OFF, Category.Sync.class);
 	}
 	
+	public GridView getDefaultGridView() {
+		return getEnum(DEFAULT_PREFIX + GRID_VIEW, GridView.TODAY, GridView.class);
+	}
+	
 	public String getDefaultTaskReminderDelivery() {
 		return getString(DEFAULT_PREFIX + TASK_REMINDER_DELIVERY, TASK_REMINDER_DELIVERY_APP);
 	}
