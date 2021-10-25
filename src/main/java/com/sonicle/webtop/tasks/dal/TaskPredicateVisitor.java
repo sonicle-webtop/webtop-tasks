@@ -42,7 +42,6 @@ import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
 import com.sonicle.webtop.core.app.sdk.JOOQPredicateVisitorWithCValues;
 import com.sonicle.webtop.core.app.sdk.QueryBuilderWithCValues;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
-import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_RECURRENCES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import com.sonicle.webtop.tasks.jooq.tables.TasksCustomValues;
 import com.sonicle.webtop.tasks.jooq.tables.TasksTags;
@@ -61,14 +60,12 @@ import static org.jooq.impl.DSL.*;
 public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	private final TasksCustomValues PV_TASKS_CUSTOM_VALUES = TASKS_CUSTOM_VALUES.as("pvis_cv");
 	private final TasksTags PV_TASKS_TAGS = TASKS_TAGS.as("pvis_ct");
-	protected final Target target;
 	protected InstanceIdDecoder instanceIdDecoder;
 	protected DateTime rangeStart = null;
 	protected DateTime rangeEnd = null;
 	
-	public TaskPredicateVisitor(Target target) {
+	public TaskPredicateVisitor() {
 		super(false);
-		this.target = target;
 	}
 	
 	public TaskPredicateVisitor withInstanceIdDecoder(InstanceIdDecoder instanceIdDecoder) {
@@ -125,30 +122,12 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 			
 		} else if ("after".equals(fieldName)) {
 			rangeStart = (DateTime)single(values);
-			if (target == null) {
-				return null;
-			} else {
-				if (Target.RECURRING.equals(target)) {
-					return TASKS_RECURRENCES.START.greaterOrEqual(rangeStart)
-						.or(TASKS_RECURRENCES.UNTIL.greaterOrEqual(rangeStart));
-				} else {
-					return TASKS.START.greaterOrEqual(rangeStart);
-				}
-			}
+			return trueCondition();
 			
 		} else if ("before".equals(fieldName)) {
 			rangeEnd = (DateTime)single(values);
 			if (rangeEnd != null) rangeEnd = rangeEnd.plusDays(1);
-			if (target == null) {
-				return null;
-			} else {
-				if (Target.RECURRING.equals(target)) {
-					return TASKS_RECURRENCES.START.lessThan(rangeEnd)
-							.or(TASKS_RECURRENCES.UNTIL.lessThan(rangeEnd));
-				} else {
-					return TASKS.START.lessThan(rangeEnd);
-				}
-			}
+			return trueCondition();
 			
 		} else if ("status".equals(fieldName)) {
 			return defaultCondition(TASKS.STATUS, operator, values);
