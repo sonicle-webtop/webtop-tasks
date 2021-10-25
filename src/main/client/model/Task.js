@@ -41,6 +41,9 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		'Sonicle.webtop.tasks.model.TaskAssignee',
 		'Sonicle.webtop.tasks.model.TaskAttachment'
 	],
+	uses: [
+		'Sonicle.form.field.rr.Recurrence'
+	],
 	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'ManageTask', 'data', {
 		writer: {
 			type: 'sojson',
@@ -68,6 +71,9 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('contact', 'string', true),
 		WTF.field('contactId', 'string', true),
 		WTF.field('rrule', 'string', true, {
+			isEqual: function(value1, value2) {
+				return Sonicle.form.field.rr.Recurrence.isRRuleEqual(value1, value2);
+			},
 			validators: [
 				{
 					type: 'socustom',
