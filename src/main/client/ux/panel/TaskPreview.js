@@ -38,7 +38,8 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 		'WTA.util.FoldersTree',
 		'WTA.ux.grid.TileList',
 		'WTA.ux.panel.CustomFieldsPreview',
-		'Sonicle.webtop.tasks.model.TaskPreview'
+		'Sonicle.webtop.tasks.model.TaskPreview',
+		'Sonicle.webtop.tasks.store.TaskImportance'
 	],
 	mixins: [
 		'WTA.mixin.HasModel'
@@ -77,10 +78,11 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				return er.UPDATE;
 			}),
 			foSubject: WTF.foGetFn('record', 'subject', function(val) {
-				var tipAttrs = Sonicle.Utils.generateTooltipAttrs,
+				var TI = Sonicle.webtop.tasks.store.TaskImportance,
+						tipAttrs = Sonicle.Utils.generateTooltipAttrs,
 						impo = this.get('record.importance'),
 						s = '';
-				if (impo !== 1) s += '<i class="'+Sonicle.webtop.tasks.store.TaskImportance.buildIcon(impo)+'" aria-hidden="true" '+tipAttrs(me.mys.res('store.taskImportance.' + impo))+' style="margin-right:5px;font-size:initial"></i>';
+				if (impo !== 1) s += '<i class="'+TI.buildIcon(impo)+'" aria-hidden="true" '+tipAttrs(TI.buildLabel(impo))+' style="margin-right:5px;font-size:initial"></i>';
 				if (this.get('record.isPrivate') === true) s += '<i class="fa fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
 				return s + val;
 			}),

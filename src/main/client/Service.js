@@ -34,6 +34,10 @@
 Ext.define('Sonicle.webtop.tasks.Service', {
 	extend: 'WTA.sdk.Service',
 	requires: [
+		'Sonicle.Data',
+		'Sonicle.String',
+		'Sonicle.Utils',
+		'Sonicle.picker.Color',
 		'Sonicle.button.Toggle',
 		'Sonicle.grid.column.Color',
 		'Sonicle.grid.column.Date',
@@ -42,6 +46,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Tag',
 		'Sonicle.grid.plugin.StateResetMenu',
 		'Sonicle.tree.Column',
+		'WTA.util.FoldersTree',
 		'WTA.ux.field.Search',
 		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
@@ -53,15 +58,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.ux.panel.TaskPreview'
 	],
 	uses: [
-		'Sonicle.Data',
-		'Sonicle.String',
-		'Sonicle.Utils',
-		'Sonicle.picker.Color',
-		'WTA.util.FoldersTree',
 		'WTA.ux.SelectTagsBox',
 		'Sonicle.webtop.tasks.ux.RecurringConfirmBox',
-		'Sonicle.webtop.tasks.store.TaskImportance',
-		'Sonicle.webtop.tasks.store.TaskStatus',
 		'Sonicle.webtop.tasks.view.Sharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
@@ -680,7 +678,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(v);
 					},
 					getTip: function(v, rec) {
-						return me.res('gptasks.importance.lbl') + ': ' + me.res('store.taskImportance.' + v);
+						return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 					},
 					iconSize: 16,
 					header: WTF.headerWithGlyphIcon('fa fa-exclamation'),
@@ -1143,14 +1141,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		});
+		var TI = Sonicle.webtop.tasks.store.TaskImportance;
 		me.addAct('setTaskImportance', {
 			tooltip: null,
 			menu: {
 				itemId: 'importance',
-				items: [	
-					{itemId: 'i_0', text: me.res('store.taskImportance.0'), group: 'importance', checked: false},
-					{itemId: 'i_1', text: me.res('store.taskImportance.1'), group: 'importance', checked: false},
-					{itemId: 'i_2', text: me.res('store.taskImportance.2'), group: 'importance', checked: false}
+				items: [
+					{itemId: 'i_9', text: TI.buildLabel(9), group: 'importance', checked: false},
+					{itemId: 'i_5', text: TI.buildLabel(5), group: 'importance', checked: false},
+					{itemId: 'i_1', text: TI.buildLabel(1), group: 'importance', checked: false}
 				],
 				listeners: {
 					click: function(s, itm) {
@@ -1523,16 +1522,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							sel = me.getSelectedTasks(),
 							progMni = ['p_0','p_25','p_50','p_75','p_100'],
 							progChk = false,
-							impoMni = ['i_0','i_1','i_2'],
+							impoMni = ['i_9','i_5','i_1'],
 							impoChk = false,
 							prog, impo;
+					
 					if (sel.length === 1) {
 						prog = sel[0].get('progress');
 						if (progMni.indexOf('p_'+prog) !== -1) {
 							progMni = 'p_'+prog;
 							progChk = true;
 						}
-						impo = sel[0].get('importance');
+						impo = Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(sel[0].get('importance'));
 						if (impoMni.indexOf('i_'+impo) !== -1) {
 							impoMni = 'i_'+impo;
 							impoChk = true;

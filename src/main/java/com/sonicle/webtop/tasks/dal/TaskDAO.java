@@ -441,7 +441,9 @@ public class TaskDAO extends BaseDAO {
 					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(inHrefsCndt)
-				.and(overlaps)
+				.and(
+					TASKS.START.isNull().or(overlaps)
+				)
 			)
 			.orderBy(
 				TASKS.TASK_ID.asc()
