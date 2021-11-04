@@ -127,6 +127,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					this.get('record').setTimePart('reminderDate', val);
 				}
 			},
+			importance: WTF.foTwoWay('record', 'importance', function(v) {
+					return Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(v);
+				}, function(v) {
+					return v;
+			}),
 			isPrivate: WTF.checkboxBind('record', 'isPrivate'),
 			hasReminder: {
 				bind: {bindTo: '{record.reminderDate}'},
@@ -771,10 +776,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 												flex: 1
 											},
 											WTF.lookupCombo('id', 'desc', {
-												bind: '{record.importance}',
-												store: Ext.create(me.mys.preNs('store.TaskImportance'), {
+												bind: '{importance}',
+												store: {
+													xclass: me.mys.preNs('store.TaskImportance'),
 													autoLoad: true
-												}),
+												},
 												fieldLabel: me.res('task.fld-importance.lbl'),
 												labelAlign: 'right',
 												labelWidth: 80,

@@ -39,26 +39,51 @@ Ext.define('Sonicle.webtop.tasks.store.TaskImportance', {
 	
 	model: 'WTA.ux.data.SimpleIconModel',
 	data: [
-		[0, '', 'fa fa-exclamation wt-theme-text-off'],
-		[1, '', ''],
-		[2, '', 'fa fa-exclamation wt-theme-text-error']
+		[9, '', 'fa fa-exclamation wt-theme-text-off'],
+		[5, '', ''],
+		[1, '', 'fa fa-exclamation wt-theme-text-error']
 	],
 	
 	constructor: function(cfg) {
 		var me = this;
 		Ext.each(me.config.data, function(row) {
-			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.taskImportance.'+row[0]);
+			//FIXME: update labels according to new values
+			row[1] = Sonicle.webtop.tasks.store.TaskImportance.buildLabel(row[0]);
 		});
 		me.callParent([cfg]);
 	},
 	
 	statics: {
-		buildIcon: function(id) {
-			return [
-				'fa fa-exclamation wt-theme-text-ok',
-				'',
-				'fa fa-exclamation wt-theme-text-error'
-			][id];
+		homogenizedValue: function(impo) {
+			if (impo >= 1 && impo < 5) {
+				return 1; // High
+			} else if (impo > 5 && impo <= 9) {
+				return 9; // Low
+			} else {
+				return 5; // Normal
+			}
+		},
+		
+		buildLabel: function(impo) {
+			var v;
+			if (impo >= 1 && impo < 5) {
+				v = '2'; // High
+			} else if (impo > 5 && impo <= 9) {
+				v = '0'; // Low
+			} else {
+				v = '1'; // Normal
+			}
+			return WT.res('com.sonicle.webtop.tasks', 'store.taskImportance.'+v);
+		},
+		
+		buildIcon: function(impo) {
+			if (impo >= 1 && impo < 5) {
+				return 'fa fa-exclamation wt-theme-text-error'; // High
+			} else if (impo > 5 && impo <= 9) {
+				return 'fa fa-exclamation wt-theme-text-ok'; // Low
+			} else {
+				return ''; // Normal
+			}
 		}
 	}
 });
