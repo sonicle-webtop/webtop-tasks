@@ -926,22 +926,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			org.jooq.Condition queryCondition = null;
 			DateTime from = null;
 			DateTime to = null;
-			int noOfRecurringInst = 367;
+			int noOfRecurringInst = 365;
+			DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 			if (view != null) {
-				DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 				queryCondition = tasDao.toCondition(view, now);
 				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view)) {
 					to = now.toLocalDate().plusDays(1).toDateTimeAtStartOfDay(targetTimezone);
 				} else if (TaskListView.NEXT_7.equals(view) || TaskListView.UPCOMING.equals(view)) {
-					to = now.toLocalDate().plusDays(8).toDateTimeAtStartOfDay(targetTimezone);
+					to = now.toLocalDate().plusDays(6+1).toDateTimeAtStartOfDay(targetTimezone); // Next 7 is intended from today: so six +1
 				} else if (TaskListView.NOT_COMPLETED.equals(view)) {
-					to = now.toLocalDate().plusDays(367).toDateTimeAtStartOfDay(targetTimezone);
+					to = now.toLocalDate().plusDays(365).toDateTimeAtStartOfDay(targetTimezone);
 					noOfRecurringInst = 1;
 				}
 				if (TaskListView.UPCOMING.equals(view)) nestResults = false;
 				
 			} else {
-				TaskPredicateVisitor tpv = new TaskPredicateVisitor(null)
+				TaskPredicateVisitor tpv = new TaskPredicateVisitor()
 					.withInstanceIdDecoder((instanceId) -> {
 						Connection con1 = null;
 						try {
@@ -967,7 +967,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				to = tpv.getRangeEndOrDefault(to);
 				
 				Days daysInRange = DateTimeUtils.daysBetween(from, to);
-				if (daysInRange != null) noOfRecurringInst = daysInRange.getDays() + 2;
+				if (daysInRange != null) noOfRecurringInst = daysInRange.getDays() + 1;
 			}
 			
 			con = WT.getConnection(SERVICE_ID);
