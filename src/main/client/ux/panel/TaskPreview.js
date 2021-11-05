@@ -300,7 +300,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa ffa-map-marker',
+							iconCls: 'fa fa-map-marker',
 							tooltip: me.mys.res('taskPreview.single.task.location.lbl')
 						}, {
 							xtype: 'so-displayfield',
