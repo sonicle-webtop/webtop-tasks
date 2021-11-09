@@ -192,7 +192,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							tooltip: null,
 							iconCls: 'wt-icon-saveClose-xs',
 							handler: function() {
-								me.saveView(true);
+								me.saveUI();
 							}
 						}),
 						'-',
@@ -426,6 +426,22 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				}
 			}
 		}));
+	},
+	
+	saveUI: function() {
+		var me = this,
+				mo = me.getModel(),
+				doFn = function() {
+					me.saveView(true);
+				};
+		
+		if (!mo.isPhantom() && mo.isSeriesMaster() && (mo.getChanges() || {}).hasOwnProperty('status') && 'CO' === mo.get('status')) {
+			WT.confirm(me.res('task.confirm.complete.series', Ext.String.ellipsis(mo.get('subject'), 40)), function(bid) {
+				if (bid === 'yes') doFn();
+			}, me);
+		} else {
+			doFn();
+		}
 	},
 	
 	manageTagsUI: function(selTagIds) {
