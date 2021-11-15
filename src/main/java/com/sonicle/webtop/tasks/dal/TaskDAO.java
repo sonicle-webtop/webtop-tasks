@@ -996,7 +996,27 @@ public class TaskDAO extends BaseDAO {
 			.fetchInto(VTaskLookup.class);
 	}	
 	
-	
+	public List<String> selectOnlineIdsByCategoryHrefs(Connection con, int categoryId, String href) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.TASK_ID
+			)
+			.from(TASKS)
+			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS.CATEGORY_ID.equal(categoryId)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(TASKS.HREF.equal(href))
+			)
+			.orderBy(
+				TASKS.TASK_ID.asc()
+			)
+			.fetchInto(String.class);
+	}
 	
 	public Map<Integer, DateTime> selectMaxRevTimestampByCategories(Connection con, Collection<Integer> categoryIds) throws DAOException {
 		DSLContext dsl = getDSL(con);

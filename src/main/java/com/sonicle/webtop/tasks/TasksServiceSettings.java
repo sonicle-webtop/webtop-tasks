@@ -46,6 +46,10 @@ public class TasksServiceSettings extends BaseServiceSettings {
 		super(serviceId, domainId);
 	}
 	
+	public boolean getDavCategoryDeleteEnabled() {
+		return getBoolean(DAV_CATEGORY_DELETE_ENABLED, false);
+	}
+	
 	public Category.Sync getDefaultCategorySync() {
 		return getEnum(DEFAULT_PREFIX + CATEGORY_SYNC, Category.Sync.OFF, Category.Sync.class);
 	}

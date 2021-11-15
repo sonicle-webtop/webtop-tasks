@@ -241,6 +241,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return ownerCache.get(categoryId);
 	}
 	
+	public String getIncomingCategoryShareRootId(int categoryId) throws WTException {
+		return shareCache.getShareRootIdByFolderId(categoryId);
+	}
+	
 	@Override
 	public List<ShareRootCategory> listIncomingCategoryRoots() {
 		return shareCache.getShareRoots();
@@ -743,6 +747,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
+	/*
 	@Override
 	public TaskObjectWithICalendar getTaskObjectWithICalendar(int categoryId, String href) throws WTException {
 		List<TaskObjectWithICalendar> ccs = getTaskObjectsWithICalendar(categoryId, Arrays.asList(href));
@@ -772,6 +777,46 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				}
 				
 				items.add((TaskObjectWithICalendar)doTaskObjectPrepare(con, vtask, TaskObjectOutputType.ICALENDAR, tagNamesByIdMap));
+			}
+			return items;
+			
+		} catch (SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	*/
+	
+	@Override
+	public TaskObject getTaskObject(final int categoryId, final String href, final TaskObjectOutputType outputType) throws WTException {
+		List<TaskObject> ccs = getTaskObjects(categoryId, Arrays.asList(href), outputType);
+		return ccs.isEmpty() ? null : ccs.get(0);
+	}
+	
+	@Override
+	public List<TaskObject> getTaskObjects(final int categoryId, final Collection<String> hrefs, final TaskObjectOutputType outputType) throws WTException {
+		CoreManager coreMgr = getCoreManager();
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategory(categoryId, CheckRightsTarget.FOLDER, "READ");
+			con = WT.getConnection(SERVICE_ID);
+			
+			Map<String, String> tagNamesByIdMap = coreMgr.listTagNamesById();
+			ArrayList<TaskObject> items = new ArrayList<>();
+			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategoryHrefs(con, false, categoryId, hrefs);
+			for (String href : hrefs) {
+				List<VTaskObject> vtasks = map.get(href);
+				if (vtasks == null) continue;
+				if (vtasks.isEmpty()) continue;
+				VTaskObject vtask = vtasks.get(vtasks.size()-1);
+				if (vtasks.size() > 1) {
+					logger.trace("Many tasks ({}) found for same href [{} -> {}]", vtasks.size(), vtask.getHref(), vtask.getTaskId());
+				}
+				
+				items.add(doTaskObjectPrepare(con, vtask, outputType, tagNamesByIdMap));
 			}
 			return items;
 			
@@ -1107,6 +1152,34 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return SortInfo.Direction.ASC.equals(direction) ? comp : comp.reversed();
 	}
 	
+	private String doGetTaskIdByCategoryHref(Connection con, int categoryId, String href, boolean throwExIfManyMatchesFound) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		
+		List<String> ids = tasDao.selectOnlineIdsByCategoryHrefs(con, categoryId, href);
+		if (ids.isEmpty()) throw new WTNotFoundException("Task not found [{}, {}]", categoryId, href);
+		if (throwExIfManyMatchesFound && (ids.size() > 1)) throw new WTException("Many matches for href [{}]", href);
+		return ids.get(ids.size()-1);
+	}
+	
+	private String getTaskIdByCategoryHref(final int categoryId, String href, boolean throwExIfManyMatchesFound) throws WTException {
+		TaskDAO tasDao = TaskDAO.getInstance();
+		Connection con = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			
+			List<String> ids = tasDao.selectOnlineIdsByCategoryHrefs(con, categoryId, href);
+			if (ids.isEmpty()) throw new WTNotFoundException("Task not found [{}, {}]", categoryId, href);
+			if (throwExIfManyMatchesFound && (ids.size() > 1)) throw new WTException("Many matches for href [{}]", href);
+			return ids.get(ids.size()-1);
+			
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
 	@Override
 	public TaskInstance getTaskInstance(final TaskInstanceId instanceId) throws WTException {
 		return getTaskInstance(instanceId, BitFlag.of(TaskGetOptions.ATTACHMENTS, TaskGetOptions.TAGS, TaskGetOptions.CUSTOM_VALUES));
@@ -1197,6 +1270,44 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return ManagerUtils.createCustomValuesMap(ovals);
 			
 		} catch(SQLException | DAOException ex) {
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public Task addTask(final TaskEx task) throws WTException {
+		return addTask(task, null);
+	}
+	
+	private Task addTask(TaskEx task, String rawICalendar) throws WTException {
+		CoreManager coreMgr = getCoreManager();
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.ELEMENTS, "CREATE");
+			con = WT.getConnection(SERVICE_ID, false);
+			
+			if (task.getParentInstanceId() != null) {
+				String newParentTaskId = doTaskGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
+				task.setParentInstanceId(ManagerUtils.toParentInstanceId(newParentTaskId));
+			}
+			
+			BitFlag<TaskProcessOpts> processOpts = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES, TaskProcessOpts.CONTACT_REF, TaskProcessOpts.DOCUMENT_REF);
+			TaskInsertResult result = doTaskInsert(con, task, null, null, rawICalendar, processOpts, BitFlag.none());
+			String newTaskId = result.otask.getTaskId();
+			
+			DbUtils.commitQuietly(con);
+			if (isAuditEnabled()) {
+				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
+			}
+			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
+			
+			return doTaskGet(con, newTaskId, BitFlag.of(TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
+			
+		} catch(SQLException | DAOException | IOException | WTException ex) {
+			DbUtils.rollbackQuietly(con);
 			throw wrapException(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
@@ -1543,43 +1654,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public Task addTask(final TaskEx task) throws WTException {
-		return addTask(task, null);
-	}
-	
-	private Task addTask(TaskEx task, String rawICalendar) throws WTException {
-		CoreManager coreMgr = getCoreManager();
-		Connection con = null;
-		
-		try {
-			checkRightsOnCategory(task.getCategoryId(), CheckRightsTarget.ELEMENTS, "CREATE");
-			con = WT.getConnection(SERVICE_ID, false);
-			
-			if (task.getParentInstanceId() != null) {
-				String newParentTaskId = doTaskGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
-				task.setParentInstanceId(ManagerUtils.toParentInstanceId(newParentTaskId));
-			}
-			
-			BitFlag<TaskProcessOpts> processOpts = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES, TaskProcessOpts.CONTACT_REF, TaskProcessOpts.DOCUMENT_REF);
-			TaskInsertResult result = doTaskInsert(con, task, null, null, rawICalendar, processOpts, BitFlag.none());
-			String newTaskId = result.otask.getTaskId();
-			
-			DbUtils.commitQuietly(con);
-			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
-			}
-			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
-			
-			return doTaskGet(con, newTaskId, BitFlag.of(TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
-			
-		} catch(SQLException | DAOException | IOException | WTException ex) {
-			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	
 	public void addTaskObject(final int categoryId, final String href, final net.fortuna.ical4j.model.Calendar iCalendar) throws WTException {
 		CoreManager coreMgr = getCoreManager();
 		UserProfile.Data udata = WT.getUserData(getTargetProfileId());
@@ -1613,6 +1687,48 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
+	}
+	
+	public void updateTaskObject(final int categoryId, final String href, final net.fortuna.ical4j.model.Calendar iCalendar) throws WTException {
+		CoreManager coreMgr = getCoreManager();
+		UserProfile.Data udata = WT.getUserData(getTargetProfileId());
+		Connection con = null;
+		
+		try {
+			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "UPDATE");
+			ICalendarInput in = new ICalendarInput(udata.getTimeZone());
+			List<TaskInput> tis = in.parseCalendar(iCalendar);
+			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
+			
+			Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
+			con = WT.getConnection(SERVICE_ID, false);
+			String taskId = doGetTaskIdByCategoryHref(con, categoryId, href, true);
+			doTaskInputUpdate(con, tagIdsByNameMap, categoryId, taskId, tis);
+			DbUtils.commitQuietly(con);
+			
+		} catch(SQLException | DAOException | IOException | WTException ex) {
+			DbUtils.rollbackQuietly(con);
+			throw wrapException(ex);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+	}
+	
+	@Override
+	public void deleteTaskObject(final int categoryId, final String href) throws WTException {
+		Connection con = null;
+		String taskId = null;
+		
+		try {
+			con = WT.getConnection(SERVICE_ID);
+			taskId = doGetTaskIdByCategoryHref(con, categoryId, href, true);
+			
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
+		} finally {
+			DbUtils.closeQuietly(con);
+		}
+		deleteTaskInstance(TaskInstanceId.buildMaster(taskId));
 	}
 	
 	public void importTasks(final int categoryId, final TasksStreamReader reader, final InputStream is, final ImportMode mode, LogHandler logHandler) throws WTException {
@@ -2231,48 +2347,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return task;
 	}
 	
-	private TaskInsertResult doTaskInputInsert(Connection con, Map<String, List<String>> tagIdsByNameMap, Map<String, String> taskIdByPublicIdMap, TaskInput input, BitFlag<TaskReminderOpts> reminderOpts) throws IOException {
-		TaskEx task = new TaskEx(input.task);
-		if (input.taskRecurrence != null) {
-			task.setRecurrence(input.taskRecurrence);
-		}
-		if (input.tagNames != null) {
-			Set<String> tagIds = new HashSet<>();
-			for (String tagName : input.tagNames) {
-				if (tagIdsByNameMap.containsKey(tagName)) {
-					tagIds.addAll(tagIdsByNameMap.get(tagName));
-				}
-			}
-			task.setTags(tagIds);
-		}
-		if (input.relatedToUid != null) {
-			//TODO: find task with publicId = relatedToUid
-		}
-		String rawICalendar = null;
-		if (input.extraProps != null) {
-			rawICalendar = ICalendarUtils.printProperties(input.extraProps, "VTODO");
-		}
-		
-		BitFlag<TaskProcessOpts> processOpts = BitFlag.of(TaskProcessOpts.RECUR).set(TaskProcessOpts.RECUR_EX);
-		TaskInsertResult ret = doTaskInsert(con, task, null, null, rawICalendar, processOpts, reminderOpts);
-		
-		if (input.taskRecurrence != null) {
-			if (ret.otask.getPublicUid() != null) {
-				taskIdByPublicIdMap.put(ret.otask.getPublicUid(), ret.otask.getTaskId());
-			} else {
-				//TODO: warn no publicid
-			}
-		} else {
-			if (input.recurringRefs != null && taskIdByPublicIdMap.containsKey(input.recurringRefs.exRefersToMasterUid)) {
-				TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-				String taskId = taskIdByPublicIdMap.get(input.recurringRefs.exRefersToMasterUid);
-				recDao.insertRecurrenceEx(con, taskId, input.recurringRefs.exRefersToDate);
-			}
-		}
-		
-		return ret;
-	}
-	
 	private TaskInsertResult doTaskInsert(Connection con, TaskEx task, String seriesTaskId, String seriesInstance, String rawICalendar, BitFlag<TaskProcessOpts> processOpts, BitFlag<TaskReminderOpts> reminderOpts) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
@@ -2499,6 +2573,87 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			// is updated setting parentTaskId to NULL. This avoids collecting
 			// updated childs list in the aftermath.
 			return deleted;
+		}
+	}
+	
+	private TaskInsertResult doTaskInputInsert(Connection con, Map<String, List<String>> tagIdsByNameMap, Map<String, String> taskIdByPublicIdMap, TaskInput input, BitFlag<TaskReminderOpts> reminderOpts) throws IOException {
+		BitFlag<TaskProcessOpts> processOpts = BitFlag.of(TaskProcessOpts.RECUR).set(TaskProcessOpts.RECUR_EX);
+		return doTaskInputInsert(con, tagIdsByNameMap, taskIdByPublicIdMap, input, processOpts, reminderOpts);
+	}
+	
+	private TaskInsertResult doTaskInputInsert(Connection con, Map<String, List<String>> tagIdsByNameMap, Map<String, String> taskIdByPublicIdMap, TaskInput input, BitFlag<TaskProcessOpts> processOpts, BitFlag<TaskReminderOpts> reminderOpts) throws IOException {
+		TaskEx task = new TaskEx(input.task);
+		if (input.taskRecurrence != null) {
+			task.setRecurrence(input.taskRecurrence);
+		}
+		if (input.tagNames != null) {
+			Set<String> tagIds = new HashSet<>();
+			for (String tagName : input.tagNames) {
+				if (tagIdsByNameMap.containsKey(tagName)) {
+					tagIds.addAll(tagIdsByNameMap.get(tagName));
+				}
+			}
+			task.setTags(tagIds);
+		}
+		if (input.relatedToUid != null) {
+			//TODO: find task with publicId = relatedToUid
+		}
+		String rawICalendar = null;
+		if (input.extraProps != null) {
+			rawICalendar = ICalendarUtils.printProperties(input.extraProps, "VTODO");
+		}
+		
+		TaskInsertResult ret = doTaskInsert(con, task, null, null, rawICalendar, processOpts, reminderOpts);
+		
+		if (input.taskRecurrence != null) {
+			if (ret.otask.getPublicUid() != null) {
+				taskIdByPublicIdMap.put(ret.otask.getPublicUid(), ret.otask.getTaskId());
+			} else {
+				//TODO: warn no publicid
+			}
+		} else {
+			if (input.recurringRefs != null && taskIdByPublicIdMap.containsKey(input.recurringRefs.exRefersToMasterUid)) {
+				TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
+				String taskId = taskIdByPublicIdMap.get(input.recurringRefs.exRefersToMasterUid);
+				recDao.insertRecurrenceEx(con, taskId, input.recurringRefs.exRefersToDate);
+			}
+		}
+		
+		return ret;
+	}
+	
+	private void doTaskInputUpdate(Connection con, Map<String, List<String>> tagIdsByNameMap, int categoryId, String taskId, List<TaskInput> inputs) throws IOException, WTException {
+		TaskInput input1st = inputs.remove(0);
+		
+		if (StringUtils.isEmpty(input1st.task.getPublicUid())) throw new WTException("Public ID not set");
+		Map<String, String> taskIdByPublicIdMap = new HashMap<>();
+		taskIdByPublicIdMap.put(taskId, input1st.task.getPublicUid());
+		
+		// Prepares items for generating exceptions dates and objects
+		ArrayList<TaskInput> tiExs = new ArrayList<>();
+		LinkedHashSet<LocalDate> exDates = new LinkedHashSet<>();
+		for (TaskInput ti : inputs) {
+			if (ti.recurringRefs == null) continue;
+			if (!StringUtils.equals(ti.recurringRefs.exRefersToMasterUid, input1st.task.getPublicUid())) continue;
+			if (exDates.contains(ti.recurringRefs.exRefersToDate)) continue;
+
+			exDates.add(ti.recurringRefs.exRefersToDate);
+			//if (!ti.isSourceEventCancelled()) tiExs.add(ti);
+			tiExs.add(ti);
+		}
+		
+		// Adds new collected dates exceptions and update the reference task
+		if (input1st.taskRecurrence != null && !exDates.isEmpty()) {
+			input1st.taskRecurrence.addExcludedDates(exDates);
+		}
+		input1st.task.setCategoryId(categoryId);
+		
+		
+		// Inserts collected object exceptions
+		for (TaskInput tiEx : tiExs) {
+			tiEx.task.setCategoryId(categoryId);
+			tiEx.task.setPublicUid(null); // Reset value in order to make inner function generate new one!
+			TaskInsertResult result = doTaskInputInsert(con, tagIdsByNameMap, new HashMap<>(), tiEx, BitFlag.none(), BitFlag.of(TaskReminderOpts.IGNORE));
 		}
 	}
 	
