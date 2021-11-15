@@ -34,7 +34,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Returns a list of available task categories with synchronization active."
       }
     },
     "/eas/folders/{folderId}/messages-stats": {
@@ -42,7 +43,7 @@
         "tags": [
           "eas-messages"
         ],
-        "summary": "List all messages for a specific folder",
+        "summary": "Gets sync messages data for a folder",
         "operationId": "getMessagesStats",
         "produces": [
           "application/json"
@@ -70,7 +71,8 @@
           "400": {
             "description": "Invalid parameter"
           }
-        }
+        },
+        "description": "Returns sync informations for the specified category folder."
       },
       "parameters": [
         {
@@ -113,7 +115,8 @@
               "$ref": "#/definitions/SyncTaskStat"
             }
           }
-        }
+        },
+        "description": "Add new task."
       },
       "parameters": [
         {
@@ -150,7 +153,8 @@
           "404": {
             "description": "Message not found"
           }
-        }
+        },
+        "description": "Gets the specified task."
       },
       "put": {
         "tags": [
@@ -187,7 +191,8 @@
           "404": {
             "description": "Message not found"
           }
-        }
+        },
+        "description": "Updates the specified task."
       },
       "delete": {
         "tags": [
@@ -206,7 +211,8 @@
           "404": {
             "description": "Message not found"
           }
-        }
+        },
+        "description": "Deletes the specified task."
       },
       "parameters": [
         {
@@ -229,7 +235,7 @@
     },
     "/dav/folders": {
       "get": {
-        "summary": "List task-folders",
+        "summary": "List task folders",
         "tags": [
           "dav"
         ],
@@ -283,7 +289,7 @@
         }
       ],
       "get": {
-        "summary": "Get task-folder",
+        "summary": "Get task folder",
         "tags": [
           "dav"
         ],
@@ -630,7 +636,7 @@
           "description": "The owner profile ID"
         }
       },
-      "description": "Bean for carry category’s fields"
+      "description": "Carry task category’s fields."
     },
     "SyncTaskStat": {
       "type": "object",
@@ -648,7 +654,7 @@
           "description": "Revision tag"
         }
       },
-      "description": "Bean for carry task's stat fields"
+      "description": "Transport sync informations of a single task."
     },
     "SyncTask": {
       "type": "object",
@@ -701,7 +707,7 @@
           "description": "Description"
         }
       },
-      "description": "Bean for carry task's fields"
+      "description": "Represent a single task."
     },
     "SyncTaskUpdate": {
       "type": "object",
@@ -739,7 +745,8 @@
           "description": "Description"
         }
       },
-      "description": "Bean for carry task's updateable fields"
+      "description": "Represent task's updateable fields",
+      "title": ""
     },
     "DavFolder": {
       "title": "DavFolder",
@@ -795,7 +802,8 @@
         "aclEle",
         "ownerUsername",
         "displayName"
-      ]
+      ],
+      "description": "Represent a single folder that contains tasks."
     },
     "DavFolderNew": {
       "title": "DavFolderNew",
@@ -816,7 +824,8 @@
       },
       "required": [
         "name"
-      ]
+      ],
+      "description": "Carry task folder data during add operation."
     },
     "DavFolderUpdate": {
       "title": "DavFolderUpdate",
@@ -841,12 +850,13 @@
             "type": "string"
           }
         }
-      }
+      },
+      "description": "Carry task folder data during update operation."
     },
     "DavObject": {
       "title": "DavObject",
       "type": "object",
-      "description": "Represent a single task-object",
+      "description": "Represent a single task object.",
       "properties": {
         "id": {
           "type": "string",
@@ -890,7 +900,7 @@
     "DavObjectPayload": {
       "title": "DavObjectPayload",
       "type": "object",
-      "description": "Transports task-object data.",
+      "description": "Transports task object data.",
       "properties": {
         "href": {
           "type": "string",
@@ -917,7 +927,7 @@
     "DavObjectChanged": {
       "title": "DavObjectChanged",
       "type": "object",
-      "description": "Defines useful data of a changed task-object",
+      "description": "Defines useful data of a changed task object.",
       "properties": {
         "id": {
           "type": "string",
@@ -941,7 +951,7 @@
     "DavObjectsChanges": {
       "title": "DavObjectsChanges",
       "type": "object",
-      "description": "Represent a collection of changes made since an instant defined by the sync-token",
+      "description": "Represent a collection of changes made since an instant defined by the sync-token.",
       "properties": {
         "syncToken": {
           "type": "string"
