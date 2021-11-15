@@ -898,8 +898,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					displayField: 'categoryName',
 					header: me.res('gptasks.category.lbl'),
 					sortable: nest ? false : true,
-					flex: 1,
-					maxWidth: 150
+					width: 150
 				}, {
 					xtype: 'soactioncolumn',
 					items: [
