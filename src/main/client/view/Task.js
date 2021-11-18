@@ -248,7 +248,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								model: me.mys.preNs('model.CategoryLkp'),
 								proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
 								grouper: {
-									property: '_ownerId',
+									property: '_profileId',
 									sortProperty: '_order'
 								},
 								filters: [{
@@ -260,7 +260,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 											if (rec.getId() === mo.get('categoryId')) return true;
 										} else if (mo && me.isMode(me.MODE_EDIT)) {
 											if (rec.getId() === mo.get('categoryId')) return true;
-											if (rec.get('_ownerId') === mo.get('_ownerId') && rec.get('_writable')) return true;
+											if (rec.get('_profileId') === mo.get('_ownerId') && rec.get('_writable')) return true;
 										}
 										return false;
 									}
