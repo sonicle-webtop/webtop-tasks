@@ -347,17 +347,7 @@ public class TaskDAO extends BaseDAO {
 			.fetchOneInto(VTaskObject.class);
 	}
 	
-	public Map<String, List<VTaskObject>> viewTaskObjectsByCategory(Connection con, boolean stat, int categoryId) throws DAOException {
-		return viewTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, null);
-	}
 	
-	public Map<String, List<VTaskObject>> viewTaskObjectsByCategoryHrefs(Connection con, boolean stat, int categoryId, Collection<String> hrefs) throws DAOException {
-		return viewTaskObjectsByCategoryHrefsSince(con, stat, categoryId, hrefs, null);
-	}
-	
-	public Map<String, List<VTaskObject>> viewTaskObjectsByCategorySince(Connection con, boolean stat, int categoryId, DateTime since) throws DAOException {
-		return viewTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, since);
-	}
 	
 	private Field[] getVTaskObjectFields(boolean stat) {
 		if (stat) {
@@ -404,7 +394,19 @@ public class TaskDAO extends BaseDAO {
 		}
 	}
 	
-	public Map<String, List<VTaskObject>> viewTaskObjectsByCategoryHrefsSince(Connection con, boolean stat, int categoryId, Collection<String> hrefs, DateTime since) throws DAOException {
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategory(Connection con, boolean stat, int categoryId) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, null);
+	}
+	
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefs(Connection con, boolean stat, int categoryId, Collection<String> hrefs) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, hrefs, null);
+	}
+	
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategorySince(Connection con, boolean stat, int categoryId, DateTime since) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, since);
+	}
+	
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefsSince(Connection con, boolean stat, int categoryId, Collection<String> hrefs, DateTime since) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
 		Condition inHrefsCndt = DSL.trueCondition();

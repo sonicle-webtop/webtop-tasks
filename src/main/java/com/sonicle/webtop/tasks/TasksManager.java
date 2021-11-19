@@ -675,7 +675,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public List<TaskObject> listTaskObjects(int categoryId, TaskObjectOutputType outputType) throws WTException {
+	public List<TaskObject> listTaskObjects(final int categoryId, final TaskObjectOutputType outputType) throws WTException {
 		CoreManager coreMgr = getCoreManager();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
@@ -686,7 +686,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			Map<String, String> tagNamesByIdMap = coreMgr.listTagNamesById();
 			ArrayList<TaskObject> items = new ArrayList<>();
-			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategory(con, TaskObjectOutputType.STAT.equals(outputType), categoryId);
+			Map<String, List<VTaskObject>> map = tasDao.viewOnlineTaskObjectsByCategory(con, TaskObjectOutputType.STAT.equals(outputType), categoryId);
 			for (List<VTaskObject> vtasks : map.values()) {
 				if (vtasks.isEmpty()) continue;
 				VTaskObject vtask = vtasks.get(vtasks.size()-1);
@@ -705,26 +705,26 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public CollectionChangeSet<TaskObjectChanged> listTaskObjectsChanges(int categoryId, DateTime since, Integer limit) throws WTException {
+	public CollectionChangeSet<TaskObjectChanged> listTaskObjectsChanges(final int categoryId, final DateTime since, final Integer limit) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
+			Integer myLimit = limit == null ? Integer.MAX_VALUE : limit;
 			checkRightsOnCategory(categoryId, CheckRightsTarget.FOLDER, "READ");
-			con = WT.getConnection(SERVICE_ID);
 			
+			con = WT.getConnection(SERVICE_ID);
 			ArrayList<TaskObjectChanged> inserted = new ArrayList<>();
 			ArrayList<TaskObjectChanged> updated = new ArrayList<>();
 			ArrayList<TaskObjectChanged> deleted = new ArrayList<>();
 			
-			if (limit == null) limit = Integer.MAX_VALUE;
 			if (since == null) {
-				List<VTaskObjectChanged> vtasks = tasDao.viewOnlineTaskObjectsChangedByCategory(con, categoryId, limit);
+				List<VTaskObjectChanged> vtasks = tasDao.viewOnlineTaskObjectsChangedByCategory(con, categoryId, myLimit);
 				for (VTaskObjectChanged vtask : vtasks) {
 					inserted.add(new TaskObjectChanged(vtask.getTaskId(), vtask.getRevisionTimestamp(), vtask.getHref()));
 				}
 			} else {
-				List<VTaskObjectChanged> vtasks = tasDao.viewTaskObjectsChangedByCategorySince(con, categoryId, since, limit);
+				List<VTaskObjectChanged> vtasks = tasDao.viewTaskObjectsChangedByCategorySince(con, categoryId, since, myLimit);
 				for (VTaskObjectChanged vtask : vtasks) {
 					Task.RevisionStatus revStatus = EnumUtils.forSerializedName(vtask.getRevisionStatus(), Task.RevisionStatus.class);
 					if (Task.RevisionStatus.DELETED.equals(revStatus)) {
@@ -740,53 +740,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			return new CollectionChangeSet<>(inserted, updated, deleted);
 			
-		} catch (SQLException | DAOException ex) {
-			throw wrapException(ex);
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
-	
-	/*
-	@Override
-	public TaskObjectWithICalendar getTaskObjectWithICalendar(int categoryId, String href) throws WTException {
-		List<TaskObjectWithICalendar> ccs = getTaskObjectsWithICalendar(categoryId, Arrays.asList(href));
-		return ccs.isEmpty() ? null : ccs.get(0);
-	}
-	
-	@Override
-	public List<TaskObjectWithICalendar> getTaskObjectsWithICalendar(int categoryId, Collection<String> hrefs) throws WTException {
-		CoreManager coreMgr = getCoreManager();
-		TaskDAO tasDao = TaskDAO.getInstance();
-		Connection con = null;
-		
-		try {
-			checkRightsOnCategory(categoryId, CheckRightsTarget.FOLDER, "READ");
-			con = WT.getConnection(SERVICE_ID);
-			
-			Map<String, String> tagNamesByIdMap = coreMgr.listTagNamesById();
-			ArrayList<TaskObjectWithICalendar> items = new ArrayList<>();
-			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategoryHrefs(con, false, categoryId, hrefs);
-			for (String href : hrefs) {
-				List<VTaskObject> vtasks = map.get(href);
-				if (vtasks == null) continue;
-				if (vtasks.isEmpty()) continue;
-				VTaskObject vtask = vtasks.get(vtasks.size()-1);
-				if (vtasks.size() > 1) {
-					logger.trace("Many tasks ({}) found for same href [{} -> {}]", vtasks.size(), vtask.getHref(), vtask.getTaskId());
-				}
-				
-				items.add((TaskObjectWithICalendar)doTaskObjectPrepare(con, vtask, TaskObjectOutputType.ICALENDAR, tagNamesByIdMap));
-			}
-			return items;
-			
-		} catch (SQLException | DAOException ex) {
-			throw wrapException(ex);
-		} finally {
-			DbUtils.closeQuietly(con);
-		}
-	}
-	*/
 	
 	@Override
 	public TaskObject getTaskObject(final int categoryId, final String href, final TaskObjectOutputType outputType) throws WTException {
@@ -806,7 +765,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			Map<String, String> tagNamesByIdMap = coreMgr.listTagNamesById();
 			ArrayList<TaskObject> items = new ArrayList<>();
-			Map<String, List<VTaskObject>> map = tasDao.viewTaskObjectsByCategoryHrefs(con, false, categoryId, hrefs);
+			Map<String, List<VTaskObject>> map = tasDao.viewOnlineTaskObjectsByCategoryHrefs(con, false, categoryId, hrefs);
 			for (String href : hrefs) {
 				List<VTaskObject> vtasks = map.get(href);
 				if (vtasks == null) continue;
@@ -820,8 +779,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			return items;
 			
-		} catch (SQLException | DAOException ex) {
-			throw wrapException(ex);
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -847,8 +806,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				return doTaskObjectPrepare(con, vtask, outputType, tagNamesByIdMap);
 			}
 			
-		} catch(SQLException | DAOException ex) {
-			throw wrapException(ex);
+		} catch (Throwable t) {
+			throw ExceptionUtils.wrapThrowable(t);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1663,7 +1622,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "CREATE");
 			
 			ICalendarInput in = new ICalendarInput(udata.getTimeZone());
-			List<TaskInput> tis = in.parseCalendar(iCalendar);
+			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
 			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
 			if (tis.size() > 1) throw new WTException("iCalendar object should contain one VTODO");
 			TaskInput input = tis.get(0);
@@ -1697,7 +1656,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "UPDATE");
 			ICalendarInput in = new ICalendarInput(udata.getTimeZone());
-			List<TaskInput> tis = in.parseCalendar(iCalendar);
+			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
 			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
 			
 			Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
@@ -2076,7 +2035,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						.withTagNamesByIdMap(tagNamesByIdMap);
 				try {
 					//TODO: maybe add support to relatedTo (last null param here below)
-					ret.setIcalendar(out.printICalendar(task, extraProps, null));
+					ret.setIcalendar(out.writeICalendar(task, extraProps, null));
 				} catch (IOException ex) {
 					logger.debug("printICalendar", ex);
 				}
@@ -2600,6 +2559,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		String rawICalendar = null;
 		if (input.extraProps != null) {
+			// Creates a rawICalendar using only not-used properties
 			rawICalendar = ICalendarUtils.printProperties(input.extraProps, "VTODO");
 		}
 		
