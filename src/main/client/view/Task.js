@@ -435,8 +435,8 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					me.saveView(true);
 				};
 		
-		if (!mo.phantom && mo.isSeriesMaster() && (mo.getChanges() || {}).hasOwnProperty('status') && 'CO' === mo.get('status')) {
-			WT.confirm(me.res('task.confirm.complete.series', Ext.String.ellipsis(mo.get('subject'), 40)), function(bid) {
+		if (!mo.phantom && mo.isParent() && (mo.getChanges() || {}).hasOwnProperty('status') && 'CO' === mo.get('status')) {
+			WT.confirm(me.res('task.confirm.complete', Ext.String.ellipsis(mo.get('subject'), 40)) + '\n' + me.res('task.confirm.complete.warn.parent'), function(bid) {
 				if (bid === 'yes') doFn();
 			}, me);
 		} else {
