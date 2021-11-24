@@ -394,6 +394,7 @@ public class TaskDAO extends BaseDAO {
 				TASKS.START,
 				TASKS.DUE,
 				TASKS.PROGRESS,
+				TASKS.COMPLETED_ON,
 				TASKS.STATUS,
 				TASKS.IMPORTANCE,
 				TASKS.IS_PRIVATE,
@@ -441,7 +442,9 @@ public class TaskDAO extends BaseDAO {
 					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(inHrefsCndt)
-				.and(overlaps)
+				.and(
+					TASKS.START.isNull().or(overlaps)
+				)
 			)
 			.orderBy(
 				TASKS.TASK_ID.asc()
@@ -621,6 +624,7 @@ public class TaskDAO extends BaseDAO {
 				TASKS.TIMEZONE,
 				TASKS.START,
 				TASKS.DUE,
+				TASKS.COMPLETED_ON,
 				TASKS.PROGRESS,
 				TASKS.STATUS,
 				TASKS.IMPORTANCE,

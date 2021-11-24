@@ -127,6 +127,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					this.get('record').setTimePart('reminderDate', val);
 				}
 			},
+			importance: WTF.foTwoWay('record', 'importance', function(v) {
+					return Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(v);
+				}, function(v) {
+					return v;
+			}),
 			isPrivate: WTF.checkboxBind('record', 'isPrivate'),
 			hasReminder: {
 				bind: {bindTo: '{record.reminderDate}'},
@@ -187,7 +192,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							tooltip: null,
 							iconCls: 'wt-icon-saveClose-xs',
 							handler: function() {
-								me.saveView(true);
+								me.saveUI();
 							}
 						}),
 						'-',
@@ -243,7 +248,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								model: me.mys.preNs('model.CategoryLkp'),
 								proxy: WTF.proxy(me.mys.ID, 'LookupCategoryFolders', 'folders'),
 								grouper: {
-									property: '_ownerId',
+									property: '_profileId',
 									sortProperty: '_order'
 								},
 								filters: [{
@@ -255,7 +260,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 											if (rec.getId() === mo.get('categoryId')) return true;
 										} else if (mo && me.isMode(me.MODE_EDIT)) {
 											if (rec.getId() === mo.get('categoryId')) return true;
-											if (rec.get('_ownerId') === mo.get('_ownerId') && rec.get('_writable')) return true;
+											if (rec.get('_profileId') === mo.get('_ownerId') && rec.get('_writable')) return true;
 										}
 										return false;
 									}
@@ -421,6 +426,22 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				}
 			}
 		}));
+	},
+	
+	saveUI: function() {
+		var me = this,
+				mo = me.getModel(),
+				doFn = function() {
+					me.saveView(true);
+				};
+		
+		if (!mo.phantom && mo.isParent() && (mo.getChanges() || {}).hasOwnProperty('status') && 'CO' === mo.get('status')) {
+			WT.confirm(me.res('task.confirm.complete', Ext.String.ellipsis(mo.get('subject'), 40)) + '\n' + me.res('task.confirm.complete.warn.parent'), function(bid) {
+				if (bid === 'yes') doFn();
+			}, me);
+		} else {
+			doFn();
+		}
 	},
 	
 	manageTagsUI: function(selTagIds) {
@@ -771,10 +792,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 												flex: 1
 											},
 											WTF.lookupCombo('id', 'desc', {
-												bind: '{record.importance}',
-												store: Ext.create(me.mys.preNs('store.TaskImportance'), {
+												bind: '{importance}',
+												store: {
+													xclass: me.mys.preNs('store.TaskImportance'),
 													autoLoad: true
-												}),
+												},
 												fieldLabel: me.res('task.fld-importance.lbl'),
 												labelAlign: 'right',
 												labelWidth: 80,

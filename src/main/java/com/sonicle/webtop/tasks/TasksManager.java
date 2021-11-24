@@ -2422,9 +2422,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 		}
 		
-		if (processOpts.has(TaskProcessOpts.ASSIGNEES) && task.hasAssignees()) {
+		if (processOpts.has(TaskProcessOpts.ASSIGNEES)) {
 			List<TaskAssignee> oldAssignees = ManagerUtils.createTaskAssigneeList(assDao.selectByTask(con, taskId));
-			CollectionChangeSet<TaskAssignee> changeSet = LangUtils.getCollectionChanges(oldAssignees, task.getAssignees());
+			CollectionChangeSet<TaskAssignee> changeSet = LangUtils.getCollectionChanges(oldAssignees, task.getAssigneesOrEmpty());
 			
 			for (TaskAssignee assignee : changeSet.inserted) {
 				if (!ManagerUtils.validateForInsert(assignee)) continue;
@@ -2441,16 +2441,16 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			assDao.deleteByIdsTask(con, changeSet.deleted.stream().map(att -> att.getAssigneeId()).collect(Collectors.toList()), taskId);
 		}
 		
-		if (processOpts.has(TaskProcessOpts.TAGS) && task.hasTags()) {
+		if (processOpts.has(TaskProcessOpts.TAGS)) {
 			Set<String> oldTags = tagDao.selectTagsByTask(con, taskId);
-			CollectionChangeSet<String> changeSet = LangUtils.getCollectionChanges(oldTags, task.getTags());
+			CollectionChangeSet<String> changeSet = LangUtils.getCollectionChanges(oldTags, task.getTagsOrEmpty());
 			tagDao.batchInsert(con, taskId, changeSet.inserted);
 			tagDao.deleteByIdTags(con, taskId, changeSet.deleted);
 		}
 		
-		if (processOpts.has(TaskProcessOpts.ATTACHMENTS) && task.hasAttachments()) {
+		if (processOpts.has(TaskProcessOpts.ATTACHMENTS)) {
 			List<TaskAttachment> oldAttchs = ManagerUtils.createTaskAttachmentList(attcDao.selectByTask(con, taskId));
-			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAttchs, task.getAttachments());
+			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAttchs, task.getAttachmentsOrEmpty());
 
 			for (TaskAttachment att : changeSet.inserted) {		
 				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");

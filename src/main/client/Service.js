@@ -34,6 +34,10 @@
 Ext.define('Sonicle.webtop.tasks.Service', {
 	extend: 'WTA.sdk.Service',
 	requires: [
+		'Sonicle.Data',
+		'Sonicle.String',
+		'Sonicle.Utils',
+		'Sonicle.picker.Color',
 		'Sonicle.button.Toggle',
 		'Sonicle.grid.column.Color',
 		'Sonicle.grid.column.Date',
@@ -42,6 +46,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Tag',
 		'Sonicle.grid.plugin.StateResetMenu',
 		'Sonicle.tree.Column',
+		'WTA.util.FoldersTree',
 		'WTA.ux.field.Search',
 		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
@@ -53,15 +58,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.ux.panel.TaskPreview'
 	],
 	uses: [
-		'Sonicle.Data',
-		'Sonicle.String',
-		'Sonicle.Utils',
-		'Sonicle.picker.Color',
-		'WTA.util.FoldersTree',
 		'WTA.ux.SelectTagsBox',
 		'Sonicle.webtop.tasks.ux.RecurringConfirmBox',
-		'Sonicle.webtop.tasks.store.TaskImportance',
-		'Sonicle.webtop.tasks.store.TaskStatus',
 		'Sonicle.webtop.tasks.view.Sharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
@@ -72,7 +70,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.portlet.Tasks'
 	],
 	
-	needsReload: true,
+	/**
+	 * @private
+	 * @property {Boolean} pendingReload
+	 * This flag is set to `true` when a reload is needed after activating this service.
+	 */
+	pendingReload: true,
+	
+	/**
+	 * @private
+	 * @property {list} lastMainView
+	 * The last activated main view name. Is considered a main view the components 
+	 * that provides principal interoperability with the user: de facto excluding 'search'.
+	 */
+	
+	/**
+	 * @private
+	 * @property {list} pendingView
+	 * The view name to be activated after activating this service: a view is 
+	 * savede here when a reload operation is issued but the service is not 
+	 * curently active. Like the above, only Main view should be tracked here.
+	 */
+	
 	api: null,
 	
 	treeSelEnabled: false,
@@ -90,7 +109,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				tagsStore = WT.getTagsStore(),
 				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.getVar('cfieldsSearchable'));
 		
-		me.activeView = 'list';
 		me.activeGridView = me.getVar('gridView');
 		me.initActions();
 		me.initCxm();
@@ -175,7 +193,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					listeners: {
 						query: function(s, value, qObj) {
 							if (Ext.isEmpty(value)) {
-								me.activateView(me.activeView);
+								me.reloadTasks({view: me.lastMainView});
 							} else {
 								me.queryTasks(qObj);
 							}
@@ -274,7 +292,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'container',
 					reference: 'pnlcard',
 					layout: 'card',
-					activeItem: me.activeView,
+					cativeItem: me.lastMainView = 'list',
 					items: [
 						me.createGridConfig(tagsStore, true, {
 							reference: 'gptaskslist',
@@ -680,7 +698,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(v);
 					},
 					getTip: function(v, rec) {
-						return me.res('gptasks.importance.lbl') + ': ' + me.res('store.taskImportance.' + v);
+						return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 					},
 					iconSize: 16,
 					header: WTF.headerWithGlyphIcon('fa fa-exclamation'),
@@ -900,8 +918,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					displayField: 'categoryName',
 					header: me.res('gptasks.category.lbl'),
 					sortable: nest ? false : true,
-					flex: 1,
-					maxWidth: 150
+					width: 150
 				}, {
 					xtype: 'soactioncolumn',
 					items: [
@@ -958,6 +975,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	pnlPreview: function() {
 		return this.getMainComponent().lookupReference('pnlpreview');
 	},
+	
+	getActiveView: function() {
+		var me = this,
+				active = me.pnlCard().getLayout().getActiveItem();
+		if (active === me.gpTasksList()) return 'list';
+		if (active === me.gpTasksResults()) return 'search';
+		return null;
+	},
 		
 	activateView: function(view) {
 		var me = this, cmp;
@@ -968,8 +993,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.pnlCard().setActiveItem(cmp);
 			} else if ('list' === view) {
 				me.pnlCard().setActiveItem(me.gpTasksList());
-				me.activeMode = view;
+				me.lastMainView = view;
 			}
+			delete me.pendingView;
 		}
 	},
 	
@@ -1143,14 +1169,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		});
+		var TI = Sonicle.webtop.tasks.store.TaskImportance;
 		me.addAct('setTaskImportance', {
 			tooltip: null,
 			menu: {
 				itemId: 'importance',
-				items: [	
-					{itemId: 'i_0', text: me.res('store.taskImportance.0'), group: 'importance', checked: false},
-					{itemId: 'i_1', text: me.res('store.taskImportance.1'), group: 'importance', checked: false},
-					{itemId: 'i_2', text: me.res('store.taskImportance.2'), group: 'importance', checked: false}
+				items: [
+					{itemId: 'i_9', text: TI.buildLabel(9), group: 'importance', checked: false},
+					{itemId: 'i_5', text: TI.buildLabel(5), group: 'importance', checked: false},
+					{itemId: 'i_1', text: TI.buildLabel(1), group: 'importance', checked: false}
 				],
 				listeners: {
 					click: function(s, itm) {
@@ -1523,16 +1550,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							sel = me.getSelectedTasks(),
 							progMni = ['p_0','p_25','p_50','p_75','p_100'],
 							progChk = false,
-							impoMni = ['i_0','i_1','i_2'],
+							impoMni = ['i_9','i_5','i_1'],
 							impoChk = false,
 							prog, impo;
+					
 					if (sel.length === 1) {
 						prog = sel[0].get('progress');
 						if (progMni.indexOf('p_'+prog) !== -1) {
 							progMni = 'p_'+prog;
 							progChk = true;
 						}
-						impo = sel[0].get('importance');
+						impo = Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(sel[0].get('importance'));
 						if (impoMni.indexOf('i_'+impo) !== -1) {
 							impoMni = 'i_'+impo;
 							impoChk = true;
@@ -1549,8 +1577,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				gp = me.gpTasks();
 		
-		if(me.needsReload) {
-			me.needsReload = false;
+		if (me.pendingReload === true) {
+			delete me.pendingReload;
 			me.reloadTasks();
 		}
 		
@@ -1586,28 +1614,29 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	reloadTasks: function(opts) {
 		opts = opts || {};
-		var me = this, curView, sto, pars = {};
+		var me = this, view, sto, pars = {};
 		
 		if (Ext.isString(opts.gridView)) me.activeGridView = opts.gridView;
 		if (me.isActive()) {
-			curView = opts.view || me.activeView;
-			if (Sonicle.String.isIn(curView, ['list', 'search'])) {
-				if ('search' === curView) {
+			view = opts.view || me.pendingView || me.getActiveView();
+			if (Sonicle.String.isIn(view, ['list', 'search'])) {
+				if ('search' === view) {
 					sto = me.gpTasksResults().getStore();
 				} else {
 					sto = me.gpTasksList().getStore();
 				}
 				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query});
 				WTU.loadWithExtraParams(sto, pars);
-				if ('search' === curView) {
-					me.activateView(curView, opts.squery);
+				if ('search' === view) {
+					me.activateView(view, opts.squery);
 				} else {
-					me.activateView(curView);
+					me.activateView(view);
 				}
 			}
 		} else {
-			if (Ext.isString(opts.view) && 'search' !== opts.view) me.activeMode = opts.view;
-			me.needsReload = true;
+			view = opts.view || '';
+			if ('search' !== view) me.pendingView = opts.view;
+			me.pendingReload = true;
 		}
 	},
 	
