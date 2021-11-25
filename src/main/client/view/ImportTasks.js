@@ -32,6 +32,9 @@
  */
 Ext.define('Sonicle.webtop.tasks.view.ImportTasks', {
 	extend: 'WTA.sdk.ImportWizardView',
+	requires: [
+		'Sonicle.String'
+	],
 	
 	dockableConfig: {
 		title: '{importTasks.tit}',
