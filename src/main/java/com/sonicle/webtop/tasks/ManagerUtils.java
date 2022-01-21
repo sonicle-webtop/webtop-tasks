@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.Base58;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.InternetAddressUtils;
 import com.sonicle.commons.LangUtils;
@@ -39,6 +40,7 @@ import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.model.CustomFieldValue;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
+import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.tasks.bol.OCategory;
 import com.sonicle.webtop.tasks.bol.OCategoryPropSet;
 import com.sonicle.webtop.tasks.bol.OTask;
@@ -75,6 +77,18 @@ public class ManagerUtils {
 	
 	public static String getProductName() {
 		return WT.getPlatformName() + " Tasks";
+	}
+	
+	public static int decodeAsTaskFolderId(String categoryPublicUid) throws WTException {
+		try {
+			return Integer.valueOf(new String(Base58.decode(categoryPublicUid)));
+		} catch(RuntimeException ex) { // Not a Base58 input
+			throw new WTException(ex, "Invalid calendar UID encoding");
+		}
+	}
+	
+	public static String encodeAsTaskFolderUid(int categoryId) {
+		return Base58.encode(StringUtils.leftPad(String.valueOf(categoryId), 10, "0").getBytes());
 	}
 	
 	static int toOffset(int page, int limit) {

@@ -49,6 +49,13 @@ public class TasksSettings {
 	/**************************************************************************/
 	
 	/**
+	 * [system+domain]
+	 * [boolean](false)
+	 * Enable/Disable category deletions through DAV rest-api interface. Defaults to `false`.
+	 */
+	public static final String DAV_CATEGORY_DELETE_ENABLED = "dav.category.delete.enabled";
+	
+	/**
 	 * [system+domain][default-only]
 	 * [enum]
 	 * The default value of the sync field for new categories.

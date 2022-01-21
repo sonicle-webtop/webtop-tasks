@@ -69,4 +69,19 @@ public class TaskICalendarsDAO extends BaseDAO {
 			.set(TASKS_ICALENDARS.RAW_DATA, rawData)
 			.execute();
 	}
+	
+	public int update(Connection con, String taskId, String rawData) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.update(TASKS_ICALENDARS)
+			.set(TASKS_ICALENDARS.RAW_DATA, rawData)
+			.where(TASKS_ICALENDARS.TASK_ID.equal(taskId))
+			.execute();
+	}
+	
+	public int upsert(Connection con, String taskId, String rawData) throws DAOException {
+		int ret = update(con, taskId, rawData);
+		if (ret == 0) ret = insert(con, taskId, rawData);
+		return ret;
+	}
 }

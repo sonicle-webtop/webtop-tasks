@@ -2451,7 +2451,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			if (Ext.isDefined(data.progress)) obj.progress = data.progress;
 			if (Ext.isDefined(data.status)) obj.status = data.status;
 			if (Ext.isDefined(data.importance)) obj.importance = data.importance;
-			if (Ext.isDefined(data.docRef)) obj.reminder = data.reminder;
+			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
 			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
 			
 			return obj;

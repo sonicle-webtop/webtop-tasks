@@ -260,7 +260,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 											if (rec.getId() === mo.get('categoryId')) return true;
 										} else if (mo && me.isMode(me.MODE_EDIT)) {
 											if (rec.getId() === mo.get('categoryId')) return true;
-											if (rec.get('_profileId') === mo.get('_ownerId') && rec.get('_writable')) return true;
+											return rec.get('_writable');
 										}
 										return false;
 									}

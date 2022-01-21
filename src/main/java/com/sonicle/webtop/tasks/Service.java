@@ -1075,7 +1075,6 @@ public class Service extends BaseService {
 		UserProfile up = getEnv().getProfile();
 		
 		try {
-			String oid = ServletUtils.getStringParameter(request, "oid", true);
 			String op = ServletUtils.getStringParameter(request, "op", true);
 			String uploadId = ServletUtils.getStringParameter(request, "uploadId", true);
 			
@@ -1084,6 +1083,7 @@ public class Service extends BaseService {
 			File file = new File(WT.getTempFolder(), upl.getUploadId());
 			
 			if (op.equals("do")) {
+				String oid = ServletUtils.getStringParameter(request, "oid", true);
 				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
 				ITasksManager.ImportMode mode = ServletUtils.getEnumParameter(request, "importMode", ITasksManager.ImportMode.COPY, ITasksManager.ImportMode.class);
 				

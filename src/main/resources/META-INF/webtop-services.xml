@@ -83,7 +83,6 @@
 			<modelJsClassName>model.UserOptions</modelJsClassName>
 		</userOptions>
 		
-		<restApiEndpoint name=".RestApi" />
 		<restApis>
 			<restApi oasFile="openapi-v1.json" />
 		</restApis>

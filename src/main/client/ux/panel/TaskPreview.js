@@ -33,6 +33,7 @@
 Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 	extend: 'WTA.ux.panel.Panel',
 	requires: [
+		'Sonicle.form.field.Display',
 		'Sonicle.form.field.ColorDisplay',
 		'Sonicle.form.field.TagDisplay',
 		'WTA.util.FoldersTree',
@@ -265,56 +266,51 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							hidden: true,
 							hideLabel: true
 						}, {
-							xtype: 'displayfield',
+							xtype: 'so-displayfield',
 							bind: '{foStatus}',
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							labelClsExtra: 'wt-fa',
-							fieldLabel: '\uf0e4', //fa-tachometer
+							iconCls: 'fa fa-tachometer',
 							tooltip: me.mys.res('taskPreview.single.task.status.lbl')
 						}, {
-							xtype: 'displayfield',
+							xtype: 'so-displayfield',
 							bind: {
 								value: '{foStart}',
 								hidden: '{!foHasStart}'
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							labelClsExtra: 'wt-fa',
-							fieldLabel: '\uf133', //fa-calendar-o
+							iconCls: 'fa fa-calendar-o',
 							tooltip: me.mys.res('taskPreview.single.task.start.lbl')
 						}, {
-							xtype: 'displayfield',
+							xtype: 'so-displayfield',
 							bind: {
 								value: '{foDue}',
 								hidden: '{!foHasDue}'
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							labelClsExtra: 'wt-fa',
-							fieldLabel: '\uf273', //fa-calendar-times-o
+							iconCls: 'fa fa-calendar-times-o',
 							tooltip: me.mys.res('taskPreview.single.task.due.lbl')
 						}, {
-							xtype: 'displayfield',
+							xtype: 'so-displayfield',
 							bind: {
 								value: '{record.location}',
 								hidden: '{!foHasLocation}'
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							labelClsExtra: 'wt-fa',
-							fieldLabel: '\uf041', //fa-map-marker
+							iconCls: 'fa fa-map-marker',
 							tooltip: me.mys.res('taskPreview.single.task.location.lbl')
 						}, {
-							xtype: 'displayfield',
+							xtype: 'so-displayfield',
 							bind: {
 								value: '{record.docRef}',
 								hidden: '{!foHasDocRef}'
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							labelClsExtra: 'wt-fa',
-							fieldLabel: '\uf0f6', //fa-file-text-o
+							iconCls: 'fa fa-file-text-o',
 							tooltip: me.mys.res('taskPreview.single.task.docRef.lbl')
 						}
 					]
