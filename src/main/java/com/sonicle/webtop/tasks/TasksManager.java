@@ -1461,6 +1461,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	public void moveTaskInstance(final boolean copy, final Collection<TaskInstanceId> instanceIds, final int targetCategoryId) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
+		String copyPrefix = lookupResource(getLocale(), "task.copy.prefix");
 		
 		try {
 			checkRightsOnCategory(targetCategoryId, CheckRightsTarget.ELEMENTS, "CREATE");
@@ -1489,8 +1490,23 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						Task origTask = doTaskGet(con, taskId, options);
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
 						
-						TaskInsertResult result = doTaskInstanceCopy(con, info, origTask, targetCategoryId);
+						origTask.prependToSubject(copyPrefix);
+						TaskInsertResult result = doTaskInstanceCopy(con, info, origTask, null, targetCategoryId);
 						copied.add(new AuditTaskCopyObj(result.otask.getTaskId(), origTask.getTaskId()));
+						
+						if (info.hasChildren) {
+							TaskInstanceId parentInstanceId = TaskInstanceId.buildMaster(result.otask.getTaskId());
+							Set<String> childTaskIds = tasDao.selectOnlineIdsByParent(con, info.realTaskId());
+							for (String childTaskId : childTaskIds) {
+								TaskInstanceId childInstanceId = TaskInstanceId.buildMaster(childTaskId);
+								InstanceInfo childInfo = new InstanceInfo(childInstanceId, tasDao.selectInstanceInfo(con, childInstanceId));
+								Task childOrigTask = doTaskGet(con, childInfo.realTaskId(), options);
+								
+								childOrigTask.prependToSubject(copyPrefix);
+								TaskInsertResult result2 = doTaskInstanceCopy(con, childInfo, childOrigTask, parentInstanceId, targetCategoryId);
+								copied.add(new AuditTaskCopyObj(result2.otask.getTaskId(), childOrigTask.getTaskId()));
+							}
+						}
 						
 					} else {
 						if (info.hasParent) throw new WTException("Child task cannot be moved alone. Move its parent instead.");
@@ -2095,7 +2111,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		/**
 		 * Reports if the instance has a parent task.
 		 */
-		//public final boolean hasChildren;
+		public final boolean hasChildren;
 		
 		/**
 		 * Reports if the instance is attributable to a series, whether it is 
@@ -2173,6 +2189,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			if (instanceId.hasNoInstance()) {
 				this.hasParent = otii.getHasParent();
+				this.hasChildren = otii.getHasChildren();
 				this.belongsToSeries = otii.getHasRecurrence();
 				this.masterTaskId = belongsToSeries ? instanceId.getTaskId() : null;
 				this.taskId = instanceId.getTaskId();
@@ -2183,6 +2200,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 			} else {
 				this.hasParent = otii.getHasParent();
+				this.hasChildren = otii.getHasChildren();
 				this.belongsToSeries = otii.getHasRecurrence();
 				this.masterTaskId = belongsToSeries ? instanceId.getTaskId() : null;
 				this.taskId = otii.getTaskIdByInstance();
@@ -2501,9 +2519,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			List<TaskAttachment> oldAttchs = ManagerUtils.createTaskAttachmentList(attcDao.selectByTask(con, taskId));
 			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAttchs, task.getAttachmentsOrEmpty());
 
-			for (TaskAttachment att : changeSet.inserted) {		
-				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");
-				doTaskAttachmentInsert(con, taskId, (TaskAttachmentWithStream)att);
+			for (TaskAttachment att : changeSet.inserted) {
+				if (att instanceof TaskAttachmentWithStream) {
+					doTaskAttachmentInsert(con, taskId, (TaskAttachmentWithStream)att);
+				} else {
+					throw new IOException("Attachment object not supported [" + att.getAttachmentId() + "]");
+				}
 			}
 			for (TaskAttachment att : changeSet.updated) {
 				if (!(att instanceof TaskAttachmentWithStream)) continue;
@@ -2661,11 +2682,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private TaskInsertResult doTaskCopy(Connection con, String sourceTaskId, TaskEx task, int targetCategoryId, BitFlag<TaskProcessOpts> processOptions) throws DAOException, IOException {
+	private TaskInsertResult doTaskCopy(Connection con, String sourceTaskId, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId, BitFlag<TaskProcessOpts> processOptions) throws DAOException, IOException {
 		TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
 		
-		task.setParentInstanceId(null);
+		task.setParentInstanceId(targetParentInstanceId);
 		task.setCategoryId(targetCategoryId);
+		task.setRevisionTimestamp(null); // Reset value in order to make inner function generate new one!
+		task.setRevisionSequence(null); // Reset value in order to make inner function generate new one!
+		task.setCreationTimestamp(null); // Reset value in order to make inner function generate new one!
 		task.setPublicUid(null); // Reset value in order to make inner function generate new one!
 		task.setOrganizer(null); // Reset value in order to make inner function generate new one!
 		task.setOrganizerId(null); // Reset value in order to make inner function generate new one!
@@ -2874,17 +2898,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return true;
 	}
 	
-	private TaskInsertResult doTaskInstanceCopy(Connection con, InstanceInfo info, TaskEx task, int targetCategoryId) throws DAOException, IOException {
+	private TaskInsertResult doTaskInstanceCopy(Connection con, InstanceInfo info, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId) throws DAOException, IOException {
 		String taskId = info.realTaskId();
 		if (info.belongsToSeries && info.isBroken) { // -> BROKEN INSTANCE
-			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
 			recalculateStartForInstanceDate(info.seriesInstanceDate, task);
-			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, BitFlag.of(TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE
-			return doTaskCopy(con, taskId, task, targetCategoryId, BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES));
 		}
 	}
 	
