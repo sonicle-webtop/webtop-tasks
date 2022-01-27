@@ -1453,12 +1453,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public void moveTaskInstance(final boolean copy, final TaskInstanceId instanceId, final int targetCategoryId) throws WTException {
-		moveTaskInstance(copy, Arrays.asList(instanceId), targetCategoryId);
+	public void moveTaskInstance(final MoveCopyMode copyMode, final TaskInstanceId instanceId, final int targetCategoryId) throws WTException {
+		moveTaskInstance(copyMode, Arrays.asList(instanceId), targetCategoryId);
 	}
 	
 	@Override
-	public void moveTaskInstance(final boolean copy, final Collection<TaskInstanceId> instanceIds, final int targetCategoryId) throws WTException {
+	public void moveTaskInstance(final MoveCopyMode copyMode, final Collection<TaskInstanceId> instanceIds, final int targetCategoryId) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		String copyPrefix = lookupResource(getLocale(), "task.copy.prefix");
@@ -1484,8 +1484,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				int categoryId = catMap.get(taskId);
 				checkRightsOnCategory(readOkCache, categoryId, CheckRightsTarget.FOLDER, "READ");
 				
-				if (copy || (targetCategoryId != categoryId)) {
-					if (copy) {
+				if (!MoveCopyMode.NONE.equals(copyMode) || (targetCategoryId != categoryId)) {
+					if (!MoveCopyMode.NONE.equals(copyMode)) {
 						BitFlag<TaskProcessOpts> options = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskGetOptions.ATTACHMENTS, TaskGetOptions.TAGS, TaskGetOptions.CUSTOM_VALUES);
 						Task origTask = doTaskGet(con, taskId, options);
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
@@ -1494,7 +1494,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						TaskInsertResult result = doTaskInstanceCopy(con, info, origTask, null, targetCategoryId);
 						copied.add(new AuditTaskCopyObj(result.otask.getTaskId(), origTask.getTaskId()));
 						
-						if (info.hasChildren) {
+						if (MoveCopyMode.TREE.equals(copyMode) && info.hasChildren) {
 							TaskInstanceId parentInstanceId = TaskInstanceId.buildMaster(result.otask.getTaskId());
 							Set<String> childTaskIds = tasDao.selectOnlineIdsByParent(con, info.realTaskId());
 							for (String childTaskId : childTaskIds) {
@@ -1522,7 +1522,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				if (copy) {
+				if (!MoveCopyMode.NONE.equals(copyMode)) {
 					writeAuditLog(AuditContext.TASK, AuditAction.CREATE, copied);
 				} else {
 					writeAuditLog(AuditContext.TASK, AuditAction.MOVE, moved);

@@ -1949,8 +1949,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				vct = me.createCategoryChooser(copy);
 		
-		vct.on('viewok', function(s, categoryId) {
-			me.moveTask(copy, id, categoryId, opts);
+		vct.on('viewok', function(s, data) {
+			me.moveTask(copy ? (data.deepCopy ? 'tree' : 'root') : 'none', id, data.categoryId, opts);
 		});
 		vct.showView();
 	},
@@ -2207,14 +2207,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	moveTask: function(copy, iids, targetCategoryId, opts) {
+	moveTask: function(copyMode, iids, targetCategoryId, opts) {
 		opts = opts || {};
 		var me = this;
 		
 		WT.ajaxReq(me.ID, 'ManageTask', {
 			params: {
 				crud: 'move',
-				copy: copy,
+				copyMode: copyMode,
 				iids: Sonicle.Utils.toJSONArray(iids),
 				targetCategoryId: targetCategoryId
 			},
@@ -2487,13 +2487,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		createCategoryChooser: function(copy) {
 			var me = this;
+			
 			return WT.createView(me.ID, 'view.CategoryChooser', {
 				swapReturn: true,
 				viewCfg: {
 					dockableConfig: {
 						title: me.res(copy ? 'act-copyTask.lbl' : 'act-moveTask.lbl')
 					},
-					writableOnly: true
+					writableOnly: true,
+					showDeepCopy: copy,
+					defaultFolder: WTA.util.FoldersTree.getDefaultFolder(me.trFolders())
 				}
 			});
 		},
