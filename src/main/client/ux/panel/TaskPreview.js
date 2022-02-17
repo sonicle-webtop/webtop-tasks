@@ -84,7 +84,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						impo = this.get('record.importance'),
 						s = '';
 				if (impo !== 1) s += '<i class="'+TI.buildIcon(impo)+'" aria-hidden="true" '+tipAttrs(TI.buildLabel(impo))+' style="margin-right:5px;font-size:initial"></i>';
-				if (this.get('record.isPrivate') === true) s += '<i class="fa fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
+				if (this.get('record.isPrivate') === true) s += '<i class="fas fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
 				return s + val;
 			}),
 			foCategoryName: WTF.foGetFn('record', 'categoryName', function(val) {
@@ -171,12 +171,12 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				{
 					xtype: 'label',
 					text: me.mys.res('taskPreview.empty.tit'),
-					cls: 'wt-theme-text-tit',
+					cls: 'wt-theme-text-header1',
 					style: 'font-size:1.2em'
 				}, {
 					xtype: 'label',
 					text: me.mys.res('taskPreview.empty.txt'),
-					cls: 'wt-theme-text-sub',
+					cls: 'wt-theme-text-subtitle',
 					style: 'font-size:0.9em'
 				}
 			]
@@ -270,7 +270,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							bind: '{foStatus}',
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa fa-tachometer',
+							iconCls: 'fas fa-tachometer-alt',
 							tooltip: me.mys.res('taskPreview.single.task.status.lbl')
 						}, {
 							xtype: 'so-displayfield',
@@ -280,7 +280,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa fa-calendar-o',
+							iconCls: 'far fa-calendar',
 							tooltip: me.mys.res('taskPreview.single.task.start.lbl')
 						}, {
 							xtype: 'so-displayfield',
@@ -290,7 +290,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa fa-calendar-times-o',
+							iconCls: 'far fa-calendar-times',
 							tooltip: me.mys.res('taskPreview.single.task.due.lbl')
 						}, {
 							xtype: 'so-displayfield',
@@ -300,7 +300,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa fa-map-marker',
+							iconCls: 'fas fa-map-marker-alt',
 							tooltip: me.mys.res('taskPreview.single.task.location.lbl')
 						}, {
 							xtype: 'so-displayfield',
@@ -310,7 +310,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							},
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
-							iconCls: 'fa fa-file-text-o',
+							iconCls: 'far fa-file-alt',
 							tooltip: me.mys.res('taskPreview.single.task.docRef.lbl')
 						}
 					]
@@ -386,7 +386,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 					bind: {
 						text: '{foMultiSelTitle}'
 					},
-					cls: 'wt-theme-text-tit',
+					cls: 'wt-theme-text-header1',
 					style: 'font-size:1.2em'
 				}, {
 					xtype: 'toolbar',

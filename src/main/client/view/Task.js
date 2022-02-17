@@ -172,7 +172,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				return WT.isMeetingUrl(val);
 			}),
 			foContactIconCls: WTF.foGetFn('record', 'contactId', function(val) {
-				return Ext.isEmpty(val) ? '' : 'fa fa-link';
+				return Ext.isEmpty(val) ? '' : 'fas fa-link';
 			})
 		});
 	},
@@ -190,7 +190,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						me.addAct('saveClose', {
 							text: WT.res('act-saveClose.lbl'),
 							tooltip: null,
-							iconCls: 'wt-icon-saveClose-xs',
+							iconCls: 'wt-icon-saveClose',
 							handler: function() {
 								me.saveUI();
 							}
@@ -866,7 +866,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'soactioncolumn',
 						items: [
 							{
-								glyph: 'xf014@FontAwesome',
+								iconCls: 'far fa-trash-alt',
 								tooltip: WT.res('act-remove.lbl'),
 								handler: function(g, ridx) {
 									var rec = g.getStore().getAt(ridx);

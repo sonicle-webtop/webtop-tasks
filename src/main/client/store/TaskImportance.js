@@ -39,9 +39,9 @@ Ext.define('Sonicle.webtop.tasks.store.TaskImportance', {
 	
 	model: 'WTA.ux.data.SimpleIconModel',
 	data: [
-		[9, '', 'fa fa-exclamation wt-theme-text-off'],
+		[9, '', 'fas fa-exclamation wt-theme-text-off'],
 		[5, '', ''],
-		[1, '', 'fa fa-exclamation wt-theme-text-error']
+		[1, '', 'fas fa-exclamation wt-theme-text-error']
 	],
 	
 	constructor: function(cfg) {
@@ -78,9 +78,9 @@ Ext.define('Sonicle.webtop.tasks.store.TaskImportance', {
 		
 		buildIcon: function(impo) {
 			if (impo >= 1 && impo < 5) {
-				return 'fa fa-exclamation wt-theme-text-error'; // High
+				return 'fas fa-exclamation wt-theme-text-error'; // High
 			} else if (impo > 5 && impo <= 9) {
-				return 'fa fa-exclamation wt-theme-text-ok'; // Low
+				return 'fas fa-exclamation wt-theme-text-ok'; // Low
 			} else {
 				return ''; // Normal
 			}
