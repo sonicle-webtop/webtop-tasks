@@ -1892,7 +1892,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					UserProfile.Data ud = WT.getUserData(instance.getCategoryProfileId());
 					if (ud == null) throw new WTException("UserData is null [{}]", instance.getCategoryProfileId());
 					final DateTime profileNow = now.withZone(ud.getTimeZone());
-					final DateTime remindOn = instance.getStart().withZone(ud.getTimeZone()).minusMinutes(instance.getReminder());
+					final DateTime remindOn = instance.getStart().withZone(ud.getTimeZone()).minusMinutes(TaskBase.Reminder.getMinutesValue(instance.getReminder()));
 					if (profileNow.compareTo(remindOn) < 0) {
 						if (shouldLog) logger.debug("[reminders][{}] Skipped: remind instant '{}' not yet reached [{}]", i, remindOn, instance.getId().toString());
 						continue; // Skip if now is not after remindOn

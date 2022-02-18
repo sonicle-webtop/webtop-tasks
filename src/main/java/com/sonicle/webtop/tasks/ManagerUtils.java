@@ -250,7 +250,7 @@ public class ManagerUtils {
 			tgt.setDocumentRef(src.getDocumentRef());
 			tgt.setHref(src.getHref());
 			tgt.setEtag(src.getEtag());
-			tgt.setReminder(src.getReminder());
+			tgt.setReminder(TaskBase.Reminder.valueOf(src.getReminder()));
 			tgt.setContact(src.getContact());
 			tgt.setContactId(src.getContactId());
 		}
@@ -282,7 +282,7 @@ public class ManagerUtils {
 			tgt.setDocumentRef(src.getDocumentRef());
 			tgt.setHref(src.getHref());
 			tgt.setEtag(src.getEtag());
-			tgt.setReminder(src.getReminder());
+			tgt.setReminder(TaskBase.Reminder.getMinutesValue(src.getReminder()));
 			tgt.setContact(src.getContact());
 			tgt.setContactId(src.getContactId());
 		}

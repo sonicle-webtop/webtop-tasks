@@ -48,6 +48,7 @@ import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.ShareRootCategory;
+import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import jakarta.mail.internet.InternetAddress;
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public class JsTaskPreview {
         this.importance = item.getImportance();
         this.isPrivate = item.getIsPrivate();
 		this.docRef = item.getDocumentRef();
-		this.reminder = item.getReminder();
+		this.reminder =	TaskBase.Reminder.getMinutesValue(item.getReminder());
 		InternetAddress cia = InternetAddressUtils.toInternetAddress(item.getContact());
 		if (cia != null) this.contactEmail = cia.getAddress();
 		this.tags = CId.build(item.getTags()).toString();

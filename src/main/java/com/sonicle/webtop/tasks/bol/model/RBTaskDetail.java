@@ -41,6 +41,7 @@ import com.sonicle.webtop.tasks.TasksUtils;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.ShareRootCategory;
+import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import java.util.Date;
 import org.joda.time.DateTimeZone;
@@ -86,7 +87,7 @@ public class RBTaskDetail {
 		this.status = EnumUtils.toSerializedName(task.getStatus());
 		this.importance = String.valueOf(task.getImportance());
 		this.isPrivate = task.getIsPrivate();
-		this.reminder = task.getReminder();
+		this.reminder =	TaskBase.Reminder.getMinutesValue(task.getReminder());
 		this.documentRef = task.getDocumentRef();
 		if (task.hasRecurrence()) {
 			this.recurrenceHRFreqText = rrStringify.toHumanReadableFrequencyQuietly(task.getRecurrence().getRule());
