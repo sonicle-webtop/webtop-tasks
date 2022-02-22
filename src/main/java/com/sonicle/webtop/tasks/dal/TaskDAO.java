@@ -51,10 +51,7 @@ import com.sonicle.webtop.tasks.jooq.tables.Tasks;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksRecord;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskBase;
-import com.sonicle.webtop.tasks.model.TaskInstance;
 import com.sonicle.webtop.tasks.model.TaskInstanceId;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
@@ -68,7 +65,6 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.Result;
-import org.jooq.Table;
 import org.jooq.UpdateSetMoreStep;
 import org.jooq.impl.DSL;
 import static org.jooq.impl.DSL.*;
@@ -113,7 +109,6 @@ public class TaskDAO extends BaseDAO {
 						.and(TASKS.SERIES_INSTANCE_ID.equal(instanceId.getInstance()))
 					)
 				).as("task_id_by_instance"),
-				/*
 				field(exists(
 					selectOne()
 					.from(TASKS)
@@ -121,7 +116,6 @@ public class TaskDAO extends BaseDAO {
 						TASKS.PARENT_TASK_ID.equal(instanceId.getTaskId())
 					)
 				)).as("has_children"),
-				*/
 				coalesce(
 					field(
 						select(
@@ -144,6 +138,23 @@ public class TaskDAO extends BaseDAO {
 					)
 				).as("timezone")
 			).fetchOneInto(OTaskInstanceInfo.class);
+	}
+	
+	public Set<String> selectOnlineIdsByParent(Connection con, String parentTaskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS.TASK_ID
+			)
+			.from(TASKS)
+			.where(
+				TASKS.PARENT_TASK_ID.in(parentTaskId)
+				.and(
+					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.NEW))
+					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.MODIFIED)))
+				)
+			)
+			.fetchSet(TASKS.TASK_ID);
 	}
 	
 	public String selectIdBySeriesInstance(Connection con, String seriesTaskId, String seriesInstance) throws DAOException {

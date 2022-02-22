@@ -46,6 +46,7 @@ public class JsCategoryLkp {
 	public String name;
 	public String color;
 	public Boolean tasPrivate;
+	public Integer tasReminder;
 	public Boolean _default;
 	public String _profileId;
 	public String _profileDescription;
@@ -57,6 +58,7 @@ public class JsCategoryLkp {
 		this.name = cat.getName();
 		this.color = cat.getColor();
 		this.tasPrivate = cat.getIsPrivate();
+		this.tasReminder = cat.getDefaultReminder();
 		this._default = isDefault;
 		this._profileId = cat.getProfileId().toString();
 	}

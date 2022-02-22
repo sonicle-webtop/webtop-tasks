@@ -111,6 +111,7 @@ public class ManagerUtils {
 			tgt.setColor(src.getColor());
 			tgt.setSync(EnumUtils.forSerializedName(src.getSync(), Category.Sync.class));
 			tgt.setIsPrivate(src.getIsPrivate());
+			tgt.setDefaultReminder(src.getReminder());
 		}
 		return tgt;
 	}
@@ -131,6 +132,7 @@ public class ManagerUtils {
 			tgt.setColor(src.getColor());
 			tgt.setSync(EnumUtils.toSerializedName(src.getSync()));
 			tgt.setIsPrivate(src.getIsPrivate());
+			tgt.setReminder(src.getDefaultReminder());
 		}
 		return tgt;
 	}
@@ -142,8 +144,8 @@ public class ManagerUtils {
 			if (tgt.getBuiltIn() == null) tgt.setBuiltIn(false);
 			if (StringUtils.isBlank(tgt.getColor())) tgt.setColor("#FFFFFF");
 			if (StringUtils.isBlank(tgt.getSync())) tgt.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
-			if (tgt.getIsDefault() == null) tgt.setIsDefault(false);
 			if (tgt.getIsPrivate() == null) tgt.setIsPrivate(false);
+			if (tgt.getIsDefault() == null) tgt.setIsDefault(false); // Deprecated: remove when DB field will be deleted!
 		}
 		return tgt;
 	}
@@ -250,7 +252,7 @@ public class ManagerUtils {
 			tgt.setDocumentRef(src.getDocumentRef());
 			tgt.setHref(src.getHref());
 			tgt.setEtag(src.getEtag());
-			tgt.setReminder(src.getReminder());
+			tgt.setReminder(TaskBase.Reminder.valueOf(src.getReminder()));
 			tgt.setContact(src.getContact());
 			tgt.setContactId(src.getContactId());
 		}
@@ -282,7 +284,7 @@ public class ManagerUtils {
 			tgt.setDocumentRef(src.getDocumentRef());
 			tgt.setHref(src.getHref());
 			tgt.setEtag(src.getEtag());
-			tgt.setReminder(src.getReminder());
+			tgt.setReminder(TaskBase.Reminder.getMinutesValue(src.getReminder()));
 			tgt.setContact(src.getContact());
 			tgt.setContactId(src.getContactId());
 		}

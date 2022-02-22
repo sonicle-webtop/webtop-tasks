@@ -681,13 +681,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'soiconcolumn',
 					dataIndex: 'reminder',
 					getIconCls: function(v, rec) {
-						return v !== null ? 'fa fa-bell-o' : '';
+						return v !== null ? 'far fa-bell' : '';
 					},
 					getTip: function(v, rec) {
 						return v !== null ? me.res('store.taskReminder.'+v) : null;
 					},
 					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fa fa-bell'),
+					header: WTF.headerWithGlyphIcon('fas fa-bell'),
 					sortable: nest ? false : true,
 					width: 35
 				}, {
@@ -701,7 +701,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 					},
 					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fa fa-exclamation'),
+					header: WTF.headerWithGlyphIcon('fas fa-exclamation'),
 					sortable: nest ? false : true,
 					width: 30
 				}, {
@@ -715,7 +715,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+v);
 					},
 					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fa fa-tachometer'),
+					header: WTF.headerWithGlyphIcon('fas fa-tachometer-alt'),
 					sortable: nest ? false : true,
 					width: 35
 				}, {
@@ -742,8 +742,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return me.res('gptasks.type.'+type+'.tip');
 					},
 					collapseDisabled: true,
-					collapsedIconCls: 'fa-angle-down',
-					expandedIconCls: 'fa-angle-down',
+					collapsedIconCls: 'fas fa-angle-down',
+					expandedIconCls: 'fas fa-angle-down',
 					hierarchySymbolExtraCls: 'wt-theme-text-lighter1',
 					isParentField: 'isParent',
 					isChildField: 'isChild',
@@ -773,7 +773,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						else if (rec.isSeriesItem()) type = 'seriesItem';
 						return me.res('gptasks.type.'+type+'.tip');
 					},
-					header: WTF.headerWithGlyphIcon('fa fa-file-o'),
+					header: WTF.headerWithGlyphIcon('far fa-file'),
 					sortable: nest ? false : true,
 					width: 30
 				}, {
@@ -790,8 +790,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+rec.get('status'));
 					},
 					collapseDisabled: true,
-					collapsedIconCls: 'fa-angle-down',
-					expandedIconCls: 'fa-angle-down',
+					collapsedIconCls: 'fas fa-angle-down',
+					expandedIconCls: 'fas fa-angle-down',
 					hierarchySymbolExtraCls: 'wt-theme-text-lighter1',
 					isParentField: 'isParent',
 					isChildField: 'isChild',
@@ -923,18 +923,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'soactioncolumn',
 					items: [
 						{
-							iconCls: 'fa fa-check',
+							iconCls: 'fas fa-check',
 							tooltip: me.res('act-setTaskCompleted.lbl'),
 							handler: function(g, ridx) {
 								var rec = g.getStore().getAt(ridx);
 								me.completeTasksUI(rec);
 							},
-							isDisabled: function(s, ridx, cidx, itm, rec) {
+							isActionDisabled: function(s, ridx, cidx, itm, rec) {
 								return rec.isCompleted();
 							}
 						}, {
-							iconCls: 'fa fa-trash-o',
-							tooltip: WT.res('act-remove.lbl'),
+							iconCls: 'far fa-trash-alt',
+							tooltip: WT.res('act-delete.lbl'),
 							handler: function(g, ridx) {
 								var rec = g.getStore().getAt(ridx);
 								me.deleteTasksUI([rec]);
@@ -1130,7 +1130,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('setTaskCompleted', {
 			tooltip: null,
-			//iconCls: 'fa fa-check wt-theme-text-off',
+			//iconCls: 'fas fa-check wt-theme-text-off',
 			handler: function(s, e) {
 				//var sel = e.getContextMenuData('task') || me.getSelectedTasks();
 				me.completeTasksUI(me.getSelectedTasks());
@@ -1949,8 +1949,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this,
 				vct = me.createCategoryChooser(copy);
 		
-		vct.on('viewok', function(s, categoryId) {
-			me.moveTask(copy, id, categoryId, opts);
+		vct.on('viewok', function(s, data) {
+			me.moveTask(copy ? (data.deepCopy ? 'tree' : 'root') : 'none', id, data.categoryId, opts);
 		});
 		vct.showView();
 	},
@@ -2207,14 +2207,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	moveTask: function(copy, iids, targetCategoryId, opts) {
+	moveTask: function(copyMode, iids, targetCategoryId, opts) {
 		opts = opts || {};
 		var me = this;
 		
 		WT.ajaxReq(me.ID, 'ManageTask', {
 			params: {
 				crud: 'move',
-				copy: copy,
+				copyMode: copyMode,
 				iids: Sonicle.Utils.toJSONArray(iids),
 				targetCategoryId: targetCategoryId
 			},
@@ -2451,6 +2451,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			if (Ext.isDefined(data.progress)) obj.progress = data.progress;
 			if (Ext.isDefined(data.status)) obj.status = data.status;
 			if (Ext.isDefined(data.importance)) obj.importance = data.importance;
+			if (Ext.isDefined(data.visibility)) obj.isPrivate = (data.visibility === 'private');
 			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
 			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
 			
@@ -2487,13 +2488,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		createCategoryChooser: function(copy) {
 			var me = this;
+			
 			return WT.createView(me.ID, 'view.CategoryChooser', {
 				swapReturn: true,
 				viewCfg: {
 					dockableConfig: {
 						title: me.res(copy ? 'act-copyTask.lbl' : 'act-moveTask.lbl')
 					},
-					writableOnly: true
+					writableOnly: true,
+					showDeepCopy: copy,
+					defaultFolder: WTA.util.FoldersTree.getDefaultFolder(me.trFolders())
 				}
 			});
 		},

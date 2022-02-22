@@ -38,6 +38,7 @@ import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
+import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -92,7 +93,7 @@ public class JsGridTask {
         this.importance = task.getImportance();
         this.isPrivate = task.getIsPrivate();
 		this.docRef = task.getDocumentRef();
-		this.reminder = task.getReminder();
+		this.reminder =	TaskBase.Reminder.getMinutesValue(task.getReminder());
 		this.tags = task.getTags();
 		this.hasRecur = task.getHasRecurrence();
         this.categoryId = task.getCategoryId();

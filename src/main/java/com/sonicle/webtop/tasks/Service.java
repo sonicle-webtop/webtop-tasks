@@ -994,11 +994,11 @@ public class Service extends BaseService {
 					.collect(Collectors.toList());
 				//String iid = ServletUtils.getStringParameter(request, "iid", true);
 				Integer categoryId = ServletUtils.getIntParameter(request, "targetCategoryId", true);
-				boolean copy = ServletUtils.getBooleanParameter(request, "copy", false);
+				ITasksManager.MoveCopyMode copyMode = ServletUtils.getEnumParameter(request, "copyMode", ITasksManager.MoveCopyMode.NONE, ITasksManager.MoveCopyMode.class);
 				
 				//TaskInstanceId instanceId = TaskInstanceId.parse(iid);
 				//manager.moveTaskInstance(copy, instanceId, categoryId);
-				manager.moveTaskInstance(copy, iids, categoryId);
+				manager.moveTaskInstance(copyMode, iids, categoryId);
 				new JsonResult().printTo(out);
 			}
 			
@@ -1362,6 +1362,8 @@ public class Service extends BaseService {
 		node.put("_sync", EnumUtils.toSerializedName(sync));
 		node.put("_default", isDefault);
 		node.put("_active", active);
+		node.put("_isPrivate", cat.getIsPrivate());
+		node.put("_defReminder", cat.getDefaultReminder());
 		if (!chooser) node.setChecked(active);
 		
 		return node;

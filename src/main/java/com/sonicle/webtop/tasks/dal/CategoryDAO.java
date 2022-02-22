@@ -221,7 +221,8 @@ public class CategoryDAO extends BaseDAO {
 			.set(CATEGORIES.COLOR, item.getColor())
 			.set(CATEGORIES.SYNC, item.getSync())
             .set(CATEGORIES.IS_PRIVATE, item.getIsPrivate())
-			.set(CATEGORIES.IS_DEFAULT, item.getIsDefault())
+			.set(CATEGORIES.REMINDER, item.getReminder())
+			.set(CATEGORIES.IS_DEFAULT, item.getIsDefault()) // Deprecated: remove when DB field will be deleted!
 			.where(
 				CATEGORIES.CATEGORY_ID.equal(item.getCategoryId())
 			)

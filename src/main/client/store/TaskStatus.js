@@ -39,11 +39,11 @@ Ext.define('Sonicle.webtop.tasks.store.TaskStatus', {
 	
 	model: 'WTA.ux.data.SimpleIconModel',
 	data: [
-		['NA', '', 'fa fa-pause-circle-o wt-theme-text-error'],
-		['CO', '', 'fa fa-check wt-theme-text-off'],
-		['IP', '', 'fa fa-play-circle-o wt-theme-text-ok'],
-		['CA', '', 'fa fa-history wt-theme-text-alt'],
-		['WA', '', 'fa fa-hand-paper-o wt-theme-text-warn']
+		['NA', '', 'far fa-pause-circle wt-theme-text-error'],
+		['CO', '', 'fas fa-check wt-theme-text-off'],
+		['IP', '', 'far fa-play-circle wt-theme-text-ok'],
+		['CA', '', 'fas fa-history wt-theme-text-alt'],
+		['WA', '', 'far fa-hand-paper wt-theme-text-warn']
 	],
 	
 	constructor: function(cfg) {
@@ -57,11 +57,11 @@ Ext.define('Sonicle.webtop.tasks.store.TaskStatus', {
 	statics: {
 		buildIcon: function(id) {
 			return {
-				'NA': 'fa fa-pause-circle-o wt-theme-text-error',
-				'CO': 'fa fa-check wt-theme-text-off',
-				'IP': 'fa fa-play-circle-o wt-theme-text-ok',
-				'CA': 'fa fa-history wt-theme-text-alt',
-				'WA': 'fa fa-hand-paper-o wt-theme-text-warn'
+				'NA': 'far fa-pause-circle wt-theme-text-error',
+				'CO': 'fas fa-check wt-theme-text-off',
+				'IP': 'far fa-play-circle wt-theme-text-ok',
+				'CA': 'fas fa-history wt-theme-text-alt',
+				'WA': 'far fa-hand-paper wt-theme-text-warn'
 			}[id];
 		}
 	}

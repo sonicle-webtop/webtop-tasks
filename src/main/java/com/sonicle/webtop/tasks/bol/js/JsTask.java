@@ -116,7 +116,7 @@ public class JsTask {
 		this.importance = task.getImportance();
 		this.isPrivate = task.getIsPrivate();
 		this.docRef = task.getDocumentRef();
-		this.reminder = task.getReminder();
+		this.reminder =	TaskBase.Reminder.getMinutesValue(task.getReminder());
 		this.contact = task.getContact();
 		this.contactId = task.getContactId();
 		if (task.getRecurrence() != null) {
@@ -185,7 +185,7 @@ public class JsTask {
 		item.setImportance(importance);
 		item.setIsPrivate(isPrivate);
 		item.setDocumentRef(docRef);
-		item.setReminder(reminder);
+		item.setReminder(TaskBase.Reminder.valueOf(reminder));
 		item.setContact(contact);
 		item.setContactId(contactId);
 		
@@ -241,7 +241,7 @@ public class JsTask {
 		item.setImportance(importance);
 		item.setIsPrivate(isPrivate);
 		item.setDocumentRef(docRef);
-		item.setReminder(reminder);
+		item.setReminder(TaskBase.Reminder.valueOf(reminder));
 		item.setContact(contact);
 		item.setContactId(contactId);
 		

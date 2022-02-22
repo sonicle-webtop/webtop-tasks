@@ -311,7 +311,7 @@ public class Eas extends EasApi {
 				.complOn(DateTimeUtils.print(ISO_DATETIME_FMT, task.getCompletedOn()))
 				.impo((int)task.getImportance())
 				.prvt(task.getIsPrivate())
-				//.reminder(event.getReminder())
+				//.reminder(task.getReminder())
 				.notes(task.getDescription());
 	}
 	

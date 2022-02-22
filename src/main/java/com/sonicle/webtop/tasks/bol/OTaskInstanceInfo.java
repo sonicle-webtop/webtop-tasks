@@ -38,7 +38,7 @@ package com.sonicle.webtop.tasks.bol;
  */
 public class OTaskInstanceInfo {
 	protected Boolean hasParent;
-	//protected Boolean hasChildren;
+	protected Boolean hasChildren;
 	protected Boolean hasRecurrence;
 	protected String taskIdByInstance;
 	protected String timezone;
@@ -51,7 +51,6 @@ public class OTaskInstanceInfo {
 		this.hasParent = hasParent;
 	}
 	
-	/*
 	public Boolean getHasChildren() {
 		return hasChildren;
 	}
@@ -59,7 +58,6 @@ public class OTaskInstanceInfo {
 	public void setHasChildren(Boolean hasChildren) {
 		this.hasChildren = hasChildren;
 	}
-	*/
 	
 	public Boolean getHasRecurrence() {
 		return hasRecurrence;
