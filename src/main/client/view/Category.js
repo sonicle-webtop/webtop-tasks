@@ -36,7 +36,8 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 	requires: [
 		'Sonicle.form.field.Palette',
 		'Sonicle.form.RadioGroup',
-		'Sonicle.webtop.tasks.store.Sync'
+		'Sonicle.webtop.tasks.store.Sync',
+		'Sonicle.webtop.tasks.store.TaskReminder'
 	],
 	
 	dockableConfig: {
@@ -50,10 +51,11 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 	
 	constructor: function(cfg) {
 		var me = this;
+		me.visibilityName = Ext.id(null, 'visibility-');
 		me.callParent([cfg]);
 		
 		WTU.applyFormulas(me.getVM(), {
-			isPrivate: WTF.checkboxBind('record', 'isPrivate')
+			visibility: WTF.radioGroupBind('record', 'isPrivate', me.visibilityName)
 		});
 	},
 	
@@ -94,25 +96,56 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 					fieldLabel: me.mys.res('category.fld-name.lbl'),
 					anchor: '100%'
 				}, {
-				   xtype: 'textareafield',
-				   bind: '{record.description}',
-				   fieldLabel: me.mys.res('category.fld-description.lbl'),
-				   anchor: '100%'
-			   },
-			   WTF.lookupCombo('id', 'desc', {
-				   bind: '{record.sync}',
-				   store: Ext.create('Sonicle.webtop.tasks.store.Sync', {
-					   autoLoad: true
-				   }),
-				   fieldLabel: me.mys.res('category.fld-sync.lbl'),
-				   width: 250
-			   }),
-			   {
-				   xtype: 'checkbox',
-				   bind: '{isPrivate}',
-				   hideEmptyLabel: false,
-				   boxLabel: me.mys.res('category.fld-private.lbl')
-			   }
+					xtype: 'textareafield',
+					bind: '{record.description}',
+					fieldLabel: me.mys.res('category.fld-description.lbl'),
+					anchor: '100%'
+				},
+				WTF.lookupCombo('id', 'desc', {
+					bind: '{record.sync}',
+					store: {
+						xclass: 'Sonicle.webtop.tasks.store.Sync',
+						autoLoad: true
+					},
+					fieldLabel: me.mys.res('category.fld-sync.lbl'),
+					width: 250
+				}),
+				{
+					xtype: 'soformseparator',
+					title: me.mys.res('category.defaults.tit')
+				},
+				{
+					xtype: 'radiogroup',
+					bind: '{visibility}',
+					layout: 'hbox',
+					defaults: {
+						name: me.visibilityName,
+						margin: '0 20 0 0'
+					},
+					items: [
+						{
+							inputValue: false,
+							boxLabel: me.mys.res('category.fld-visibility.default')
+						}, {
+							inputValue: true,
+							boxLabel: me.mys.res('category.fld-visibility.private')
+						}
+					],
+					fieldLabel: me.mys.res('category.fld-visibility.lbl')
+				},
+				WTF.lookupCombo('id', 'desc', {
+					bind: '{record.reminder}',
+					store: {
+						xclass: 'Sonicle.webtop.tasks.store.TaskReminder',
+						autoLoad: true
+					},
+					triggers: {
+						clear: WTF.clearTrigger()
+					},
+					emptyText: WT.res('word.none.male'),
+					fieldLabel: me.mys.res('category.fld-reminder.lbl'),
+					width: 110+140
+				})
 			]
 		});
 		me.on('viewload', me.onViewLoad);

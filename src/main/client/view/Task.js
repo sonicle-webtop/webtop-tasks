@@ -281,7 +281,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							width: 400,
 							listeners: {
 								select: function(s, rec) {
-									me.setCategoryDefaults(rec);
+									me.setCategoryDefaults(rec, true);
 								}
 							}
 						})
@@ -1042,12 +1042,11 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			};
 		},
 		
-		setCategoryDefaults: function(cat) {
+		setCategoryDefaults: function(cat, force) {
 			var mo = this.getModel();
 			if (mo) {
-				mo.set({
-					isPrivate: cat.get('tasPrivate')
-				});
+				if (force || mo.get('isPrivate') === null) mo.set('isPrivate', cat.get('tasPrivate'), {dirty: false});
+				if (force || mo.get('reminder') === null) mo.set('reminder', cat.get('tasReminder'), {dirty: false});
 			}
 		},
 		

@@ -1362,6 +1362,8 @@ public class Service extends BaseService {
 		node.put("_sync", EnumUtils.toSerializedName(sync));
 		node.put("_default", isDefault);
 		node.put("_active", active);
+		node.put("_isPrivate", cat.getIsPrivate());
+		node.put("_defReminder", cat.getDefaultReminder());
 		if (!chooser) node.setChecked(active);
 		
 		return node;

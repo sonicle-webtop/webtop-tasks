@@ -49,6 +49,7 @@ public class JsCategory {
 	public String color;
 	public String sync;
 	public Boolean isPrivate;
+	public Integer reminder;
 	
 	public JsCategory(Category cat) {
 		categoryId = cat.getCategoryId();
@@ -60,6 +61,7 @@ public class JsCategory {
 		color = cat.getColor();
 		sync = EnumUtils.toSerializedName(cat.getSync());
 		isPrivate = cat.getIsPrivate();
+		reminder = cat.getDefaultReminder();
 	}
 	
 	public static Category createFolder(JsCategory js) {
@@ -73,6 +75,7 @@ public class JsCategory {
 		cat.setColor(js.color);
 		cat.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
 		cat.setIsPrivate(js.isPrivate);
+		cat.setDefaultReminder(js.reminder);
 		return cat;
 	}
 }

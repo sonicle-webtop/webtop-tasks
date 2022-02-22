@@ -63,7 +63,8 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 * @param {Number} [data.progress] The progress percentage (integer value between 0-100).
 	 * @param {NA|CO|IP|CA|WA} [data.status] The completion status.
 	 * @param {9|5|1} [data.importance] The assigned importance: 9 = Low, 5 = Normal/Medium, 1 = High.
-	 * @param {0|5|10|15|30|45|60|120|180|240|300|360|420|480|540|600|660|720|1080|1440|2880|10080|20160} [data.reminder] Minutes before start at which set reminder.
+	 * @param {0|5|10|15|30|45|60|120|180|240|300|360|420|480|540|600|660|720|1080|1440|2880|10080|20160|43200} [data.reminder] Minutes before start at which set reminder.
+	 * @param {default|private} [data.visibility] Visibility value.
 	 * @param {String} [data.docRef] The reference document.
 	 * @param {Object} opts An object containing configuration.
 	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
