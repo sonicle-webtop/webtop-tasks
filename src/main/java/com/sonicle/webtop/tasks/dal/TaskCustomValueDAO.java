@@ -75,6 +75,7 @@ public class TaskCustomValueDAO extends BaseDAO {
 	}
 	
 	public int[] batchInsert(Connection con, Collection<OTaskCustomValue> values) throws DAOException {
+		if (values.isEmpty()) return new int[0];
 		DSLContext dsl = getDSL(con);
 		BatchBindStep batch = dsl.batch(
 			dsl.insertInto(TASKS_CUSTOM_VALUES, 
