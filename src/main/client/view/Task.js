@@ -35,6 +35,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.String',
+		'Sonicle.Utils',
 		'Sonicle.form.Text',
 		'Sonicle.form.field.ComboBox',
 		'Sonicle.form.field.TagDisplay',
@@ -1022,7 +1023,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							size: file.size,
 							_uplId: uploadId
 						}));
-						me.lref('tpnlmain').getLayout().setActiveItem(s);
+						me.lref('tpnlmain').setActiveItem(s);
 					}
 				}
 			};
@@ -1038,7 +1039,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					store: '{record.cvalues}',
 					fieldsDefs: '{record._cfdefs}'
 				},
-				defaultLabelWidth: 120
+				serviceId: me.mys.ID,
+				defaultLabelWidth: 120,
+				listeners: {
+					prioritize: function(s) {
+						me.lref('tpnlmain').setActiveItem(s);
+					}
+				}
 			};
 		},
 		
@@ -1120,7 +1127,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			var me = this;
 			WT.ajaxReq(me.mys.ID, 'GetCustomFieldsDefsData', {
 				params: {
-					tags: WTU.arrayAsParam(tags),
+					tags: Sonicle.Utils.toJSONArray(tags),
 					iid: me.getModel().phantom ? null : iid
 				},
 				callback: function(success, json) {
