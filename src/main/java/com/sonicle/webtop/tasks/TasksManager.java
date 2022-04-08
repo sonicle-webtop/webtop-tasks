@@ -38,7 +38,6 @@ import com.sonicle.commons.IdentifierUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.LangUtils.CollectionChangeSet;
 import com.sonicle.commons.db.DbUtils;
-import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
@@ -224,7 +223,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			rootShareId = shareCache.getShareRootIdByFolderId(categoryId);
 		}
 		if (rootShareId == null) throw new WTException("Unable to find a root share [{0}]", categoryId);
-		return new CompositeId().setTokens(rootShareId, categoryId).toString();
+		return CId.build(rootShareId, categoryId).toString();
 	}
 	
 	public Sharing getSharing(String shareId) throws WTException {
