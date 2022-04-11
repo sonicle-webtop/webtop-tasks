@@ -2132,6 +2132,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
 	addTask2: function(data, opts) {
@@ -2149,6 +2150,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				dirty: opts.dirty
 			});
 		});
+		return vw;
 	},
 	
 	addSubTask: function(categoryId, parentId, parentSubject, opts) {
@@ -2168,10 +2170,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
 	editTask: function(id, opts) {
-		this.openTask(true, id, opts);
+		return this.openTask(true, id, opts);
 	},
 	
 	openTask: function(edit, id, opts) {
@@ -2190,6 +2193,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
 	deleteTasks: function(iids, opts) {
@@ -2440,9 +2444,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		parseTaskApiData: function(data) {
 			data = data || {};
-			var obj = {};
+			var me = this,
+				WTFT = WTA.util.FoldersTree,
+				tree = me.trFolders(),
+				folder = WTFT.getFolderForAdd(tree, data.categoryId),
+				obj = {};
 			
-			obj.categoryId = WTA.util.FoldersTree.getFolderForAdd(this.trFolders(), data.categoryId).getFolderId();
+			obj.categoryId = folder ? folder.getFolderId() : WTFT.getDefaultOrBuiltInFolder(tree);
+			if (Ext.isDefined(data.parentId)) {
+				obj.parentId = data.parentId;
+				if (Ext.isDefined(data.parentSubject)) {
+					obj._parentSubject = data.parentSubject;
+				}
+			}
 			if (Ext.isDefined(data.subject)) obj.subject = data.subject;
 			if (Ext.isDefined(data.location)) obj.location = data.location;
 			if (Ext.isDefined(data.description)) obj.description = data.description;

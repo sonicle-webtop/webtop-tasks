@@ -50,11 +50,35 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 		} else {
 			Ext.raise('Reminder type not supported [' + type + ']');
 		}
-	},	
+	},
+	
+	/**
+	 * Opens a task using the choosen editing mode, defaults to edit.
+	 * @param {String} id The task instance ID.
+	 * @param {Object} opts An object containing configuration.
+	 * @param {edit|view} [opts.mode="edit"] Opening mode.
+	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
+	 * @param {Object} [opts.scope] The callback method scope.
+	 * @param {Boolean} [opts.dirty] The dirty state of the model.
+	 * @param {Boolean} [opts.uploadTag] A custom upload tag.
+	 * @returns {WTA.sdk.ModelView}
+	 */
+	openTask(id, opts) {
+		opts = opts || {};
+		return this.service.openTask(opts.mode === 'view' ? false : true, id, {
+			callback: opts.callback,
+			scope: opts.scope,
+			dirty: opts.dirty,
+			uploadTag: opts.uploadTag
+		});
+	},
 	
 	/**
 	 * Starts adding a new task opening editing view.
 	 * @param {Object} data data An object containing entity data.
+	 * @param {String} [data.categoryId] The category ID in which to add the item.
+	 * @param {String} [data.parentId] The ID of parent task in order to add this as sub-task.
+	 * @param {String} [data.parentSubject] The subject of parent task in order to add this as sub-task. Optional, only for better UI management.
 	 * @param {String} [data.subject] The subject.
 	 * @param {String} [data.location] The location.
 	 * @param {String} [data.description] The extended description.
