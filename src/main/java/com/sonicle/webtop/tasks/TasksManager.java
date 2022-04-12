@@ -133,7 +133,7 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import com.sonicle.commons.BitFlagEnum;
 import com.sonicle.commons.beans.SortInfo;
-import com.sonicle.commons.concurrent.KeyedReentrantLocks;
+import com.sonicle.commons.concurrent.KeyedReentrantLocksNew;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.time.InstantRange;
 import com.sonicle.commons.web.json.CId;
@@ -159,6 +159,7 @@ import com.sonicle.webtop.tasks.model.TaskRecurrence;
 import jakarta.mail.internet.InternetAddress;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.concurrent.TimeUnit;
 import net.fortuna.ical4j.data.ParserException;
 import net.sf.qualitycheck.Check;
 import org.apache.commons.collections4.MultiValuedMap;
@@ -178,7 +179,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private final OwnerCache ownerCache = new OwnerCache();
 	private final ShareCache shareCache = new ShareCache();
-	private final KeyedReentrantLocks locks = new KeyedReentrantLocks<String>();
+	private final KeyedReentrantLocksNew<String> locks = new KeyedReentrantLocksNew<>();
 	
 	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
@@ -394,19 +395,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TasksUserSettings us = new TasksUserSettings(SERVICE_ID, getTargetProfileId());
 		
 		Integer categoryId = null;
-		try (KeyedReentrantLocks.KeyedLock lock = locks.tryAcquire("getDefaultCategoryId", 60 * 1000)) {
-			if (lock != null) {
-				categoryId = us.getDefaultCategoryFolder();
-				if (categoryId == null || !quietlyCheckRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "CREATE")) {
-					try {
-						categoryId = getBuiltInCategoryId();
-						if (categoryId == null) throw new WTException("Built-in category is null");
-						us.setDefaultCategoryFolder(categoryId);
-					} catch (Throwable t) {
-						logger.error("Unable to get built-in category", t);
-					}
+		try {
+			locks.tryLock("getDefaultCategoryId", 60, TimeUnit.SECONDS);
+			categoryId = us.getDefaultCategoryFolder();
+			if (categoryId == null || !quietlyCheckRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "CREATE")) {
+				try {
+					categoryId = getBuiltInCategoryId();
+					if (categoryId == null) throw new WTException("Built-in category is null");
+					us.setDefaultCategoryFolder(categoryId);
+				} catch (Throwable t) {
+					logger.error("Unable to get built-in category", t);
 				}
 			}
+		} catch (InterruptedException ex) {
+			// Do nothing...
+		} finally {
+			locks.unlock("getDefaultCategoryId");
 		}
 		return categoryId;
 	}
