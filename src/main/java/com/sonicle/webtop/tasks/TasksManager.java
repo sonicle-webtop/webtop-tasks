@@ -133,7 +133,7 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import com.sonicle.commons.BitFlagEnum;
 import com.sonicle.commons.beans.SortInfo;
-import com.sonicle.commons.concurrent.KeyedReentrantLocksNew;
+import com.sonicle.commons.concurrent.KeyedReentrantLocks;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.time.InstantRange;
 import com.sonicle.commons.web.json.CId;
@@ -179,7 +179,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private final OwnerCache ownerCache = new OwnerCache();
 	private final ShareCache shareCache = new ShareCache();
-	private final KeyedReentrantLocksNew<String> locks = new KeyedReentrantLocksNew<>();
+	private final KeyedReentrantLocks<String> locks = new KeyedReentrantLocks<>();
 	
 	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
