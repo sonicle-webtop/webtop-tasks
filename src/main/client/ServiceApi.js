@@ -63,7 +63,7 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 * @param {Boolean} [opts.uploadTag] A custom upload tag.
 	 * @returns {WTA.sdk.ModelView}
 	 */
-	openTask(id, opts) {
+	openTask: function(id, opts) {
 		opts = opts || {};
 		return this.service.openTask(opts.mode === 'view' ? false : true, id, {
 			callback: opts.callback,
