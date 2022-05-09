@@ -1852,7 +1852,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	openTaskUI: function(edit, id, series) {
 		var me = this,
-				id2 = (series === true) ? me.toSeriesId(id) : id;
+			id2 = (series === true) ? Sonicle.webtop.tasks.Service.taskInstanceIdToSeriesId(id) : id;
 		
 		me.openTask(edit, id2, {
 			callback: function(success) {
@@ -2321,10 +2321,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}
 	},
 	
-	toSeriesId: function(id) {
-		return Sonicle.String.substrBefore(id, '.') + '.00000000';
-	},
-	
 	/**
 	 * @private
 	 */
@@ -2528,6 +2524,32 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (arr.length === 0) return false;
 			});
 			return arr;
+		}
+	},
+	
+	statics: {
+		
+		/**
+		 * Builds a Task instance ID from passed parameters.
+		 * @param {String} taskId The task ID.
+		 * @param {String} [yyyymmdd] The instance Data in format 'yyyymmdd'.
+		 * @returns {String}
+		 */
+		createTaskInstanceId: function(taskId, yyyymmdd) {
+			if (Ext.isString(yyyymmdd)) {
+				return taskId + '.' + Sonicle.String.left(yyyymmdd, 8);
+			} else {
+				return taskId + '.00000000';
+			}
+		},
+		
+		/**
+		 * Calculates the Task series ID from a passed instance ID.
+		 * @param {String} iid A task instance ID.
+		 * @returns {String}
+		 */
+		taskInstanceIdToSeriesId: function(iid) {
+			return Sonicle.String.substrBefore(iid, '.') + '.00000000';
 		}
 	}
 });

@@ -53,6 +53,16 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	},
 	
 	/**
+	 * Builds a Task instance ID from passed parameters.
+	 * @param {String} taskId The task ID.
+	 * @param {String} [yyyymmdd] The instance Data in format 'yyyymmdd'.
+	 * @returns {String}
+	 */
+	createTaskInstanceId: function(taskId, yyyymmdd) {
+		return Sonicle.webtop.tasks.Service.createTaskInstanceId(taskId, yyyymmdd);
+	},
+	
+	/**
 	 * Opens a task using the choosen editing mode, defaults to edit.
 	 * @param {String} id The task instance ID.
 	 * @param {Object} opts An object containing configuration.
