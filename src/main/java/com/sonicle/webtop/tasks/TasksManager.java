@@ -490,7 +490,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.commitQuietly(con);
 			onAfterCategoryAction(category.getCategoryId(), category.getProfileId());
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, category.getCategoryId(), null);
+				auditLogWrite(AuditContext.CATEGORY, AuditAction.CREATE, category.getCategoryId(), null);
 			}
 			
 			return category;
@@ -527,7 +527,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.commitQuietly(con);
 			onAfterCategoryAction(cat.getCategoryId(), cat.getProfileId());
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.CATEGORY, AuditAction.CREATE, cat.getCategoryId(), null);
+				auditLogWrite(AuditContext.CATEGORY, AuditAction.CREATE, cat.getCategoryId(), null);
 			}
 			
 			// Sets category as default
@@ -559,7 +559,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.commitQuietly(con);
 			onAfterCategoryAction(categoryId, cat.getProfileId());
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.CATEGORY, AuditAction.UPDATE, categoryId, null);
+				auditLogWrite(AuditContext.CATEGORY, AuditAction.UPDATE, categoryId, null);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -601,8 +601,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.commitQuietly(con);
 			onAfterCategoryAction(categoryId, cat.getProfileId());
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, categoryId, null);
-				writeAuditLog(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
+				auditLogWrite(AuditContext.CATEGORY, AuditAction.DELETE, categoryId, null);
+				auditLogWrite(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
 			}
 			
 			return ret == 1;
@@ -1263,7 +1263,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
 			}
 			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
 			
@@ -1443,7 +1443,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				}
 				
 				if (isAuditEnabled()) {
-					writeAuditLog(AuditContext.TASK, AuditAction.DELETE, deleted);
+					auditLogWrite(AuditContext.TASK, AuditAction.DELETE, deleted);
 				}
 			}
 			
@@ -1526,9 +1526,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
 				if (!MoveCopyMode.NONE.equals(copyMode)) {
-					writeAuditLog(AuditContext.TASK, AuditAction.CREATE, copied);
+					auditLogWrite(AuditContext.TASK, AuditAction.CREATE, copied);
 				} else {
-					writeAuditLog(AuditContext.TASK, AuditAction.MOVE, moved);
+					auditLogWrite(AuditContext.TASK, AuditAction.MOVE, moved);
 				}
 			}
 			
@@ -1658,7 +1658,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
 			}
 			
 		} catch(SQLException | DAOException | IOException | WTException ex) {
@@ -1807,7 +1807,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, "*", categoryId);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, "*", categoryId);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -2758,9 +2758,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
 				for (String updatedTaskId : updatedTaskIds) {
-					writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
+					auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
 				}
 			}
 			
@@ -2782,10 +2782,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
-				writeAuditLog(AuditContext.TASK, AuditAction.CREATE, insert.otask.getTaskId(), null);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.CREATE, insert.otask.getTaskId(), null);
 				for (String updatedTaskId : updatedTaskIds) {
-					writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
+					auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
 				}
 			}
 			result = insert;
@@ -2804,9 +2804,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
 				for (String updatedTaskId : updatedTaskIds) {
-					writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
+					auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
 				}
 			}
 		}
@@ -2862,10 +2862,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.DELETE, info.taskId, null);
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.DELETE, info.taskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
 				for (String deletedTaskId : deletedTaskIds) {
-					writeAuditLog(AuditContext.TASK, AuditAction.DELETE, deletedTaskId, null);
+					auditLogWrite(AuditContext.TASK, AuditAction.DELETE, deletedTaskId, null);
 				}
 			}
 			
@@ -2882,7 +2882,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.masterTaskId, null);
 			}
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE
@@ -2892,9 +2892,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				writeAuditLog(AuditContext.TASK, AuditAction.DELETE, info.taskId, null);
+				auditLogWrite(AuditContext.TASK, AuditAction.DELETE, info.taskId, null);
 				for (String deletedTaskId : deletedTaskIds) {
-					writeAuditLog(AuditContext.TASK, AuditAction.DELETE, deletedTaskId, null);
+					auditLogWrite(AuditContext.TASK, AuditAction.DELETE, deletedTaskId, null);
 				}
 			}
 		}
@@ -3185,12 +3185,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		CREATE, UPDATE, DELETE, MOVE
 	}
 	
-	private void writeAuditLog(AuditContext context, AuditAction action, Object reference, Object data) {
-		writeAuditLog(EnumUtils.getName(context), EnumUtils.getName(action), (reference != null) ? String.valueOf(reference) : null, (data != null) ? String.valueOf(data) : null);
+	private void auditLogWrite(AuditContext context, AuditAction action, Object reference, Object data) {
+		auditLogWrite(EnumUtils.getName(context), EnumUtils.getName(action), (reference != null) ? String.valueOf(reference) : null, (data != null) ? String.valueOf(data) : null);
 	}
 	
-	private void writeAuditLog(AuditContext context, AuditAction action, Collection<AuditReferenceDataEntry> entries) {
-		writeAuditLog(EnumUtils.getName(context), EnumUtils.getName(action), entries);
+	private void auditLogWrite(AuditContext context, AuditAction action, Collection<AuditReferenceDataEntry> entries) {
+		auditLogWrite(EnumUtils.getName(context), EnumUtils.getName(action), entries);
 	}
 	
 	private class AuditTaskResult {
