@@ -2120,7 +2120,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addTask: function(categoryId, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2135,11 +2140,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		return vw;
 	},
 	
-	addTask2: function(data, opts) {
+	addTaskWithData: function(data, opts) {
 		opts = opts || {};
 		var me = this,
-				data2 = me.parseTaskApiData(data),
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			data2 = me.parseTaskApiData(data),
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2156,7 +2166,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addSubTask: function(categoryId, parentId, parentSubject, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2180,8 +2195,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	openTask: function(edit, id, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true}),
-				mode = edit ? 'edit' : 'view';
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			}),
+			mode = edit ? 'edit' : 'view';
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2464,6 +2484,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			if (Ext.isDefined(data.visibility)) obj.isPrivate = (data.visibility === 'private');
 			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
 			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
+			if (Ext.isDefined(data.tags)) obj.tags = data.tags;
 			
 			return obj;
 		},
