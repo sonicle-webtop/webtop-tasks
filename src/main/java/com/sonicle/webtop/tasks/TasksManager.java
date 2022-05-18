@@ -1489,7 +1489,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				if (!MoveCopyMode.NONE.equals(copyMode) || (targetCategoryId != categoryId)) {
 					if (!MoveCopyMode.NONE.equals(copyMode)) {
-						BitFlag<TaskProcessOpts> options = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskGetOptions.ATTACHMENTS, TaskGetOptions.TAGS, TaskGetOptions.CUSTOM_VALUES);
+						BitFlag<TaskProcessOpts> options = BitFlag.of(TaskProcessOpts.RECUR, TaskProcessOpts.RECUR_EX, TaskProcessOpts.ATTACHMENTS, TaskProcessOpts.TAGS, TaskProcessOpts.CUSTOM_VALUES);
 						Task origTask = doTaskGet(con, taskId, options);
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
 						
