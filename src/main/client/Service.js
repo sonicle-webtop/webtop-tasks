@@ -514,6 +514,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
+									if (me.hasAudit()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -600,6 +601,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
+									if (me.hasAudit()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -653,6 +655,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						},
 						writeemail: function(s, rcpts) {
 							WT.handleNewMailMessage(rcpts);
+						},
+						opentaskaudit: function(s, id) {
+							me.openAuditUI(id, 'TASK');
 						}
 					},
 					width: '40%',
@@ -1315,6 +1320,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) WTA.util.FoldersTree.setActiveAllFolders(node.getFolderRootNode(), false);
 			}
 		});
+		if (me.hasAudit()) {
+			me.addAct('categoryAuditLog', {
+				text: WT.res('act-auditLog.lbl'),
+				tooltip: null,
+				handler: function(s, e) {
+					var node = e.menuData.node;
+					if (node) me.openAuditUI(node.get('_catId'), 'CATEGORY');
+				}
+			});
+		}
 		me.addAct('showTask', {
 			text: WT.res('act-open.lbl'),
 			tooltip: null,
@@ -1405,6 +1420,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('addTask').execute();
 			}
 		});
+		if (me.hasAudit()) {
+			me.addAct('taskAuditLog', {
+				text: WT.res('act-auditLog.lbl'),
+				tooltip: null,
+				handler: function(s, e) {
+					var rec = me.getSelectedTask();
+					me.openAuditUI(rec.get('taskId'), 'TASK');
+				},
+				scope: me
+			});
+		}
 	},
 	
 	initCxm: function() {
@@ -1483,6 +1509,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				},
 				'-',
 				me.getAct('applyTags'),
+				me.hasAudit() ? me.getAct('categoryAuditLog'): null,
 				'-',
 				me.getAct('addTask'),
 				me.getAct('importTasks')
@@ -1537,6 +1564,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('deleteTask'),
 				'-',
 				me.getAct('tags'),
+				me.hasAudit() ? me.getAct('taskAuditLog') : null,
 				'-',
 				me.getAct('setTaskImportance'),
 				me.getAct('setTaskProgress'),
@@ -1588,6 +1616,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
+		if (me.hasAudit()) me.updateDisabled('taskAuditLog');
 	},
 	
 	loadRootNode: function(pid, reloadItemsIf) {
@@ -2362,6 +2391,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		switch(action) {
 			case 'showTask':
 			case 'copyTask':
+			case 'taskAuditLog':
 				sel = me.getSelectedTasks();
 				if (sel.length === 1) {
 					return false;
@@ -2437,6 +2467,45 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			name += '-' + msg.payload.oid;
 		}
 		return name;
+	},
+	
+	hasAudit: function() {
+		var me = this;
+		return me.getVar('hasAudit');
+	},
+	
+	openAuditUI: function(referenceId, context) {
+		var me = this,
+				tagsStore = WT.getTagsStore();
+		
+		WT.getServiceApi(WT.ID).showAuditLog(me.ID, context, null, referenceId, function(data) {
+			var str = '', logDate, actionString, eldata;
+			
+			Ext.each(data,function(el) {
+				logDate = Ext.Date.parseDate(el.timestamp, 'Y-m-d H:i:s');
+				actionString = Ext.String.format('auditLog.{0}.{1}', context, el.action);
+				str += Ext.String.format('{0} - {1} - {2} ({3})\n', Ext.Date.format(logDate, WT.getShortDateTimeFmt()), me.res(actionString), el.userName, el.userId);
+				eldata = Ext.JSON.decode(el.data);
+				
+				if (el.action === 'TAG' && eldata) {
+					if (eldata.set) {
+						Ext.each(eldata.set, function(tag) {
+							var r = tagsStore.findRecord('id', tag);
+							var desc = r ? r.get('name') : tag;
+							str += Ext.String.format('\t+ {0}\n', desc);
+						});
+					}
+					if (eldata.unset) {
+						Ext.each(eldata.unset, function(tag) {
+							var r = tagsStore.findRecord('id', tag);
+							var desc = r ? r.get('name') : tag;
+							str += Ext.String.format('\t- {0}\n', desc);
+						});
+					}
+				}
+			});
+			return str;
+		});
 	},
 	
 	privates: {

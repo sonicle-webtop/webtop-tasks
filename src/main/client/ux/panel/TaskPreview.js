@@ -348,7 +348,18 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						items: [
 							{
 								xtype: 'tbfill'
-							}, {
+							}, me.mys.hasAudit() ? {
+								xtype: 'button',
+								margin: '0 5 0 5',
+								ui: 'default-toolbar',
+								text: null,
+								tooltip: WT.res('act-auditLog.lbl'),
+								iconCls: 'fas fa-history',
+								handler: function() {
+									var vm = me.getVM();
+									me.fireEvent('opentaskaudit', me, vm.get('record.taskId'));
+								}
+							} : null, {
 								xtype: 'button',
 								ui: 'default-toolbar',
 								bind: {

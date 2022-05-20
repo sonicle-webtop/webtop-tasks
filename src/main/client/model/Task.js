@@ -55,6 +55,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 	idProperty: 'id',
 	fields: [
 		WTF.field('id', 'string', false),
+		WTF.roField('taskId', 'string'),
 		WTF.field('parentId', 'string', true),
 		WTF.field('categoryId', 'int', false),
 		WTF.field('subject', 'string', false),

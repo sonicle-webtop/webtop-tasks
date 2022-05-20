@@ -137,6 +137,8 @@ import com.sonicle.commons.concurrent.KeyedReentrantLocks;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.time.InstantRange;
 import com.sonicle.commons.web.json.CId;
+import com.sonicle.commons.web.json.JsonResult;
+import com.sonicle.webtop.core.app.AuditLogManager;
 import com.sonicle.webtop.core.app.util.log.LogHandler;
 import com.sonicle.webtop.core.app.util.log.LogMessage;
 import com.sonicle.webtop.core.util.ICalendarUtils;
@@ -602,7 +604,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			onAfterCategoryAction(categoryId, cat.getProfileId());
 			if (isAuditEnabled()) {
 				auditLogWrite(AuditContext.CATEGORY, AuditAction.DELETE, categoryId, null);
-				auditLogWrite(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
+				// removed due to new audit implementation
+				// auditLogWrite(AuditContext.CATEGORY, AuditAction.DELETE, "*", categoryId);
 			}
 			
 			return ret == 1;
@@ -1548,12 +1551,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			List<String> okTagIds = null;
-			if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
-				Set<String> validTags = coreMgr.listTagIds();
-				okTagIds = tagIds.stream()
-					.filter(tagId -> validTags.contains(tagId))
-					.collect(Collectors.toList());
-			}
+			Set<String> validTags = coreMgr.listTagIds();
+			okTagIds = tagIds.stream()
+				.filter(tagId -> validTags.contains(tagId))
+				.collect(Collectors.toList());
 			
 			if (instanceIds.size() == 1) {
 				TaskInstanceId instanceId = instanceIds.iterator().next();
@@ -1566,17 +1567,46 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				Task origTask = doTaskGet(con, info.realTaskId(), BitFlag.of(TaskProcessOpts.TAGS));
 				if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
-
+				
+				ArrayList<String> auditOldTags = null;				
+				if (isAuditEnabled()) auditOldTags = new ArrayList<>(origTask.getTagsOrEmpty());
+				
 				if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
 					if (UpdateTagsOperation.RESET.equals(operation)) origTask.getTags().clear();
 					origTask.getTags().addAll(okTagIds);
 				} else if (UpdateTagsOperation.UNSET.equals(operation)) {
-					origTask.getTags().removeAll(tagIds);
+					origTask.getTags().removeAll(okTagIds);
 				}
 				
+				TaskInsertResult taskResult = null;
+
 				try {
-					this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.of(TaskProcessOpts.TAGS));
+					taskResult = this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.of(TaskProcessOpts.TAGS), true);
 				} catch (IOException ex1) {/* Due configuration here this will never happen! */}
+
+				if (isAuditEnabled()) {
+					String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : origTask.getTaskId();
+					if (UpdateTagsOperation.RESET.equals(operation)) {
+						HashMap<String, List<String>> data = coreMgr.compareTags(auditOldTags, new ArrayList<>(okTagIds));
+						auditLogWrite(
+							AuditContext.TASK,
+							AuditAction.TAG,
+							auditTaskId,
+							JsonResult.gson().toJson(data)
+						);
+
+					} else {
+						String tagAction = UpdateTagsOperation.SET.equals(operation) ? "set" : "unset";
+						HashMap<String, List<String>> data = new HashMap<>();
+						data.put(tagAction, okTagIds);
+						auditLogWrite(
+							AuditContext.TASK,
+							AuditAction.TAG,
+							auditTaskId,
+							JsonResult.gson().toJson(data)
+						);
+					}
+				}
 				
 			} else {
 				Set<Integer> okCategoryIds = listAllCategoryIds().stream()
@@ -1587,7 +1617,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				// Collect necessary data
 				InstancesDataResult idr = collectInstancesData(con, instanceIds);
 				Map<String, Integer> catMap = tasDao.selectCategoriesByIds(con, idr.involvedTaskIds);
-
+				AuditLogManager.Batch auditBatch = auditLogGetBatch(AuditContext.TASK, AuditAction.TAG);
+				
 				for (Map.Entry<TaskInstanceId, InstanceInfo> entry : idr.infoMap.entrySet()) {
 					InstanceInfo info = entry.getValue();
 					String taskId = info.realTaskId();
@@ -1611,17 +1642,43 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						continue;
 					}
 					
+					ArrayList<String> auditOldTags = null;				
+					if (auditBatch != null) auditOldTags = new ArrayList<>(origTask.getTagsOrEmpty());
+					
 					if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
 						if (UpdateTagsOperation.RESET.equals(operation)) origTask.getTags().clear();
 						origTask.getTags().addAll(okTagIds);
 					} else if (UpdateTagsOperation.UNSET.equals(operation)) {
-						origTask.getTags().removeAll(tagIds);
+						origTask.getTags().removeAll(okTagIds);
 					}
 					
+					TaskInsertResult taskResult = null;
+
 					try {
-						this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.of(TaskProcessOpts.TAGS));
+						taskResult = this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlag.of(TaskProcessOpts.TAGS), true);
 					} catch (IOException ex1) {/* Due configuration here this will never happen! */}
+
+					if (auditBatch != null) {
+						String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : origTask.getTaskId();
+						if (UpdateTagsOperation.RESET.equals(operation)) {
+							HashMap<String, List<String>> data = coreMgr.compareTags(auditOldTags, new ArrayList<>(okTagIds));
+							auditBatch.write(
+								auditTaskId,
+								JsonResult.gson().toJson(data)
+							);
+							
+						} else {
+							String tagAction = UpdateTagsOperation.SET.equals(operation) ? "set" : "unset";
+							HashMap<String, List<String>> data = new HashMap<>();
+							data.put(tagAction, okTagIds);
+							auditBatch.write(
+								auditTaskId,
+								JsonResult.gson().toJson(data)
+							);
+						}
+					}
 				}
+				auditBatch.flush();
 			}
 			
 		} catch (SQLException | DAOException | WTException ex) {
@@ -1787,7 +1844,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			checkRightsOnCategory(categoryId, CheckRightsTarget.ELEMENTS, "UPDATE");
-			
+			List<String> auditTag = new ArrayList<>();
+
 			if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
 				Set<String> validTags = coreMgr.listTagIds();
 				List<String> okTagIds = tagIds.stream()
@@ -1799,15 +1857,27 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				for (String tagId : okTagIds) {
 					ttagDao.insertByCategory(con, categoryId, tagId);
 				}
+				if (UpdateTagsOperation.SET.equals(operation)) auditTag.addAll(okTagIds);
 				
 			} else if (UpdateTagsOperation.UNSET.equals(operation)) {
 				con = WT.getConnection(SERVICE_ID, false);
 				ttagDao.deleteByCategoryTags(con, categoryId, tagIds);
+				auditTag.addAll(tagIds);
 			}
 			
 			DbUtils.commitQuietly(con);
+			
 			if (isAuditEnabled()) {
-				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, "*", categoryId);
+				HashMap<String,List<String>> audit = new HashMap<>();
+				String tagAction = UpdateTagsOperation.SET.equals(operation) ? "set" : "unset";
+				audit.put(tagAction, auditTag);
+
+				auditLogWrite(
+					AuditContext.CATEGORY,
+					AuditAction.TAG,
+					categoryId,
+					JsonResult.gson().toJson(audit)
+				);
 			}
 			
 		} catch(SQLException | DAOException | WTException ex) {
@@ -2737,8 +2807,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			IOUtils.closeQuietly(is);
 		}
 	}
-	
+
 	private TaskInsertResult doTaskInstanceUpdateAndCommit(Connection con, InstanceInfo info, TaskEx task, BitFlag<TaskProcessOpts> processOpts) throws DAOException, IOException {
+		return doTaskInstanceUpdateAndCommit(con, info, task, processOpts, false);
+	}
+	
+	private TaskInsertResult doTaskInstanceUpdateAndCommit(Connection con, InstanceInfo info, TaskEx task, BitFlag<TaskProcessOpts> processOpts, boolean isApplyTags) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 		TaskInsertResult result = null;
@@ -2758,7 +2832,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
+				if (!isApplyTags) auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
 				for (String updatedTaskId : updatedTaskIds) {
 					auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
 				}
@@ -2804,7 +2878,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
-				auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
+				if (!isApplyTags) auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, info.taskId, null);
 				for (String updatedTaskId : updatedTaskIds) {
 					auditLogWrite(AuditContext.TASK, AuditAction.UPDATE, updatedTaskId, null);
 				}
@@ -3182,7 +3256,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private enum AuditAction {
-		CREATE, UPDATE, DELETE, MOVE
+		CREATE, UPDATE, DELETE, MOVE, TAG
 	}
 	
 	private void auditLogWrite(AuditContext context, AuditAction action, Object reference, Object data) {

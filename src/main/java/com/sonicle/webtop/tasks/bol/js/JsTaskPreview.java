@@ -63,6 +63,7 @@ import org.joda.time.DateTimeZone;
  */
 public class JsTaskPreview {
 	public String id;
+	public String taskId;
 	public String subject;
 	public String location;
 	public String description;
@@ -92,6 +93,7 @@ public class JsTaskPreview {
 		boolean isSeriesMaster = StringUtils.endsWith(item.getId().toString(), ".00000000") && item.getRecurrence() != null;
 		
 		this.id = item.getId().toString();
+		this.taskId = item.getTaskId();
         this.subject = item.getSubject();
 		this.location = item.getLocation();
         this.description = item.getDescription();
