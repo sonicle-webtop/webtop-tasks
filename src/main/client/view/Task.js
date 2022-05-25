@@ -324,7 +324,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								me.mys.openTaskUI(true, me.getModel().get('parentId'));
 							}
 						},
-						me.mys.hasAudit() ? me.addAct('taskAuditLog', {
+						me.mys.hasAuditUI() ? me.addAct('taskAuditLog', {
 							text: null,
 							tooltip: WT.res('act-auditLog.lbl'),
 							iconCls: 'fas fa-history',
@@ -1075,20 +1075,20 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.getAct('delete').setDisabled(true);
 				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
-				if (me.mys.hasAudit()) me.getAct('taskAuditLog').setDisabled(true);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(true);
 				me.reloadCustomFields([]);
 			} else if (me.isMode(me.MODE_VIEW)) {
 				me.getAct('saveClose').setDisabled(true);
 				me.getAct('delete').setDisabled(true);
 				me.getAct('tags').setDisabled(true);
 				me.lref('fldcategory').setReadOnly(true);
-				if (me.mys.hasAudit()) me.getAct('taskAuditLog').setDisabled(false);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(false);
 			} else if (me.isMode(me.MODE_EDIT)) {
 				me.getAct('saveClose').setDisabled(false);
 				me.getAct('delete').setDisabled(false);
 				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
-				if (me.mys.hasAudit()) me.getAct('taskAuditLog').setDisabled(false);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(false);
 			}
 			me.lref('fldsubject').focus(true);
 		},

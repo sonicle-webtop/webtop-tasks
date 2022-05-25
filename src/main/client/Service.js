@@ -514,7 +514,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
-									if (me.hasAudit()) me.updateDisabled('taskAuditLog');
+									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -601,7 +601,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
-									if (me.hasAudit()) me.updateDisabled('taskAuditLog');
+									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -1320,7 +1320,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) WTA.util.FoldersTree.setActiveAllFolders(node.getFolderRootNode(), false);
 			}
 		});
-		if (me.hasAudit()) {
+		if (me.hasAuditUI()) {
 			me.addAct('categoryAuditLog', {
 				text: WT.res('act-auditLog.lbl'),
 				tooltip: null,
@@ -1420,7 +1420,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('addTask').execute();
 			}
 		});
-		if (me.hasAudit()) {
+		if (me.hasAuditUI()) {
 			me.addAct('taskAuditLog', {
 				text: WT.res('act-auditLog.lbl'),
 				tooltip: null,
@@ -1509,7 +1509,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				},
 				'-',
 				me.getAct('applyTags'),
-				me.hasAudit() ? me.getAct('categoryAuditLog'): null,
+				me.hasAuditUI() ? me.getAct('categoryAuditLog'): null,
 				'-',
 				me.getAct('addTask'),
 				me.getAct('importTasks')
@@ -1564,7 +1564,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('deleteTask'),
 				'-',
 				me.getAct('tags'),
-				me.hasAudit() ? me.getAct('taskAuditLog') : null,
+				me.hasAuditUI() ? me.getAct('taskAuditLog') : null,
 				'-',
 				me.getAct('setTaskImportance'),
 				me.getAct('setTaskProgress'),
@@ -1616,7 +1616,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
-		if (me.hasAudit()) me.updateDisabled('taskAuditLog');
+		if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 	},
 	
 	loadRootNode: function(pid, reloadItemsIf) {
@@ -2467,11 +2467,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			name += '-' + msg.payload.oid;
 		}
 		return name;
-	},
-	
-	hasAudit: function() {
-		var me = this;
-		return me.getVar('hasAudit');
 	},
 	
 	openAuditUI: function(referenceId, context) {
