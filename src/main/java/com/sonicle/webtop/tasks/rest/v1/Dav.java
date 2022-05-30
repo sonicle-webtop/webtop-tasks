@@ -532,7 +532,9 @@ public class Dav extends DavApi {
 	}
 	
 	private TasksManager getManager(UserProfileId targetProfileId) {
-		return (TasksManager)WT.getServiceManager(SERVICE_ID, targetProfileId);
+		TasksManager manager = (TasksManager)WT.getServiceManager(SERVICE_ID, targetProfileId);
+		manager.setSoftwareName("rest-dav");
+		return manager;
 	}
 
 	@Override
