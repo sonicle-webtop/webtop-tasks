@@ -52,12 +52,6 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 	 */
 	tagsStore: null,
 	
-	/**
-	 * @cfg {Number} loadContactBuffer
-	 * This is the time in milliseconds to buffer load requests when updating selection.
-	 */
-	loadContactBuffer: 200,
-	
 	layout: 'card',
 	referenceHolder: true,
 	bodyPadding: 10,
@@ -138,6 +132,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			foIsCompleted: WTF.foIsEqual('record', 'status', 'CO'),
 			foWriteMessageTip: WTF.foResFormat('record', 'contactEmail', me.mys.ID, 'taskPreview.act-writeMessage.tip')
 		});
+		me.loadTaskBuffered = Ext.Function.createBuffered(me.loadTask, 200);
 	},
 	
 	initComponent: function() {
@@ -345,14 +340,26 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 								// Do not use this binding here, it will cause internal exception
 								// in Ext.app.bind.Stub during model load with new ID. (see explicit vm.bind in initComponent)
 								//fieldsDefs: '{record._cfdefs}'
-							}
+							},
+							serviceId: me.mys.ID
 						}
 					],
 					tabBar:	{
 						items: [
 							{
 								xtype: 'tbfill'
-							}, {
+							}, me.mys.hasAuditUI() ? {
+								xtype: 'button',
+								margin: '0 5 0 5',
+								ui: 'default-toolbar',
+								text: null,
+								tooltip: WT.res('act-auditLog.lbl'),
+								iconCls: 'fas fa-history',
+								handler: function() {
+									var vm = me.getVM();
+									me.fireEvent('opentaskaudit', me, vm.get('record.taskId'));
+								}
+							} : null, {
 								xtype: 'button',
 								ui: 'default-toolbar',
 								bind: {
@@ -442,13 +449,11 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				itemId: 'single'
 			}));
 			*/
-			me.loadTask(records[0].getId());
-			card.setActiveItem('single');
+			me.loadTaskBuffered(records[0].getId(), 'single');
 		} else if (records && records.length > 1) {
 			card.setActiveItem('multi');
 		} else {
-			me.loadTask(null);
-			card.setActiveItem('empty');
+			me.loadTaskBuffered(null, 'empty');
 		}
 	},
 	
@@ -462,18 +467,18 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 		}
 	},
 	
-	loadTask: function(id) {
+	loadTask: function(id, /*private*/ activateCard) {
 		var me = this;
-		if (me.timLC) clearTimeout(me.timLC);
-		me.timLC = setTimeout(function() {
-			me.clearModel();
-			if (id) {
-				me.loadModel({
-					data: {id: id},
-					dirty: false
-				});
-			}
-		}, me.loadContactBuffer || 200);
+		me.clearModel();
+		if (id) {
+			me.loadModel({
+				data: {id: id},
+				dirty: false
+			});
+		}
+		if (!Ext.isEmpty(activateCard)) {
+			me.setActiveItem(activateCard);
+		}
 	},
 	
 	privates: {

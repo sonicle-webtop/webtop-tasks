@@ -42,7 +42,7 @@ import com.sonicle.commons.beans.SortInfo;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.StringArray;
-import com.sonicle.commons.web.json.CompositeId;
+import com.sonicle.commons.web.json.CId;
 import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
@@ -55,6 +55,8 @@ import com.sonicle.commons.web.json.extjs.GridMetadata;
 import com.sonicle.commons.web.json.extjs.SortMeta;
 import com.sonicle.webtop.core.CoreManager;
 import com.sonicle.webtop.core.CoreUserSettings;
+import com.sonicle.webtop.core.app.CoreManifest;
+import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
 import com.sonicle.webtop.tasks.bol.js.JsSharing;
 import com.sonicle.webtop.tasks.model.ShareFolderCategory;
@@ -187,6 +189,7 @@ public class Service extends BaseService {
 		co.put("gridView", EnumUtils.toSerializedName(us.getGridView()));
 		co.put("defaultCategorySync", EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
 		co.put("cfieldsSearchable", LangUtils.serialize(getSearchableCustomFieldDefs(), ObjCustomFieldDefs.FieldsList.class));
+		co.put("hasAudit", manager.isAuditEnabled() && (RunContext.isImpersonated() || RunContext.isPermitted(true, CoreManifest.ID, "AUDIT")));
 		return co;
 	}
 	
@@ -339,7 +342,7 @@ public class Service extends BaseService {
 						toggleActiveRoot(node.id, node._active);
 						
 					} else if (node._type.equals(JsFolderNode.TYPE_FOLDER)) {
-						CompositeId cid = new CompositeId().parse(node.id);
+						CId cid = new CId(node.id);
 						toggleActiveFolder(Integer.valueOf(cid.getToken(1)), node._active);
 					}
 				}
@@ -350,7 +353,7 @@ public class Service extends BaseService {
 				
 				for (JsFolderNode node : pl.data) {
 					if (node._type.equals(JsFolderNode.TYPE_FOLDER)) {
-						CompositeId cid = new CompositeId().parse(node.id);
+						CId cid = new CId(node.id);
 						manager.deleteCategory(Integer.valueOf(cid.getToken(1)));
 					}
 				}
@@ -1187,7 +1190,7 @@ public class Service extends BaseService {
 		StringBuilder sb = new StringBuilder();
 		
 		// Root description part
-		CompositeId cid = new CompositeId().parse(sharing.getId());
+		CId cid = new CId(sharing.getId());
 		if(roots.containsKey(cid.getToken(0))) {
 			ShareRootCategory root = roots.get(cid.getToken(0));
 			if(root instanceof MyShareRootCategory) {
@@ -1337,7 +1340,7 @@ public class Service extends BaseService {
 	
 	private ExtTreeNode createFolderNode(boolean chooser, ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms, boolean isDefault) {
 		Category cat = folder.getCategory();
-		String id = new CompositeId().setTokens(folder.getShareId(), cat.getCategoryId()).toString();
+		String id = CId.build(folder.getShareId(), cat.getCategoryId()).toString();
 		String color = cat.getColor();
 		Category.Sync sync = Category.Sync.OFF;
 		boolean active = !inactiveFolders.contains(cat.getCategoryId());

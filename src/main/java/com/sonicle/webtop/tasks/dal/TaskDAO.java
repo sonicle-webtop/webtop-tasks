@@ -43,7 +43,7 @@ import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
-import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ICALENDARS;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_RECURRENCES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
@@ -85,11 +85,11 @@ public class TaskDAO extends BaseDAO {
 		return dsl.select(
 				field(
 					select(
-						nvl2(TASKS.PARENT_TASK_ID, true, false)
+						nvl2(TASKS_.PARENT_TASK_ID, true, false)
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.TASK_ID.equal(instanceId.getTaskId())
+						TASKS_.TASK_ID.equal(instanceId.getTaskId())
 					)
 				).as("has_parent"),
 				field(exists(
@@ -101,39 +101,39 @@ public class TaskDAO extends BaseDAO {
 				)).as("has_recurrence"),
 				field(
 					select(
-						TASKS.TASK_ID
+						TASKS_.TASK_ID
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.SERIES_TASK_ID.equal(instanceId.getTaskId())
-						.and(TASKS.SERIES_INSTANCE_ID.equal(instanceId.getInstance()))
+						TASKS_.SERIES_TASK_ID.equal(instanceId.getTaskId())
+						.and(TASKS_.SERIES_INSTANCE_ID.equal(instanceId.getInstance()))
 					)
 				).as("task_id_by_instance"),
 				field(exists(
 					selectOne()
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.PARENT_TASK_ID.equal(instanceId.getTaskId())
+						TASKS_.PARENT_TASK_ID.equal(instanceId.getTaskId())
 					)
 				)).as("has_children"),
 				coalesce(
 					field(
 						select(
-							TASKS.TIMEZONE
+							TASKS_.TIMEZONE
 						)
-						.from(TASKS)
+						.from(TASKS_)
 						.where(
-							TASKS.SERIES_TASK_ID.equal(instanceId.getTaskId())
-							.and(TASKS.SERIES_INSTANCE_ID.equal(instanceId.getInstance()))
+							TASKS_.SERIES_TASK_ID.equal(instanceId.getTaskId())
+							.and(TASKS_.SERIES_INSTANCE_ID.equal(instanceId.getInstance()))
 						)
 					),
 					field(
 						select(
-							TASKS.TIMEZONE
+							TASKS_.TIMEZONE
 						)
-						.from(TASKS)
+						.from(TASKS_)
 						.where(
-							TASKS.TASK_ID.equal(instanceId.getTaskId())
+							TASKS_.TASK_ID.equal(instanceId.getTaskId())
 						)
 					)
 				).as("timezone")
@@ -144,29 +144,29 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.PARENT_TASK_ID.in(parentTaskId)
+				TASKS_.PARENT_TASK_ID.in(parentTaskId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.MODIFIED)))
 				)
 			)
-			.fetchSet(TASKS.TASK_ID);
+			.fetchSet(TASKS_.TASK_ID);
 	}
 	
 	public String selectIdBySeriesInstance(Connection con, String seriesTaskId, String seriesInstance) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.SERIES_TASK_ID.in(seriesTaskId)
-				.and(TASKS.SERIES_INSTANCE_ID.in(seriesInstance))
+				TASKS_.SERIES_TASK_ID.in(seriesTaskId)
+				.and(TASKS_.SERIES_INSTANCE_ID.in(seriesInstance))
 			)
 			.fetchOne(0, String.class);
 	}
@@ -175,8 +175,8 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
-			.from(TASKS)
-			.where(TASKS.TASK_ID.equal(taskId))
+			.from(TASKS_)
+			.where(TASKS_.TASK_ID.equal(taskId))
 			.fetchOneInto(OTask.class);
 	}
 	
@@ -185,17 +185,17 @@ public class TaskDAO extends BaseDAO {
 		return dsl.select(
 				field(
 					DSL.selectCount()
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.PARENT_TASK_ID.equal(parentTaskId)
+						TASKS_.PARENT_TASK_ID.equal(parentTaskId)
 					)
 				).as("total_count"),
 				field(
 					DSL.selectCount()
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.PARENT_TASK_ID.equal(parentTaskId)
-						.and(TASKS.STATUS.equal(EnumUtils.toSerializedName(Task.Status.COMPLETED)))
+						TASKS_.PARENT_TASK_ID.equal(parentTaskId)
+						.and(TASKS_.STATUS.equal(EnumUtils.toSerializedName(Task.Status.COMPLETED)))
 					)
 				).as("completed_count")
 			).fetchOneInto(OChildrenCount.class);
@@ -205,12 +205,12 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select()
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(TaskBase.RevisionStatus.MODIFIED)))
 				)
 			)
 			.fetchOneInto(OTask.class);
@@ -220,10 +220,10 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.CATEGORY_ID
+				TASKS_.CATEGORY_ID
 			)
-			.from(TASKS)
-			.where(TASKS.TASK_ID.equal(taskId))
+			.from(TASKS_)
+			.where(TASKS_.TASK_ID.equal(taskId))
 			.fetchOneInto(Integer.class);
 	}
 	
@@ -231,14 +231,14 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.CATEGORY_ID
+				TASKS_.TASK_ID,
+				TASKS_.CATEGORY_ID
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.TASK_ID.in(taskIds)
+				TASKS_.TASK_ID.in(taskIds)
 			)
-			.fetchMap(TASKS.TASK_ID, TASKS.CATEGORY_ID);
+			.fetchMap(TASKS_.TASK_ID, TASKS_.CATEGORY_ID);
 	}
 	
 	@Deprecated
@@ -260,38 +260,38 @@ public class TaskDAO extends BaseDAO {
 				.or(TASKS_RECURRENCES.UNTIL.between(rangeFrom, rangeTo)) // Recurrences that end in current range
 				.or(TASKS_RECURRENCES.START.lessThan(rangeFrom).and(TASKS_RECURRENCES.UNTIL.greaterThan(rangeTo))); // Recurrences that start before and end after
 		} else {
-			rangeCndt = TASKS.START.between(rangeFrom, rangeTo); // Events that start in current range
+			rangeCndt = TASKS_.START.between(rangeFrom, rangeTo); // Events that start in current range
 		}
 		
 		// New field: has children
-		Tasks TT1 = TASKS.as("ta1");
+		Tasks TT1 = TASKS_.as("ta1");
 		Field<Boolean> hasChildren = field(exists(
 				selectOne()
 				.from(TT1)
 				.where(
-					TT1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TT1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				)
 			)).as("has_children");
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.ORGANIZER,
-				TASKS.ORGANIZER_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.TIMEZONE,
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.REMINDER,
-				TASKS.REMINDED_ON
+				TASKS_.TASK_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.ORGANIZER,
+				TASKS_.ORGANIZER_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.TIMEZONE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.REMINDER,
+				TASKS_.REMINDED_ON
 			)
 			.select(
 				hasChildren,
@@ -299,20 +299,20 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
 			.where(
-				TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-				.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+				.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				.and(
-					TASKS.REMINDER.isNotNull().and(TASKS.REMINDED_ON.isNull()) // Note this NULL test on REMINDED_ON field!!!
+					TASKS_.REMINDER.isNotNull().and(TASKS_.REMINDED_ON.isNull()) // Note this NULL test on REMINDED_ON field!!!
 				)
 				.and(recurCndt)
 				.and(rangeCndt)
 			)
 			.orderBy(
-				TASKS.START.asc()
+				TASKS_.START.asc()
 			)
 			.forUpdate()
 			.fetchInto(VTaskLookup.class);
@@ -326,7 +326,7 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		// New field: has recurrence reference
@@ -344,15 +344,15 @@ public class TaskDAO extends BaseDAO {
 				hasRecurrence,
 				hasICalendar
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
-			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS_.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 			)
 			.fetchOneInto(VTaskObject.class);
@@ -363,44 +363,44 @@ public class TaskDAO extends BaseDAO {
 	private Field[] getVTaskObjectFields(boolean stat) {
 		if (stat) {
 			return new Field[]{
-				TASKS.TASK_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.PUBLIC_UID,
-				TASKS.HREF
+				TASKS_.TASK_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.PUBLIC_UID,
+				TASKS_.HREF
 			};
 		} else {
 			return new Field[]{
-				TASKS.TASK_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.REVISION_SEQUENCE,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.ORGANIZER,
-				TASKS.ORGANIZER_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.DESCRIPTION_TYPE,
-				TASKS.TIMEZONE,
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.PROGRESS,
-				TASKS.COMPLETED_ON,
-				TASKS.STATUS,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.REMINDER,
-				TASKS.HREF
+				TASKS_.TASK_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.REVISION_SEQUENCE,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.ORGANIZER,
+				TASKS_.ORGANIZER_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.DESCRIPTION,
+				TASKS_.DESCRIPTION_TYPE,
+				TASKS_.TIMEZONE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.PROGRESS,
+				TASKS_.COMPLETED_ON,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.REMINDER,
+				TASKS_.HREF
 			};
 		}
 	}
@@ -422,13 +422,13 @@ public class TaskDAO extends BaseDAO {
 		
 		Condition inHrefsCndt = DSL.trueCondition();
 		if (hrefs != null) {
-			inHrefsCndt = TASKS.HREF.in(hrefs);
+			inHrefsCndt = TASKS_.HREF.in(hrefs);
 		}
 		
 		// New field: overlaps
 		Param<DateTime> rangeFromPar = (since != null) ? DSL.value(since) : null;
 		Field<Boolean> overlaps = com.sonicle.webtop.core.jooq.public_.Routines
-			.rruleEventOverlaps(TASKS.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, null);
+			.rruleEventOverlaps(TASKS_.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, null);
 		
 		// New field: has recurrence reference
 		Field<Boolean> hasRecurrence = DSL.nvl2(TASKS_RECURRENCES.TASK_ID, true, false).as("has_recurrence");
@@ -444,25 +444,25 @@ public class TaskDAO extends BaseDAO {
 				hasRecurrence,
 				hasICalendar
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
-			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS_.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
+				TASKS_.CATEGORY_ID.equal(categoryId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(inHrefsCndt)
 				.and(
-					TASKS.START.isNull().or(overlaps)
+					TASKS_.START.isNull().or(overlaps)
 				)
 			)
 			.orderBy(
-				TASKS.TASK_ID.asc()
+				TASKS_.TASK_ID.asc()
 			)
-			.fetchGroups(TASKS.HREF, VTaskObject.class);
+			.fetchGroups(TASKS_.HREF, VTaskObject.class);
 	}
 	
 	public List<VTaskObjectChanged> viewOnlineTaskObjectsChangedByCategory(Connection con, int categoryId, int limit) throws DAOException {
@@ -470,22 +470,22 @@ public class TaskDAO extends BaseDAO {
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.HREF
+				TASKS_.TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.HREF
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
+				TASKS_.CATEGORY_ID.equal(categoryId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 			)
 			.orderBy(
-				TASKS.TASK_ID.asc()
+				TASKS_.TASK_ID.asc()
 			)
 			.limit(limit)
 			.fetchInto(VTaskObjectChanged.class);
@@ -496,19 +496,19 @@ public class TaskDAO extends BaseDAO {
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.HREF
+				TASKS_.TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.HREF
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
-				.and(TASKS.REVISION_TIMESTAMP.greaterThan(since))
+				TASKS_.CATEGORY_ID.equal(categoryId)
+				.and(TASKS_.REVISION_TIMESTAMP.greaterThan(since))
 			)
 			.orderBy(
-				TASKS.CREATION_TIMESTAMP.asc()
+				TASKS_.CREATION_TIMESTAMP.asc()
 			)
 			.limit(limit)
 			.fetchInto(VTaskObjectChanged.class);
@@ -519,13 +519,13 @@ public class TaskDAO extends BaseDAO {
 		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
 		return dsl
 			.selectCount()
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
 					filterCndt
@@ -536,43 +536,43 @@ public class TaskDAO extends BaseDAO {
 	
 	public Condition toCondition(ITasksManager.TaskListView view, DateTime today) {
 		if (ITasksManager.TaskListView.ALL.equals(view)) {
-			return TASKS.SERIES_TASK_ID.isNull()
-				.and(TASKS.SERIES_INSTANCE_ID.isNull());
+			return TASKS_.SERIES_TASK_ID.isNull()
+				.and(TASKS_.SERIES_INSTANCE_ID.isNull());
 			
 		} else if (ITasksManager.TaskListView.TODAY.equals(view)) {
 			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
-			return TASKS.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
 				.or(
-					TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-					.and(TASKS.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
-					.and(TASKS.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
+					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
+					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
 				);
 			
 		} else if (ITasksManager.TaskListView.NEXT_7.equals(view)) {
 			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
-			return TASKS.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
 				.or(
-					TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-					.and(TASKS.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
-					.and(TASKS.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
+					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
+					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
 				);
 			
 		} else if (ITasksManager.TaskListView.NOT_STARTED.equals(view)) {
-			return TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION));
+			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION));
 			
 		} else if (ITasksManager.TaskListView.LATE.equals(view)) {
-			return TASKS.COMPLETED_ON.isNull()
-				.and(TASKS.DUE.lessThan(DateTime.now()));
+			return TASKS_.COMPLETED_ON.isNull()
+				.and(TASKS_.DUE.lessThan(DateTime.now()));
 			
 		} else if (ITasksManager.TaskListView.COMPLETED.equals(view)) {
-			return TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
+			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
 			
 		} else if (ITasksManager.TaskListView.NOT_COMPLETED.equals(view)) {
-			return TASKS.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
 			
 		} else if (ITasksManager.TaskListView.UPCOMING.equals(view)) {
-			return TASKS.DUE.isNotNull()
-				.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)));
+			return TASKS_.DUE.isNotNull()
+				.and(TASKS_.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)));
 			
 		} else {
 			return null;
@@ -591,18 +591,18 @@ public class TaskDAO extends BaseDAO {
 		Param<DateTime> rangeFromPar = (rangeFrom != null) ? DSL.value(rangeFrom) : null;
 		Param<DateTime> rangeToPar = (rangeTo != null) ? DSL.value(rangeTo) : null;
 		Field<Boolean> overlaps = com.sonicle.webtop.core.jooq.public_.Routines
-			.rruleEventOverlaps(TASKS.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, rangeToPar);
+			.rruleEventOverlaps(TASKS_.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, rangeToPar);
 		
 		// New field: has recurrence reference
 		Field<Boolean> hasRecurrence = DSL.nvl2(TASKS_RECURRENCES.TASK_ID, true, false).as("has_recurrence");
 		
 		// New field: has children
-		Tasks TT1 = TASKS.as("ta1");
+		Tasks TT1 = TASKS_.as("ta1");
 		Field<Boolean> hasChildren = field(exists(
 				selectOne()
 				.from(TT1)
 				.where(
-					TT1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TT1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				)
 			)).as("has_children");
 		
@@ -611,39 +611,39 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		// New field: parent is not null
-		Tasks PTT1 = TASKS.as("pta1");
+		Tasks PTT1 = TASKS_.as("pta1");
 		Field<Boolean> parentNotNull = DSL.field(PTT1.TASK_ID.isNotNull());
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.ORGANIZER,
-				TASKS.ORGANIZER_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.DESCRIPTION_TYPE,
-				TASKS.TIMEZONE,
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.COMPLETED_ON,
-				TASKS.PROGRESS,
-				TASKS.STATUS,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.DOCUMENT_REF,
-				TASKS.REMINDER				
+				TASKS_.TASK_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.ORGANIZER,
+				TASKS_.ORGANIZER_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.DESCRIPTION,
+				TASKS_.DESCRIPTION_TYPE,
+				TASKS_.TIMEZONE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.COMPLETED_ON,
+				TASKS_.PROGRESS,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.DOCUMENT_REF,
+				TASKS_.REMINDER				
 			)
 			.select(
 				hasRecurrence,
@@ -653,26 +653,26 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
-			.leftOuterJoin(PTT1).on(TASKS.PARENT_TASK_ID.equal(PTT1.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.leftOuterJoin(PTT1).on(TASKS_.PARENT_TASK_ID.equal(PTT1.TASK_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
-					TASKS.START.isNull()
+					TASKS_.START.isNull()
 					.or(overlaps)
 				)
 				.and(filterCndt)
 			)
 			.orderBy(
-				DSL.coalesce(PTT1.TASK_ID, TASKS.TASK_ID),
+				DSL.coalesce(PTT1.TASK_ID, TASKS_.TASK_ID),
 				parentNotNull,
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetchInto(VTaskLookup.class);
 	}
@@ -684,18 +684,18 @@ public class TaskDAO extends BaseDAO {
 		Param<DateTime> rangeFromPar = (rangeFrom != null) ? DSL.value(rangeFrom) : null;
 		Param<DateTime> rangeToPar = (rangeTo != null) ? DSL.value(rangeTo) : null;
 		Field<Boolean> overlaps = com.sonicle.webtop.core.jooq.public_.Routines
-			.rruleEventOverlaps(TASKS.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, rangeToPar);
+			.rruleEventOverlaps(TASKS_.START, null, TASKS_RECURRENCES.RULE, rangeFromPar, rangeToPar);
 		
 		// New field: has recurrence reference
 		Field<Boolean> hasRecurrence = DSL.nvl2(TASKS_RECURRENCES.TASK_ID, true, false).as("has_recurrence");
 		
 		// New field: has children
-		Tasks TT1 = TASKS.as("ta1");
+		Tasks TT1 = TASKS_.as("ta1");
 		Field<Boolean> hasChildren = field(exists(
 				selectOne()
 				.from(TT1)
 				.where(
-					TT1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TT1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				)
 			)).as("has_children");
 		
@@ -704,34 +704,34 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.ORGANIZER,
-				TASKS.ORGANIZER_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.DESCRIPTION_TYPE,
-				TASKS.TIMEZONE,
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.PROGRESS,
-				TASKS.STATUS,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.REMINDER,
-				TASKS.REMINDED_ON // Important for recurring tasks, see WHERE part below!
+				TASKS_.TASK_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.ORGANIZER,
+				TASKS_.ORGANIZER_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.DESCRIPTION,
+				TASKS_.DESCRIPTION_TYPE,
+				TASKS_.TIMEZONE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.PROGRESS,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.REMINDER,
+				TASKS_.REMINDED_ON // Important for recurring tasks, see WHERE part below!
 			)
 			.select(
 				hasRecurrence,
@@ -741,16 +741,16 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
 			.where(
-				TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
-				.and(TASKS.START.isNotNull())
+				TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				.and(TASKS_.START.isNotNull())
 				.and(
-					TASKS.REMINDER.isNotNull().and(
-						TASKS_RECURRENCES.TASK_ID.isNull().and(TASKS.REMINDED_ON.isNull()) // Normal tasks: REMINDED_ON must be null!
+					TASKS_.REMINDER.isNotNull().and(
+						TASKS_RECURRENCES.TASK_ID.isNull().and(TASKS_.REMINDED_ON.isNull()) // Normal tasks: REMINDED_ON must be null!
 						.or(TASKS_RECURRENCES.TASK_ID.isNotNull()) // Recurring tasks: REMINDED_ON can be null or not, calling code will check it!
 					)
 				)
@@ -767,7 +767,7 @@ public class TaskDAO extends BaseDAO {
 		
 		Condition rangeCndt = DSL.trueCondition();
 		if ((rangeFrom != null) && (rangeTo != null)) {
-			rangeCndt = TASKS.START_DATE.between(rangeFrom, rangeTo); // Events that start in current range
+			rangeCndt = TASKS_.START_DATE.between(rangeFrom, rangeTo); // Events that start in current range
 		}
 		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
 		
@@ -776,32 +776,32 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.OWNER_ID,
-				TASKS.OWNER,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.BODY,
-				TASKS.BODY_TYPE,
-				TASKS.START_DATE,
-				TASKS.DUE_DATE,
-				TASKS.COMPLETION_PERC,
-				TASKS.STATUS,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.REMINDER
+				TASKS_.TASK_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.OWNER_ID,
+				TASKS_.OWNER,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.BODY,
+				TASKS_.BODY_TYPE,
+				TASKS_.START_DATE,
+				TASKS_.DUE_DATE,
+				TASKS_.COMPLETION_PERC,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.REMINDER
 			)
 			.select(
 				tags,
@@ -809,22 +809,22 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(TASKS_RECURRENCES.TASK_ID.isNull())
 				.and(rangeCndt)
 				.and(filterCndt)
 			)
 			.orderBy(
-				TASKS.START_DATE.asc(),
-				TASKS.SUBJECT.asc()
+				TASKS_.START_DATE.asc(),
+				TASKS_.SUBJECT.asc()
 			)
 			.fetchInto(VTaskLookup.class);
 	}
@@ -847,32 +847,32 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.SERIES_TASK_ID,
-				TASKS.SERIES_INSTANCE_ID,
-				TASKS.CATEGORY_ID,
-				TASKS.PARENT_TASK_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.OWNER_ID,
-				TASKS.OWNER,
-				TASKS.PUBLIC_UID,
-				TASKS.SUBJECT,
-				TASKS.BODY,
-				TASKS.BODY_TYPE,
-				TASKS.START_DATE,
-				TASKS.DUE_DATE,
-				TASKS.COMPLETION_PERC,
-				TASKS.STATUS,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.REMINDER
+				TASKS_.TASK_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.OWNER_ID,
+				TASKS_.OWNER,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.BODY,
+				TASKS_.BODY_TYPE,
+				TASKS_.START_DATE,
+				TASKS_.DUE_DATE,
+				TASKS_.COMPLETION_PERC,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.REMINDER
 			)
 			.select(
 				tags,
@@ -880,22 +880,22 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
-			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(TASKS_RECURRENCES.TASK_ID.isNotNull())
 				.and(rangeCndt)
 				.and(filterCndt)
 			)
 			.orderBy(
-				TASKS.START_DATE.asc(),
-				TASKS.SUBJECT.asc()
+				TASKS_.START_DATE.asc(),
+				TASKS_.SUBJECT.asc()
 			)
 			.fetchInto(VTaskLookup.class);
 	}
@@ -910,28 +910,28 @@ public class TaskDAO extends BaseDAO {
 			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
 			.from(TASKS_TAGS)
 			.where(
-				TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+				TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 			).asField("tags");
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.CATEGORY_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.SUBJECT,
-				TASKS.BODY,
-				TASKS.BODY_TYPE,
-				//TASKS.TIMEZONE, // Timezone can't be changed, it's set at creation!
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.STATUS,
-				TASKS.COMPLETION_PERC
-				//TASKS.REMINDER_DATE
+				TASKS_.TASK_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.SUBJECT,
+				TASKS_.BODY,
+				TASKS_.BODY_TYPE,
+				//TASKS_.TIMEZONE, // Timezone can't be changed, it's set at creation!
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.STATUS,
+				TASKS_.COMPLETION_PERC
+				//TASKS_.REMINDER_DATE
 			)
 			.select(
 				tags,
@@ -939,20 +939,20 @@ public class TaskDAO extends BaseDAO {
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
 					filterCndt
 				)
 			)
 			.orderBy(
-				TASKS.SUBJECT.asc()
+				TASKS_.SUBJECT.asc()
 			)
 			.limit(limit)
 			.offset(offset)
@@ -967,46 +967,46 @@ public class TaskDAO extends BaseDAO {
 		
 		return dsl
 			.select(
-				TASKS.TASK_ID,
-				TASKS.PUBLIC_UID,
-				TASKS.CATEGORY_ID,
-				TASKS.REVISION_STATUS,
-				TASKS.REVISION_TIMESTAMP,
-				TASKS.CREATION_TIMESTAMP,
-				TASKS.SUBJECT,
-				TASKS.DESCRIPTION,
-				TASKS.DESCRIPTION_TYPE,
-				TASKS.START,
-				TASKS.DUE,
-				TASKS.IMPORTANCE,
-				TASKS.IS_PRIVATE,
-				TASKS.STATUS,
-				TASKS.PROGRESS
-				//TASKS.REMINDER_DATE
+				TASKS_.TASK_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.SUBJECT,
+				TASKS_.DESCRIPTION,
+				TASKS_.DESCRIPTION_TYPE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.STATUS,
+				TASKS_.PROGRESS
+				//TASKS_.REMINDER_DATE
 			)
 			.select(
 				CATEGORIES.NAME.as("category_name"),
 				CATEGORIES.DOMAIN_ID.as("category_domain_id"),
 				CATEGORIES.USER_ID.as("category_user_id")
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 				.and(
-					TASKS.DUE.isNotNull()
-					.and(TASKS.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)))
+					TASKS_.DUE.isNotNull()
+					.and(TASKS_.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)))
 				)
 				.and(
 					patternCndt
 				)
 			)
 			.orderBy(
-				TASKS.DUE.asc()
+				TASKS_.DUE.asc()
 			)
 			.fetchInto(VTaskLookup.class);
 	}	
@@ -1015,20 +1015,20 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
-			.from(TASKS)
-			.join(CATEGORIES).on(TASKS.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
+				TASKS_.CATEGORY_ID.equal(categoryId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
-				.and(TASKS.HREF.equal(href))
+				.and(TASKS_.HREF.equal(href))
 			)
 			.orderBy(
-				TASKS.TASK_ID.asc()
+				TASKS_.TASK_ID.asc()
 			)
 			.fetchInto(String.class);
 	}
@@ -1037,17 +1037,17 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS.CATEGORY_ID,
-				DSL.max(TASKS.REVISION_TIMESTAMP)
+				TASKS_.CATEGORY_ID,
+				DSL.max(TASKS_.REVISION_TIMESTAMP)
 			)
-			.from(TASKS)
+			.from(TASKS_)
 			.where(
-				TASKS.CATEGORY_ID.in(categoryIds)
+				TASKS_.CATEGORY_ID.in(categoryIds)
 			)
 			.groupBy(
-				TASKS.CATEGORY_ID
+				TASKS_.CATEGORY_ID
 			)
-			.fetchMap(TASKS.CATEGORY_ID, DSL.max(TASKS.REVISION_TIMESTAMP));
+			.fetchMap(TASKS_.CATEGORY_ID, DSL.max(TASKS_.REVISION_TIMESTAMP));
 	}
 	
 	public int insert(Connection con, OTask item, boolean setContactRef, boolean setDocRef) throws DAOException {
@@ -1060,9 +1060,9 @@ public class TaskDAO extends BaseDAO {
 		if (!setDocRef) {
 			item.setDocumentRef(null);
 		}
-		TasksRecord record = dsl.newRecord(TASKS, item);
+		TasksRecord record = dsl.newRecord(TASKS_, item);
 		return dsl
-			.insertInto(TASKS)
+			.insertInto(TASKS_)
 			.set(record)
 			.execute();
 	}
@@ -1073,45 +1073,45 @@ public class TaskDAO extends BaseDAO {
 		item.setRevisionTimestamp(revisionTimestamp);
 		
 		UpdateSetMoreStep update = dsl
-			.update(TASKS)
-			.set(TASKS.CATEGORY_ID, item.getCategoryId())
-			.set(TASKS.REVISION_STATUS, item.getRevisionStatus())
-			.set(TASKS.REVISION_TIMESTAMP, item.getRevisionTimestamp())
-			.set(TASKS.SUBJECT, item.getSubject())
-			.set(TASKS.LOCATION, item.getLocation())
-			.set(TASKS.DESCRIPTION, item.getDescription())
-			.set(TASKS.DESCRIPTION_TYPE, item.getDescriptionType())
-			.set(TASKS.START, item.getStart())
-			.set(TASKS.DUE, item.getDue())
-			.set(TASKS.COMPLETED_ON, item.getCompletedOn())
-			.set(TASKS.PROGRESS, item.getProgress())
-			.set(TASKS.STATUS, item.getStatus())
-			.set(TASKS.IMPORTANCE, item.getImportance())
-			.set(TASKS.IS_PRIVATE, item.getIsPrivate())
-			.set(TASKS.REMINDER, item.getReminder());
+			.update(TASKS_)
+			.set(TASKS_.CATEGORY_ID, item.getCategoryId())
+			.set(TASKS_.REVISION_STATUS, item.getRevisionStatus())
+			.set(TASKS_.REVISION_TIMESTAMP, item.getRevisionTimestamp())
+			.set(TASKS_.SUBJECT, item.getSubject())
+			.set(TASKS_.LOCATION, item.getLocation())
+			.set(TASKS_.DESCRIPTION, item.getDescription())
+			.set(TASKS_.DESCRIPTION_TYPE, item.getDescriptionType())
+			.set(TASKS_.START, item.getStart())
+			.set(TASKS_.DUE, item.getDue())
+			.set(TASKS_.COMPLETED_ON, item.getCompletedOn())
+			.set(TASKS_.PROGRESS, item.getProgress())
+			.set(TASKS_.STATUS, item.getStatus())
+			.set(TASKS_.IMPORTANCE, item.getImportance())
+			.set(TASKS_.IS_PRIVATE, item.getIsPrivate())
+			.set(TASKS_.REMINDER, item.getReminder());
 		
 		if (setDocRef) {
 			update = update
-				.set(TASKS.DOCUMENT_REF, item.getDocumentRef());
+				.set(TASKS_.DOCUMENT_REF, item.getDocumentRef());
 		} else {
 			item.setDocumentRef(null);
 		}
 		if (setContactRef) {
 			update = update
-				.set(TASKS.CONTACT, item.getContact())
-				.set(TASKS.CONTACT_ID, item.getContactId());
+				.set(TASKS_.CONTACT, item.getContact())
+				.set(TASKS_.CONTACT_ID, item.getContactId());
 		} else {
 			item.setContact(null);
 			item.setContactId(null);
 		}
 		if (clearRemindedOn) {
 			update = update
-				.set(TASKS.REMINDED_ON, (DateTime)null);
+				.set(TASKS_.REMINDED_ON, (DateTime)null);
 		}
 		
 		return update
 			.where(
-				TASKS.TASK_ID.equal(item.getTaskId())
+				TASKS_.TASK_ID.equal(item.getTaskId())
 			)
 			.execute();
 	}
@@ -1119,12 +1119,12 @@ public class TaskDAO extends BaseDAO {
 	public int updateCategory(Connection con, String taskId, int categoryId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.CATEGORY_ID, categoryId)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.CATEGORY_ID, categoryId)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 			)
 			.execute();
 	}
@@ -1132,10 +1132,10 @@ public class TaskDAO extends BaseDAO {
 	public int updateRemindedOn(Connection con, String taskId, DateTime remindedOn) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.REMINDED_ON, remindedOn)
+			.update(TASKS_)
+			.set(TASKS_.REMINDED_ON, remindedOn)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 			)
 			.execute();
 	}
@@ -1143,20 +1143,20 @@ public class TaskDAO extends BaseDAO {
 	public List<String> updateOnlineSubjectsBySeries(Connection con, String seriesTaskId, String oldSubject, String newSubject, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.SUBJECT, newSubject)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.SUBJECT, newSubject)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.SERIES_TASK_ID.equal(seriesTaskId)
+				TASKS_.SERIES_TASK_ID.equal(seriesTaskId)
 				.and(
-					TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
-				.and(TASKS.SUBJECT.equal(oldSubject))
+				.and(TASKS_.SUBJECT.equal(oldSubject))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1168,17 +1168,17 @@ public class TaskDAO extends BaseDAO {
 	public List<String> updateCategoryBySeries(Connection con, String seriesTaskId, int categoryId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.CATEGORY_ID, categoryId)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.CATEGORY_ID, categoryId)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.TASK_ID.equal(seriesTaskId)
-					.or(TASKS.SERIES_TASK_ID.equal(seriesTaskId))
-				.and(TASKS.CATEGORY_ID.notEqual(categoryId))
+				TASKS_.TASK_ID.equal(seriesTaskId)
+					.or(TASKS_.SERIES_TASK_ID.equal(seriesTaskId))
+				.and(TASKS_.CATEGORY_ID.notEqual(categoryId))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1190,23 +1190,23 @@ public class TaskDAO extends BaseDAO {
 	public int updateParentProgressByChild(Connection con, String childTaskId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
-		Tasks TASKS_1 = TASKS.as("t1");
-		Tasks TASKS_2 = TASKS.as("t2");
+		Tasks TASKS_1 = TASKS_.as("t1");
+		Tasks TASKS_2 = TASKS_.as("t2");
 		return dsl
-			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
-			.set(TASKS.PROGRESS, 
+			.update(TASKS_)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
+			.set(TASKS_.PROGRESS, 
 				DSL.select(
 					avg(TASKS_1.PROGRESS)
 				)
 				.from(TASKS_1)
 				.where(
-					TASKS_1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TASKS_1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				).asField()
 			)
 			.where(
-				TASKS.TASK_ID.equal(
+				TASKS_.TASK_ID.equal(
 					select(TASKS_2.PARENT_TASK_ID)
 					.from(TASKS_2)
 					.where(
@@ -1220,16 +1220,16 @@ public class TaskDAO extends BaseDAO {
 	public Set<String> updateCategoryByParent(Connection con, String parentTaskId, int categoryId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.CATEGORY_ID, categoryId)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.CATEGORY_ID, categoryId)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.PARENT_TASK_ID.equal(parentTaskId)
-				.and(TASKS.CATEGORY_ID.notEqual(categoryId))
+				TASKS_.PARENT_TASK_ID.equal(parentTaskId)
+				.and(TASKS_.CATEGORY_ID.notEqual(categoryId))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1241,17 +1241,17 @@ public class TaskDAO extends BaseDAO {
 	public Set<String> updateCompletedByParent(Connection con, String parentTaskId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.STATUS, EnumUtils.toSerializedName(Task.Status.COMPLETED))
-			.set(TASKS.COMPLETED_ON, revisionTimestamp)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.STATUS, EnumUtils.toSerializedName(Task.Status.COMPLETED))
+			.set(TASKS_.COMPLETED_ON, revisionTimestamp)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(	
-				TASKS.PARENT_TASK_ID.equal(parentTaskId)
-				.and(TASKS.STATUS.notEqual(EnumUtils.toSerializedName(Task.Status.COMPLETED)))
+				TASKS_.PARENT_TASK_ID.equal(parentTaskId)
+				.and(TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(Task.Status.COMPLETED)))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1263,18 +1263,18 @@ public class TaskDAO extends BaseDAO {
 	public int updateParentProgressByParent(Connection con, String parentTaskId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
-		Tasks TASKS_1 = TASKS.as("t1");
+		Tasks TASKS_1 = TASKS_.as("t1");
 		return dsl
-			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
-			.set(TASKS.PROGRESS, 
+			.update(TASKS_)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
+			.set(TASKS_.PROGRESS, 
 				DSL.select(
 					avg(TASKS_1.PROGRESS)
 				)
 				.from(TASKS_1)
 				.where(
-					TASKS_1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TASKS_1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				).asField()
 					
 				//sum.divide(count).cast(Short.class)
@@ -1282,21 +1282,21 @@ public class TaskDAO extends BaseDAO {
 				DSL.select(nvl(sum(TASKS_1.PROGRESS), 0))
 				.from(TASKS_1)
 				.where(
-					TASKS_1.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+					TASKS_1.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 				)
 				.asField()
 				.divide(
 					DSL.selectCount()
 					.from(TASKS_2)
 					.where(
-						TASKS_2.PARENT_TASK_ID.equal(TASKS.TASK_ID)
+						TASKS_2.PARENT_TASK_ID.equal(TASKS_.TASK_ID)
 					)
 					.asField()
 				).cast(Short.class)
 				*/
 			)
 			.where(
-				TASKS.TASK_ID.equal(parentTaskId)
+				TASKS_.TASK_ID.equal(parentTaskId)
 			)
 			.execute();
 	}
@@ -1304,10 +1304,10 @@ public class TaskDAO extends BaseDAO {
 	public int updateRevision(Connection con, String taskId, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 			)
 			.execute();
 	}
@@ -1315,11 +1315,11 @@ public class TaskDAO extends BaseDAO {
 	public int updateRevisionStatus(Connection con, String taskId, Task.RevisionStatus revisionStatus, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.REVISION_STATUS, EnumUtils.toSerializedName(revisionStatus))
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.REVISION_STATUS, EnumUtils.toSerializedName(revisionStatus))
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 			)
 			.execute();
 	}
@@ -1327,9 +1327,9 @@ public class TaskDAO extends BaseDAO {
 	public int deleteById(Connection con, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(TASKS)
+			.delete(TASKS_)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
+				TASKS_.TASK_ID.equal(taskId)
 			)
 			.execute();
 	}
@@ -1337,9 +1337,9 @@ public class TaskDAO extends BaseDAO {
 	public int deleteByCategoryId(Connection con, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.delete(TASKS)
+			.delete(TASKS_)
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
+				TASKS_.CATEGORY_ID.equal(categoryId)
 			)
 			.execute();
 	}
@@ -1348,13 +1348,13 @@ public class TaskDAO extends BaseDAO {
 		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.PARENT_TASK_ID, (String)null)
-			.set(TASKS.REVISION_STATUS, DELETED)
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.PARENT_TASK_ID, (String)null)
+			.set(TASKS_.REVISION_STATUS, DELETED)
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.TASK_ID.equal(taskId)
-				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
+				TASKS_.TASK_ID.equal(taskId)
+				.and(TASKS_.REVISION_STATUS.notEqual(DELETED))
 			)
 			.execute();
 	}
@@ -1363,16 +1363,16 @@ public class TaskDAO extends BaseDAO {
 		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.PARENT_TASK_ID, (String)null)
-			.set(TASKS.REVISION_STATUS, DELETED)
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.PARENT_TASK_ID, (String)null)
+			.set(TASKS_.REVISION_STATUS, DELETED)
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(	
-				TASKS.SERIES_TASK_ID.equal(seriesTaskId)
-				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
+				TASKS_.SERIES_TASK_ID.equal(seriesTaskId)
+				.and(TASKS_.REVISION_STATUS.notEqual(DELETED))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1385,16 +1385,16 @@ public class TaskDAO extends BaseDAO {
 		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		Result<TasksRecord> result = dsl
-			.update(TASKS)
-			.set(TASKS.PARENT_TASK_ID, (String)null)
-			.set(TASKS.REVISION_STATUS, DELETED)
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.PARENT_TASK_ID, (String)null)
+			.set(TASKS_.REVISION_STATUS, DELETED)
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(	
-				TASKS.PARENT_TASK_ID.equal(parentTaskId)
-				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
+				TASKS_.PARENT_TASK_ID.equal(parentTaskId)
+				.and(TASKS_.REVISION_STATUS.notEqual(DELETED))
 			)
 			.returning(
-				TASKS.TASK_ID
+				TASKS_.TASK_ID
 			)
 			.fetch();
 		
@@ -1407,13 +1407,13 @@ public class TaskDAO extends BaseDAO {
 		final String DELETED = EnumUtils.toSerializedName(Task.RevisionStatus.DELETED);
 		DSLContext dsl = getDSL(con);
 		return dsl
-			.update(TASKS)
-			.set(TASKS.PARENT_TASK_ID, (String)null)
-			.set(TASKS.REVISION_STATUS, DELETED)
-			.set(TASKS.REVISION_TIMESTAMP, revisionTimestamp)
+			.update(TASKS_)
+			.set(TASKS_.PARENT_TASK_ID, (String)null)
+			.set(TASKS_.REVISION_STATUS, DELETED)
+			.set(TASKS_.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
-				TASKS.CATEGORY_ID.equal(categoryId)
-				.and(TASKS.REVISION_STATUS.notEqual(DELETED))
+				TASKS_.CATEGORY_ID.equal(categoryId)
+				.and(TASKS_.REVISION_STATUS.notEqual(DELETED))
 			)
 			.execute();
 	}
@@ -1421,8 +1421,8 @@ public class TaskDAO extends BaseDAO {
 	private Condition toSearchPatternCondition(String pattern) {
 		Condition cndt = DSL.trueCondition();
 		if (!StringUtils.isBlank(pattern)) {
-			return TASKS.SUBJECT.likeIgnoreCase(pattern)
-					.or(TASKS.DESCRIPTION.likeIgnoreCase(pattern));
+			return TASKS_.SUBJECT.likeIgnoreCase(pattern)
+					.or(TASKS_.DESCRIPTION.likeIgnoreCase(pattern));
 		}
 		return cndt;
 	}

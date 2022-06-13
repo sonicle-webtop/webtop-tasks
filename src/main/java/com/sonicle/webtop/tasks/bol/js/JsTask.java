@@ -36,7 +36,6 @@ import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.web.json.CId;
-import com.sonicle.commons.web.json.CompositeId;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldValue;
 import com.sonicle.webtop.core.model.CustomField;
@@ -213,7 +212,7 @@ public class JsTask {
 			item.getAssignees().add(assignee);
 		}
 		
-		item.setTags(new LinkedHashSet<>(new CompositeId().parse(tags).getTokens()));
+		item.setTags(new LinkedHashSet<>(new CId(tags).getTokens()));
 		
 		ArrayList<CustomFieldValue> customValues = new ArrayList<>();
 		for (ObjCustomFieldValue jscfv : cvalues) {
@@ -269,7 +268,7 @@ public class JsTask {
 			item.getAssignees().add(assignee);
 		}
 		
-		item.setTags(new LinkedHashSet<>(new CompositeId().parse(tags).getTokens()));
+		item.setTags(new LinkedHashSet<>(new CId(tags).getTokens()));
 		
 		ArrayList<CustomFieldValue> customValues = new ArrayList<>();
 		for (ObjCustomFieldValue jscfv : cvalues) {

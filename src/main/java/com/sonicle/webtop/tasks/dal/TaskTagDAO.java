@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.dal;
 
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
-import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_;
 import com.sonicle.webtop.tasks.jooq.tables.TasksTags;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
 import java.sql.Connection;
@@ -80,6 +80,7 @@ public class TaskTagDAO extends BaseDAO {
 	}
 	
 	public int[] batchInsert(Connection con, String taskId, Collection<String> tagIds) throws DAOException {
+		if (tagIds.isEmpty()) return new int[0];
 		DSLContext dsl = getDSL(con);
 		BatchBindStep batch = dsl.batch(
 			dsl.insertInto(TASKS_TAGS, 
@@ -104,19 +105,19 @@ public class TaskTagDAO extends BaseDAO {
 			.insertInto(TASKS_TAGS)
 			.select(
 				select(
-					TASKS.TASK_ID,
+					TASKS_.TASK_ID,
 					val(tagId, String.class).as("tag_id")
 				)
-				.from(TASKS)
+				.from(TASKS_)
 				.where(
-					TASKS.CATEGORY_ID.equal(categoryId)
-					.and(TASKS.TASK_ID.notIn(
+					TASKS_.CATEGORY_ID.equal(categoryId)
+					.and(TASKS_.TASK_ID.notIn(
 						select(
 							tt1.TASK_ID
 						)
 						.from(tt1)
 						.where(
-							tt1.TASK_ID.equal(TASKS.TASK_ID)
+							tt1.TASK_ID.equal(TASKS_.TASK_ID)
 							.and(tt1.TAG_ID.equal(tagId))
 						)
 					))
@@ -132,14 +133,14 @@ public class TaskTagDAO extends BaseDAO {
 			.insertInto(TASKS_TAGS)
 			.select(
 				select(
-					TASKS.TASK_ID,
+					TASKS_.TASK_ID,
 					val(tagId, String.class).as("tag_id")
 				)
-				.from(TASKS)
+				.from(TASKS_)
 				.where(
-					TASKS.CATEGORY_ID.in(categoryIds)
-					.and(TASKS.TASK_ID.in(taskIds))
-					.and(TASKS.TASK_ID.notIn(
+					TASKS_.CATEGORY_ID.in(categoryIds)
+					.and(TASKS_.TASK_ID.in(taskIds))
+					.and(TASKS_.TASK_ID.notIn(
 						select(
 							tt1.TASK_ID
 						)
@@ -193,11 +194,11 @@ public class TaskTagDAO extends BaseDAO {
 			.where(
 				TASKS_TAGS.TASK_ID.in(
 					select(
-						TASKS.TASK_ID
+						TASKS_.TASK_ID
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.CATEGORY_ID.equal(categoryId)
+						TASKS_.CATEGORY_ID.equal(categoryId)
 					)
 				)
 			)
@@ -211,11 +212,11 @@ public class TaskTagDAO extends BaseDAO {
 			.where(
 				TASKS_TAGS.TASK_ID.in(
 					select(
-						TASKS.TASK_ID
+						TASKS_.TASK_ID
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.CATEGORY_ID.equal(categoryId)
+						TASKS_.CATEGORY_ID.equal(categoryId)
 					)
 				)
 				.and(TASKS_TAGS.TAG_ID.in(tagIds))
@@ -230,12 +231,12 @@ public class TaskTagDAO extends BaseDAO {
 			.where(
 				TASKS_TAGS.TASK_ID.in(
 					select(
-						TASKS.TASK_ID
+						TASKS_.TASK_ID
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.TASK_ID.in(taskIds)
-						.and(TASKS.CATEGORY_ID.in(categoryIds))
+						TASKS_.TASK_ID.in(taskIds)
+						.and(TASKS_.CATEGORY_ID.in(categoryIds))
 					)
 				)
 			)
@@ -249,12 +250,12 @@ public class TaskTagDAO extends BaseDAO {
 			.where(
 				TASKS_TAGS.TASK_ID.in(
 					select(
-						TASKS.TASK_ID
+						TASKS_.TASK_ID
 					)
-					.from(TASKS)
+					.from(TASKS_)
 					.where(
-						TASKS.TASK_ID.in(taskIds)
-						.and(TASKS.CATEGORY_ID.in(categoryIds))
+						TASKS_.TASK_ID.in(taskIds)
+						.and(TASKS_.CATEGORY_ID.in(categoryIds))
 					)
 				)
 				.and(TASKS_TAGS.TAG_ID.in(tagIds))

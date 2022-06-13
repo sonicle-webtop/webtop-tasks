@@ -35,6 +35,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
 		'Sonicle.String',
+		'Sonicle.Utils',
 		'Sonicle.form.Text',
 		'Sonicle.form.field.ComboBox',
 		'Sonicle.form.field.TagDisplay',
@@ -172,7 +173,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				return WT.isMeetingUrl(val);
 			}),
 			foContactIconCls: WTF.foGetFn('record', 'contactId', function(val) {
-				return Ext.isEmpty(val) ? '' : 'fas fa-link';
+				return Ext.isEmpty(val) ? '' : 'fas fa-link wt-opacity-50';
 			})
 		});
 	},
@@ -322,7 +323,16 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							handler: function() {
 								me.mys.openTaskUI(true, me.getModel().get('parentId'));
 							}
-						}
+						},
+						me.mys.hasAuditUI() ? me.addAct('taskAuditLog', {
+							text: null,
+							tooltip: WT.res('act-auditLog.lbl'),
+							iconCls: 'fas fa-history',
+							handler: function() {
+								me.mys.openAuditUI(Sonicle.String.substrBefore(me.getModel().getId(), '.'), 'TASK');
+							},
+							scope: me
+						}) : null
 					]
 				}, {
 					xtype: 'sotagdisplayfield',
@@ -1022,7 +1032,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							size: file.size,
 							_uplId: uploadId
 						}));
-						me.lref('tpnlmain').getLayout().setActiveItem(s);
+						me.lref('tpnlmain').setActiveItem(s);
 					}
 				}
 			};
@@ -1038,7 +1048,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					store: '{record.cvalues}',
 					fieldsDefs: '{record._cfdefs}'
 				},
-				defaultLabelWidth: 120
+				serviceId: me.mys.ID,
+				defaultLabelWidth: 120,
+				listeners: {
+					prioritize: function(s) {
+						me.lref('tpnlmain').setActiveItem(s);
+					}
+				}
 			};
 		},
 		
@@ -1059,17 +1075,20 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.getAct('delete').setDisabled(true);
 				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(true);
 				me.reloadCustomFields([]);
 			} else if (me.isMode(me.MODE_VIEW)) {
 				me.getAct('saveClose').setDisabled(true);
 				me.getAct('delete').setDisabled(true);
 				me.getAct('tags').setDisabled(true);
 				me.lref('fldcategory').setReadOnly(true);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(false);
 			} else if (me.isMode(me.MODE_EDIT)) {
 				me.getAct('saveClose').setDisabled(false);
 				me.getAct('delete').setDisabled(false);
 				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
+				if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(false);
 			}
 			me.lref('fldsubject').focus(true);
 		},
@@ -1120,7 +1139,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			var me = this;
 			WT.ajaxReq(me.mys.ID, 'GetCustomFieldsDefsData', {
 				params: {
-					tags: WTU.arrayAsParam(tags),
+					tags: Sonicle.Utils.toJSONArray(tags),
 					iid: me.getModel().phantom ? null : iid
 				},
 				callback: function(success, json) {

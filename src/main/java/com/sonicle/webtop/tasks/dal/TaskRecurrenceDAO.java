@@ -153,6 +153,7 @@ public class TaskRecurrenceDAO extends BaseDAO {
 	}
 	
 	public int[] batchInsertRecurrenceEx(Connection con, String taskId, Collection<LocalDate> dates) throws DAOException {
+		if (dates.isEmpty()) return new int[0];
 		DSLContext dsl = getDSL(con);
 		BatchBindStep batch = dsl.batch(
 			dsl.insertInto(TASKS_RECURRENCES_EX, 

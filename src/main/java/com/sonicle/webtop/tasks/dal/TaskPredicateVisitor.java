@@ -38,7 +38,7 @@ import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.web.json.CId;
 import java.util.Collection;
 import org.jooq.Condition;
-import static com.sonicle.webtop.tasks.jooq.Tables.TASKS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_;
 import com.sonicle.webtop.core.app.sdk.JOOQPredicateVisitorWithCValues;
 import com.sonicle.webtop.core.app.sdk.QueryBuilderWithCValues;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
@@ -112,13 +112,13 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	@Override
 	protected Condition toCondition(String fieldName, ComparisonOperator operator, Collection<?> values, ComparisonNode node) {
 		if ("subject".equals(fieldName)) {
-			return defaultCondition(TASKS.SUBJECT, operator, values);
+			return defaultCondition(TASKS_.SUBJECT, operator, values);
 			
 		} else if ("location".equals(fieldName)) {
-			return defaultCondition(TASKS.LOCATION, operator, values);
+			return defaultCondition(TASKS_.LOCATION, operator, values);
 			
 		} else if ("description".equals(fieldName)) {
-			return defaultCondition(TASKS.DESCRIPTION, operator, values);
+			return defaultCondition(TASKS_.DESCRIPTION, operator, values);
 			
 		} else if ("after".equals(fieldName)) {
 			rangeStart = (DateTime)single(values);
@@ -130,32 +130,32 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 			return trueCondition();
 			
 		} else if ("status".equals(fieldName)) {
-			return defaultCondition(TASKS.STATUS, operator, values);
+			return defaultCondition(TASKS_.STATUS, operator, values);
 			
 		} else if ("done".equals(fieldName)) {
 			Boolean value = singleAsBoolean(values);
-			return false == value ? TASKS.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED)) : TASKS.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
+			return false == value ? TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED)) : TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
 			
 		} else if ("private".equals(fieldName)) {
-			return defaultCondition(TASKS.IS_PRIVATE, operator, values);
+			return defaultCondition(TASKS_.IS_PRIVATE, operator, values);
 			
 		} else if ("document".equals(fieldName)) {
-			return defaultCondition(TASKS.DOCUMENT_REF, operator, values);
+			return defaultCondition(TASKS_.DOCUMENT_REF, operator, values);
 			
 		} else if ("tag".equals(fieldName)) {
 			return exists(
 					selectOne()
 					.from(TASKS_TAGS)
 					.where(
-						TASKS_TAGS.TASK_ID.equal(TASKS.TASK_ID)
+						TASKS_TAGS.TASK_ID.equal(TASKS_.TASK_ID)
 						.and(TASKS_TAGS.TAG_ID.equal(singleAsString(values)))
 					)
 				);
 			
 		} else if ("any".equals(fieldName)) {
 			String singleAsString = valueToLikePattern(singleAsString(values));
-			return TASKS.SUBJECT.likeIgnoreCase(singleAsString)
-				.or(TASKS.DESCRIPTION.likeIgnoreCase(singleAsString));
+			return TASKS_.SUBJECT.likeIgnoreCase(singleAsString)
+				.or(TASKS_.DESCRIPTION.likeIgnoreCase(singleAsString));
 			
 		} else if ("parent".equals(fieldName)) {
 			String taskId = singleAsString(values);
@@ -164,7 +164,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 				String realTaskId = instanceIdDecoder.realTaskId(iid);
 				if (realTaskId != null) taskId = realTaskId;
 			}
-			return TASKS.PARENT_TASK_ID.equal(taskId);
+			return TASKS_.PARENT_TASK_ID.equal(taskId);
 			
 		} else if (StringUtils.startsWith(fieldName, "CV")) {
 			CId fn = new CId(fieldName, 2);
@@ -178,7 +178,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	
 	@Override
 	protected Field<?> getFieldEntityIdOfEntityTable() {
-		return TASKS.TASK_ID;
+		return TASKS_.TASK_ID;
 	}
 	
 	@Override
@@ -193,7 +193,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	
 	@Override
 	protected Condition getConditionTagsForCurrentEntity() {
-		return PV_TASKS_TAGS.TASK_ID.eq(TASKS.TASK_ID);
+		return PV_TASKS_TAGS.TASK_ID.eq(TASKS_.TASK_ID);
 	}
 	
 	@Override
@@ -203,7 +203,7 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 	
 	@Override
 	protected Condition getConditionCustomValuesForCurrentEntityAndField(String fieldId) {
-		return PV_TASKS_CUSTOM_VALUES.TASK_ID.eq(TASKS.TASK_ID)
+		return PV_TASKS_CUSTOM_VALUES.TASK_ID.eq(TASKS_.TASK_ID)
 				.and(PV_TASKS_CUSTOM_VALUES.CUSTOM_FIELD_ID.eq(fieldId));
 	}
 	

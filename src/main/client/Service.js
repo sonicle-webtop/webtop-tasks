@@ -514,6 +514,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
+									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -600,6 +601,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									me.updateDisabled('setTaskProgress');
 									me.updateDisabled('setTaskCompleted');
 									me.pnlPreview().setSelection(s.getSelection());
+									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
 									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
@@ -653,6 +655,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						},
 						writeemail: function(s, rcpts) {
 							WT.handleNewMailMessage(rcpts);
+						},
+						opentaskaudit: function(s, id) {
+							me.openAuditUI(id, 'TASK');
 						}
 					},
 					width: '40%',
@@ -1315,6 +1320,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (node) WTA.util.FoldersTree.setActiveAllFolders(node.getFolderRootNode(), false);
 			}
 		});
+		if (me.hasAuditUI()) {
+			me.addAct('categoryAuditLog', {
+				text: WT.res('act-auditLog.lbl'),
+				tooltip: null,
+				handler: function(s, e) {
+					var node = e.menuData.node;
+					if (node) me.openAuditUI(node.get('_catId'), 'CATEGORY');
+				}
+			});
+		}
 		me.addAct('showTask', {
 			text: WT.res('act-open.lbl'),
 			tooltip: null,
@@ -1405,6 +1420,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('addTask').execute();
 			}
 		});
+		if (me.hasAuditUI()) {
+			me.addAct('taskAuditLog', {
+				text: WT.res('act-auditLog.lbl'),
+				tooltip: null,
+				handler: function(s, e) {
+					var rec = me.getSelectedTask();
+					me.openAuditUI(rec.get('taskId'), 'TASK');
+				},
+				scope: me
+			});
+		}
 	},
 	
 	initCxm: function() {
@@ -1483,6 +1509,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				},
 				'-',
 				me.getAct('applyTags'),
+				me.hasAuditUI() ? me.getAct('categoryAuditLog'): null,
 				'-',
 				me.getAct('addTask'),
 				me.getAct('importTasks')
@@ -1537,6 +1564,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('deleteTask'),
 				'-',
 				me.getAct('tags'),
+				me.hasAuditUI() ? me.getAct('taskAuditLog') : null,
 				'-',
 				me.getAct('setTaskImportance'),
 				me.getAct('setTaskProgress'),
@@ -1588,6 +1616,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
+		if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 	},
 	
 	loadRootNode: function(pid, reloadItemsIf) {
@@ -1852,7 +1881,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	openTaskUI: function(edit, id, series) {
 		var me = this,
-				id2 = (series === true) ? me.toSeriesId(id) : id;
+			id2 = (series === true) ? Sonicle.webtop.tasks.Service.taskInstanceIdToSeriesId(id) : id;
 		
 		me.openTask(edit, id2, {
 			callback: function(success) {
@@ -2120,7 +2149,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addTask: function(categoryId, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2132,13 +2166,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
-	addTask2: function(data, opts) {
+	addTaskWithData: function(data, opts) {
 		opts = opts || {};
 		var me = this,
-				data2 = me.parseTaskApiData(data),
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			data2 = me.parseTaskApiData(data),
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2149,12 +2189,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				dirty: opts.dirty
 			});
 		});
+		return vw;
 	},
 	
 	addSubTask: function(categoryId, parentId, parentSubject, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true});
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			});
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2168,17 +2214,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
 	editTask: function(id, opts) {
-		this.openTask(true, id, opts);
+		return this.openTask(true, id, opts);
 	},
 	
 	openTask: function(edit, id, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Task', {swapReturn: true}),
-				mode = edit ? 'edit' : 'view';
+			vw = WT.createView(me.ID, 'view.Task', {
+				swapReturn: true,
+				viewCfg: {
+					uploadTag: opts.uploadTag
+				}
+			}),
+			mode = edit ? 'edit' : 'view';
 		
 		vw.on('viewsave', function(s, success, model) {
 			Ext.callback(opts.callback, opts.scope || me, [success, model]);
@@ -2190,6 +2242,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		});
+		return vw;
 	},
 	
 	deleteTasks: function(iids, opts) {
@@ -2317,10 +2370,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}
 	},
 	
-	toSeriesId: function(id) {
-		return Sonicle.String.substrBefore(id, '.') + '.00000000';
-	},
-	
 	/**
 	 * @private
 	 */
@@ -2342,6 +2391,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		switch(action) {
 			case 'showTask':
 			case 'copyTask':
+			case 'taskAuditLog':
 				sel = me.getSelectedTasks();
 				if (sel.length === 1) {
 					return false;
@@ -2419,6 +2469,40 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		return name;
 	},
 	
+	openAuditUI: function(referenceId, context) {
+		var me = this,
+				tagsStore = WT.getTagsStore();
+		
+		WT.getServiceApi(WT.ID).showAuditLog(me.ID, context, null, referenceId, function(data) {
+			var str = '', logDate, actionString, eldata;
+			
+			Ext.each(data,function(el) {
+				logDate = Ext.Date.parseDate(el.timestamp, 'Y-m-d H:i:s');
+				actionString = Ext.String.format('auditLog.{0}.{1}', context, el.action);
+				str += Ext.String.format('{0} - {1} - {2} ({3})\n', Ext.Date.format(logDate, WT.getShortDateTimeFmt()), me.res(actionString), el.userName, el.userId);
+				eldata = Ext.JSON.decode(el.data);
+				
+				if (el.action === 'TAG' && eldata) {
+					if (eldata.set) {
+						Ext.each(eldata.set, function(tag) {
+							var r = tagsStore.findRecord('id', tag);
+							var desc = r ? r.get('name') : tag;
+							str += Ext.String.format('\t+ {0}\n', desc);
+						});
+					}
+					if (eldata.unset) {
+						Ext.each(eldata.unset, function(tag) {
+							var r = tagsStore.findRecord('id', tag);
+							var desc = r ? r.get('name') : tag;
+							str += Ext.String.format('\t- {0}\n', desc);
+						});
+					}
+				}
+			});
+			return str;
+		});
+	},
+	
 	privates: {
 		onViewOptionsSortFieldChange: function(s, checked) {
 			var me = this;
@@ -2440,9 +2524,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		parseTaskApiData: function(data) {
 			data = data || {};
-			var obj = {};
+			var me = this,
+				WTFT = WTA.util.FoldersTree,
+				tree = me.trFolders(),
+				folder = WTFT.getFolderForAdd(tree, data.categoryId),
+				obj = {};
 			
-			obj.categoryId = WTA.util.FoldersTree.getFolderForAdd(this.trFolders(), data.categoryId).getFolderId();
+			obj.categoryId = folder ? folder.getFolderId() : WTFT.getDefaultOrBuiltInFolder(tree);
+			if (Ext.isDefined(data.parentId)) {
+				obj.parentId = data.parentId;
+				if (Ext.isDefined(data.parentSubject)) {
+					obj._parentSubject = data.parentSubject;
+				}
+			}
 			if (Ext.isDefined(data.subject)) obj.subject = data.subject;
 			if (Ext.isDefined(data.location)) obj.location = data.location;
 			if (Ext.isDefined(data.description)) obj.description = data.description;
@@ -2454,6 +2548,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			if (Ext.isDefined(data.visibility)) obj.isPrivate = (data.visibility === 'private');
 			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
 			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
+			if (Ext.isDefined(data.tags)) obj.tags = data.tags;
 			
 			return obj;
 		},
@@ -2514,6 +2609,32 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (arr.length === 0) return false;
 			});
 			return arr;
+		}
+	},
+	
+	statics: {
+		
+		/**
+		 * Builds a Task instance ID from passed parameters.
+		 * @param {String} taskId The task ID.
+		 * @param {String} [yyyymmdd] The instance Data in format 'yyyymmdd'.
+		 * @returns {String}
+		 */
+		createTaskInstanceId: function(taskId, yyyymmdd) {
+			if (Ext.isString(yyyymmdd)) {
+				return taskId + '.' + Sonicle.String.left(yyyymmdd, 8);
+			} else {
+				return taskId + '.00000000';
+			}
+		},
+		
+		/**
+		 * Calculates the Task series ID from a passed instance ID.
+		 * @param {String} iid A task instance ID.
+		 * @returns {String}
+		 */
+		taskInstanceIdToSeriesId: function(iid) {
+			return Sonicle.String.substrBefore(iid, '.') + '.00000000';
 		}
 	}
 });

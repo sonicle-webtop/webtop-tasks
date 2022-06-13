@@ -50,11 +50,45 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 		} else {
 			Ext.raise('Reminder type not supported [' + type + ']');
 		}
-	},	
+	},
+	
+	/**
+	 * Builds a Task instance ID from passed parameters.
+	 * @param {String} taskId The task ID.
+	 * @param {String} [yyyymmdd] The instance Data in format 'yyyymmdd'.
+	 * @returns {String}
+	 */
+	createTaskInstanceId: function(taskId, yyyymmdd) {
+		return Sonicle.webtop.tasks.Service.createTaskInstanceId(taskId, yyyymmdd);
+	},
+	
+	/**
+	 * Opens a task using the choosen editing mode, defaults to edit.
+	 * @param {String} id The task instance ID.
+	 * @param {Object} opts An object containing configuration.
+	 * @param {edit|view} [opts.mode="edit"] Opening mode.
+	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
+	 * @param {Object} [opts.scope] The callback method scope.
+	 * @param {Boolean} [opts.dirty] The dirty state of the model.
+	 * @param {Boolean} [opts.uploadTag] A custom upload tag.
+	 * @returns {WTA.sdk.ModelView}
+	 */
+	openTask: function(id, opts) {
+		opts = opts || {};
+		return this.service.openTask(opts.mode === 'view' ? false : true, id, {
+			callback: opts.callback,
+			scope: opts.scope,
+			dirty: opts.dirty,
+			uploadTag: opts.uploadTag
+		});
+	},
 	
 	/**
 	 * Starts adding a new task opening editing view.
 	 * @param {Object} data data An object containing entity data.
+	 * @param {String} [data.categoryId] The category ID in which to add the item.
+	 * @param {String} [data.parentId] The ID of parent task in order to add this as sub-task.
+	 * @param {String} [data.parentSubject] The subject of parent task in order to add this as sub-task. Optional, only for better UI management.
 	 * @param {String} [data.subject] The subject.
 	 * @param {String} [data.location] The location.
 	 * @param {String} [data.description] The extended description.
@@ -66,6 +100,7 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 * @param {0|5|10|15|30|45|60|120|180|240|300|360|420|480|540|600|660|720|1080|1440|2880|10080|20160|43200} [data.reminder] Minutes before start at which set reminder.
 	 * @param {default|private} [data.visibility] Visibility value.
 	 * @param {String} [data.docRef] The reference document.
+	 * @param {String} [data.tags] Pipe-separated list of WebTop's tag IDs.
 	 * @param {Object} opts An object containing configuration.
 	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
 	 * @param {Object} [opts.scope] The callback method scope.
@@ -74,7 +109,7 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 */
 	addTask: function(data, opts) {
 		opts = opts || {};
-		this.service.addTask2(data, {
+		this.service.addTaskWithData(data, {
 			callback: opts.callback,
 			scope: opts.scope,
 			dirty: opts.dirty,

@@ -37,6 +37,7 @@ Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
 	idProperty: 'id',
 	fields: [
 		WTF.roField('id', 'string'),
+		WTF.roField('taskId', 'string'),
 		WTF.roField('subject', 'string'),
 		WTF.roField('location', 'string'),
 		WTF.roField('start', 'date', {dateFormat: 'Y-m-d H:i:s'}),

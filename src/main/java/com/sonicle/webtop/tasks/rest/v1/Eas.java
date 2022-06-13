@@ -345,7 +345,9 @@ public class Eas extends EasApi {
 	}
 	
 	private TasksManager getManager(UserProfileId targetProfileId) {
-		return (TasksManager)WT.getServiceManager(SERVICE_ID, targetProfileId);
+		TasksManager manager = (TasksManager)WT.getServiceManager(SERVICE_ID, targetProfileId);
+		manager.setSoftwareName("rest-eas");
+		return manager;
 	}
 	
 	@Override
