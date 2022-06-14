@@ -212,6 +212,9 @@ public class TaskPredicateVisitor extends JOOQPredicateVisitorWithCValues {
 		if (QueryBuilderWithCValues.Type.CVSTRING.equals(cvalueType)) {
 			return defaultCondition(PV_TASKS_CUSTOM_VALUES.STRING_VALUE, operator, values);
 			
+		} else if (QueryBuilderWithCValues.Type.CVSTRINGARRAY.equals(cvalueType)) {
+			return defaultCondition(PV_TASKS_CUSTOM_VALUES.STRING_VALUE, true, operator, values);
+			
 		} else if (QueryBuilderWithCValues.Type.CVNUMBER.equals(cvalueType)) {
 			return defaultCondition(PV_TASKS_CUSTOM_VALUES.NUMBER_VALUE, operator, values);
 			

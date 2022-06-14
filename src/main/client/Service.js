@@ -107,7 +107,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	init: function() {
 		var me = this,
 				tagsStore = WT.getTagsStore(),
-				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.getVar('cfieldsSearchable'));
+				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.ID, me.getVar('cfieldsSearchable'));
 		
 		me.activeGridView = me.getVar('gridView');
 		me.initActions();
@@ -2172,7 +2172,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	addTaskWithData: function(data, opts) {
 		opts = opts || {};
 		var me = this,
-			data2 = me.parseTaskApiData(data),
+			ret = me.parseTaskApiData(data),
 			vw = WT.createView(me.ID, 'view.Task', {
 				swapReturn: true,
 				viewCfg: {
@@ -2185,7 +2185,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		vw.showView(function() {
 			vw.begin('new', {
-				data: data2,
+				data: ret[0],
+				cfData: ret[1],
 				dirty: opts.dirty
 			});
 		});
@@ -2528,7 +2529,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				WTFT = WTA.util.FoldersTree,
 				tree = me.trFolders(),
 				folder = WTFT.getFolderForAdd(tree, data.categoryId),
-				obj = {};
+				obj = {}, cfobj;
 			
 			obj.categoryId = folder ? folder.getFolderId() : WTFT.getDefaultOrBuiltInFolder(tree);
 			if (Ext.isDefined(data.parentId)) {
@@ -2548,9 +2549,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			if (Ext.isDefined(data.visibility)) obj.isPrivate = (data.visibility === 'private');
 			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
 			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
-			if (Ext.isDefined(data.tags)) obj.tags = data.tags;
+			if (Ext.isDefined(data.tags)) {
+				if (Ext.isArray(data.tags)) {
+					obj.tags = Sonicle.String.join('|', data.tags);
+				} else if (Ext.isString(data.tags)) {
+					obj.tags = data.tags;
+				}
+			}
+			if (Ext.isDefined(data.customFields) && Ext.isObject(data.customFields)) {
+				cfobj = data.customFields;
+			}
 			
-			return obj;
+			return [obj, cfobj];
 		},
 		
 		confirmOnRecurring: function(msg, cb, scope) {

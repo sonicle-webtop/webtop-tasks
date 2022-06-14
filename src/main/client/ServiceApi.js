@@ -100,7 +100,8 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 * @param {0|5|10|15|30|45|60|120|180|240|300|360|420|480|540|600|660|720|1080|1440|2880|10080|20160|43200} [data.reminder] Minutes before start at which set reminder.
 	 * @param {default|private} [data.visibility] Visibility value.
 	 * @param {String} [data.docRef] The reference document.
-	 * @param {String} [data.tags] Pipe-separated list of WebTop's tag IDs.
+	 * @param {String[]|String} [data.tags] Array or pipe-separated list of WebTop's tag IDs.
+	 * @param {Object} [data.customFields] Map of values, with CustomField name as key.
 	 * @param {Object} opts An object containing configuration.
 	 * @param {Function} [opts.callback] Callback method for 'viewsave' event.
 	 * @param {Object} [opts.scope] The callback method scope.
