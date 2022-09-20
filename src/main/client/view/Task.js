@@ -1093,7 +1093,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.getAct('tags').setDisabled(false);
 				me.lref('fldcategory').setReadOnly(false);
 			}
-			if (me.mys.hasAuditUI()) me.getAct('contactAuditLog').setDisabled(me.isMode(me.MODE_NEW));
+			if (me.mys.hasAuditUI()) me.getAct('taskAuditLog').setDisabled(me.isMode(me.MODE_NEW));
 			me.lref('fldsubject').focus(true);
 		},
 		
