@@ -61,6 +61,18 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 	
 	initComponent: function() {
 		var me = this;
+		Ext.apply(me, {
+        	bbar: {
+        		xtype: 'statusbar',
+        		items: [
+					WTF.recordInfoButton({
+						getTooltip: function() {
+							return Ext.String.format('ID: {0}', Sonicle.String.coalesce(me.getModel().get('categoryId'), '?'));
+						}
+					})
+        		]
+        	}
+        });
 		me.callParent(arguments);
 		
 		me.add({
