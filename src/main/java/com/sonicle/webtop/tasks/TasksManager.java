@@ -936,7 +936,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			org.jooq.Condition queryCondition = null;
 			DateTime from = null;
 			DateTime to = null;
-			int noOfRecurringInst = 365;
+			int noOfRecurringInst = 2*365;
 			DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 			if (view != null) {
 				queryCondition = tasDao.toCondition(view, now);
@@ -945,7 +945,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				} else if (TaskListView.NEXT_7.equals(view) || TaskListView.UPCOMING.equals(view)) {
 					to = now.toLocalDate().plusDays(6+1).toDateTimeAtStartOfDay(targetTimezone); // Next 7 is intended from today: so six +1
 				} else if (TaskListView.NOT_COMPLETED.equals(view)) {
-					to = now.toLocalDate().plusDays(365).toDateTimeAtStartOfDay(targetTimezone);
+					to = now.toLocalDate().plusDays(2*365).toDateTimeAtStartOfDay(targetTimezone);
 					noOfRecurringInst = 1;
 				}
 				if (TaskListView.UPCOMING.equals(view)) nestResults = false;
@@ -1004,7 +1004,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					}
 					
 				} else {
-					final List<TaskLookupInstance> items = calculateRecurringInstances(con, new TaskLookupInstanceMapper(vtas, keepPrivate), from, to, noOfRecurringInst);
+					final DateTime spanTo = (to != null) ? to : now.toLocalDate().plusDays(2*365).toDateTimeAtStartOfDay(targetTimezone);
+					final List<TaskLookupInstance> items = calculateRecurringInstances(con, new TaskLookupInstanceMapper(vtas, keepPrivate), from, spanTo, noOfRecurringInst);
 					
 					if (nestResults) {
 						TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), vtas);
