@@ -2002,15 +2002,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	printTasks: function(type, ids, filename) {
 		var me = this,
-				SU = Sonicle.Utils,
-				obj = {},
-				apnl, fname, epars, url;
+			SoO = Sonicle.Object,
+			obj = {},
+			apnl, fname, epars, url;
 		
 		if (!Ext.isArray(ids) || Ext.isEmpty(ids)) {
 			apnl = me.pnlCard().getLayout().getActiveItem();
-			epars = apnl.getStore().getProxy().getExtraParams();
-			SU.applyProp(obj, true, epars, 'view');
-			SU.applyProp(obj, true, epars, 'query');
+			epars = Sonicle.Data.getParams(apnl.getStore());
+			SoO.copyProp(obj, true, epars, 'sort');
+			SoO.copyProp(obj, true, epars, 'view');
+			SoO.copyProp(obj, true, epars, 'query');
 		}
 		
 		if ('detail' === type) {
@@ -2019,7 +2020,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			fname = 'tasks-list';
 		}
 		
-		url = WTF.processBinUrl(me.ID, 'PrintTasks', Ext.apply(obj, {type: type, ids: SU.toJSONArray(ids)}));
+		url = WTF.processBinUrl(me.ID, 'PrintTasks', Ext.apply(obj, {type: type, ids: Sonicle.Utils.toJSONArray(ids)}));
 		Sonicle.URLMgr.openFile(url, {filename: Sonicle.String.deflt(filename, fname), newWindow: true});
 	},
 	
