@@ -1655,7 +1655,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					sto = me.gpTasksList().getStore();
 				}
 				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query});
-				WTU.loadWithExtraParams(sto, pars);
+				Sonicle.Data.loadWithExtraParams(sto, pars, false, opts.callback, me);
 				if ('search' === view) {
 					me.activateView(view, opts.squery);
 				} else {
@@ -1893,21 +1893,43 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	completeTasksUI: function(recs) {
 		recs = Ext.Array.from(recs);
 		var me = this,
-				ids = Sonicle.Data.collectValues(recs),
-				doFn = function() {
+				SoD = Sonicle.Data,
+				ids = SoD.collectValues(recs),
+				doFn = function(reloadCallback) {
 					me.setTaskItemsCompleted(ids, {
 						callback: function(success) {
-							if (success) me.reloadTasks();
+							if (success) me.reloadTasks({callback: reloadCallback});
 						}
 					});
 				},
 				rec, s;
 		
 		if (recs.length === 1) {
-			rec = recs[0];
-			s = Ext.String.ellipsis(rec.get('subject'), 40);
+			var SoS = Sonicle.String,
+				gp = me.gpTasks(),
+				selModel = gp.getSelectionModel(),
+				rec = recs[0],
+				s = Ext.String.ellipsis(rec.get('subject'), 40);
+			
 			WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.complete.series', s) : (me.res('task.confirm.complete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.complete.warn.parent')) : '')), function(bid) {
-				if (bid === 'yes') doFn();
+				if (bid === 'yes') {
+					if (rec.isSeriesItem() && selModel.isSelected(rec)) {
+						// Restore selection on next item of the same series of the item just completed!
+						doFn(function(recs, op, success) {
+							if (success) {
+								var seriesId = SoS.substrBefore(rec.getId(), '.'), i;
+								for (i=0; i<recs.length; i++) {
+									if (SoS.startsWith(recs[i].getId(), seriesId)) {
+										selModel.select(recs[i]);
+										break;
+									}
+								}
+							}
+						});
+					} else {
+						doFn();
+					}	
+				}
 			}, me);
 		} else {
 			WT.confirm(me.res('task.confirm.complete.selection'), function(bid) {
@@ -2002,15 +2024,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	printTasks: function(type, ids, filename) {
 		var me = this,
-				SU = Sonicle.Utils,
-				obj = {},
-				apnl, fname, epars, url;
+			SoO = Sonicle.Object,
+			obj = {},
+			apnl, fname, epars, url;
 		
 		if (!Ext.isArray(ids) || Ext.isEmpty(ids)) {
 			apnl = me.pnlCard().getLayout().getActiveItem();
-			epars = apnl.getStore().getProxy().getExtraParams();
-			SU.applyProp(obj, true, epars, 'view');
-			SU.applyProp(obj, true, epars, 'query');
+			epars = Sonicle.Data.getParams(apnl.getStore());
+			SoO.copyProp(obj, true, epars, 'sort');
+			SoO.copyProp(obj, true, epars, 'view');
+			SoO.copyProp(obj, true, epars, 'query');
 		}
 		
 		if ('detail' === type) {
@@ -2019,7 +2042,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			fname = 'tasks-list';
 		}
 		
-		url = WTF.processBinUrl(me.ID, 'PrintTasks', Ext.apply(obj, {type: type, ids: SU.toJSONArray(ids)}));
+		url = WTF.processBinUrl(me.ID, 'PrintTasks', Ext.apply(obj, {type: type, ids: Sonicle.Utils.toJSONArray(ids)}));
 		Sonicle.URLMgr.openFile(url, {filename: Sonicle.String.deflt(filename, fname), newWindow: true});
 	},
 	
