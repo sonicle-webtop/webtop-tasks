@@ -38,6 +38,50 @@
         "description": "Returns a list of available task categories with synchronization active."
       }
     },
+    "/eas/folders/{folderId}/messages": {
+      "post": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Adds a message",
+        "operationId": "addMessage",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SyncTaskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/SyncTaskStat"
+            }
+          }
+        },
+        "description": "Add new task."
+      },
+      "parameters": [
+        {
+          "name": "folderId",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "description": "Folder ID",
+          "x-example": 1234
+        }
+      ]
+    },
     "/eas/folders/{folderId}/messages-stats": {
       "get": {
         "tags": [
@@ -73,50 +117,6 @@
           }
         },
         "description": "Returns sync informations for the specified category folder."
-      },
-      "parameters": [
-        {
-          "name": "folderId",
-          "in": "path",
-          "required": true,
-          "type": "integer",
-          "description": "Folder ID",
-          "x-example": 1234
-        }
-      ]
-    },
-    "/eas/folders/{folderId}/messages": {
-      "post": {
-        "tags": [
-          "eas-messages"
-        ],
-        "summary": "Adds a message",
-        "operationId": "addMessage",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/SyncTaskUpdate"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/definitions/SyncTaskStat"
-            }
-          }
-        },
-        "description": "Add new task."
       },
       "parameters": [
         {

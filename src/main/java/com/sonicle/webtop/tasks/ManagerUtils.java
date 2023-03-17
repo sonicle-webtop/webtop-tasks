@@ -300,7 +300,7 @@ public class ManagerUtils {
 	static OTask fillOTaskWithDefaultsForInsert(OTask tgt, UserProfileId targetProfile, DateTime defaultTimestamp) {
 		if (tgt != null) {
 			if (StringUtils.isBlank(tgt.getPublicUid())) {
-				tgt.setPublicUid(TasksUtils.buildTaskUid(tgt.getTaskId(), WT.getDomainInternetName(targetProfile.getDomainId())));
+				tgt.setPublicUid(TasksUtils.buildTaskUid(tgt.getTaskId(), WT.getPrimaryDomainName(targetProfile.getDomainId())));
 			}
 			if (tgt.getRevisionTimestamp()== null) tgt.setRevisionTimestamp(defaultTimestamp);
 			if (tgt.getRevisionSequence() == null) tgt.setRevisionSequence(0);
