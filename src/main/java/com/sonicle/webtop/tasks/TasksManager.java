@@ -1004,8 +1004,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					}
 					
 				} else {
-					final DateTime spanTo = (to != null) ? to : now.toLocalDate().plusDays(2*365).toDateTimeAtStartOfDay(targetTimezone);
-					final List<TaskLookupInstance> items = calculateRecurringInstances(con, new TaskLookupInstanceMapper(vtas, keepPrivate), from, spanTo, noOfRecurringInst);
+					final List<TaskLookupInstance> items = calculateRecurringInstances(new TaskLookupRecurringContext(con, vtas, keepPrivate), from, to, noOfRecurringInst);
 					
 					if (nestResults) {
 						TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), vtas);
@@ -1021,6 +1020,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			
 			if (TaskListView.UPCOMING.equals(view)) {
+				// Ignore provided sortInfo (if any) and order programmatically by Due date and Subject
 				Collections.sort(instances, getComparator("due", SortInfo.Direction.ASC)
 					.thenComparing(getComparator("subject", SortInfo.Direction.ASC)));
 				
@@ -1091,6 +1091,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					}
 					
 				} else {
+					// (searches) Ignore provided sortInfo (if any) and order programmatically by Start date and Subject
 					Collections.sort(instances, getComparator("start", SortInfo.Direction.ASC)
 						.thenComparing(getComparator("subject", SortInfo.Direction.ASC)));
 				}
@@ -1950,7 +1951,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					item.setTaskId(vtas.getTaskId());
 					instances.add(item);
 				} else {
-					instances.addAll(calculateRecurringInstances(con, new TaskAlertLookupInstanceMapper(vtas), from, to, noOfRecurringInst));
+					instances.addAll(calculateRecurringInstances(new TaskAlertLookupRecurringContext(con, vtas), from, to, noOfRecurringInst));
 				}
 			}
 			
@@ -2027,50 +2028,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (!taskIsPrivate) return false;
 		if (RunContext.isWebTopAdmin(runningProfile)) return false;
 		return !taskOwner.equals(runningProfile);
-	}
-	
-	private <T> List<T> calculateRecurringInstances(Connection con, RecurringInstanceMapper<T> instanceMapper, DateTime rangeFrom, DateTime rangeTo, int limit) throws WTException {
-		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-		ArrayList<T> instances = new ArrayList<>();
-		
-		DateTimeZone timezone = instanceMapper.getTimezone();
-		String taskId = instanceMapper.getTaskId();
-		DateTime taskStart = instanceMapper.getTaskStart();
-		DateTime taskDue = instanceMapper.getTaskDue();
-		
-		if (taskStart == null) {
-			logger.warn("Task has no valid start [{}]", taskId);
-		} else {
-			LocalTime taskStartTime = taskStart.withZone(timezone).toLocalTime();
-			LocalTime taskDueTime = (taskDue != null) ? taskDue.withZone(timezone).toLocalTime() : null;
-			Integer dueDays = (taskDue != null) ? Math.abs(Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays()) : null;
-			
-			try {
-				OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, taskId);
-				if (orec == null) {
-					logger.warn("Unable to retrieve recurrence for task [{}]", taskId);
-				} else {
-					if (rangeFrom == null) rangeFrom = orec.getStart();
-					if (rangeTo == null) rangeTo = orec.getStart().plusYears(1);
-
-					Recur recur = orec.getRecur();
-					if (recur == null) throw new WTException("Unable to parse rrule [{}]", orec.getRule());
-
-					Set<LocalDate> exclDates = recDao.selectRecurrenceExByTask(con, taskId);
-					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), false, exclDates, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
-					for (LocalDate date : dates) {
-						DateTime start = date.toDateTime(taskStartTime, timezone);
-						DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
-						TaskInstanceId id = TaskInstanceId.build(taskId, start, timezone);
-
-						instances.add(instanceMapper.createInstance(id, start, due));
-					}
-				}
-			} catch (Throwable t) {
-				throw ExceptionUtils.wrapThrowable(t);
-			}
-		}
-		return instances;
 	}
 	
 	private Category doCategoryInsert(Connection con, Category cat) throws DAOException {
@@ -2727,7 +2684,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			task.setTags(tagIds);
 		}
 		if (input1st.relatedToUid != null) {
-			//TODO: find task with publicId = relatedToUid
+			//TODO: find task of publicId = relatedToUid
 		}
 		String rawICalendar = null;
 		if (input1st.extraProps != null) {
@@ -3340,6 +3297,178 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
+	private class TaskLookupRecurringContext implements RecurringInstanceContext<TaskLookupInstance> {
+		private final VTaskLookup task;
+		private final boolean censorize;
+		private final OTaskRecurrence taskRecurrence;
+		private final Set<LocalDate> recurrenceExclDates;
+		
+		public TaskLookupRecurringContext(Connection con, VTaskLookup task, boolean censorize) {
+			this.task = task;
+			this.censorize = censorize;
+			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
+			this.taskRecurrence = recDao.selectRecurrenceByTask(con, task.getTaskId());
+			this.recurrenceExclDates = recDao.selectRecurrenceExByTask(con, task.getTaskId());
+		}
+		
+		@Override
+		public DateTimeZone getTimezone() {
+			return task.getTimezoneObject();
+		}
+
+		@Override
+		public String getTaskId() {
+			return task.getTaskId();
+		}
+
+		@Override
+		public DateTime getTaskStart() {
+			return task.getStart();
+		}
+
+		@Override
+		public DateTime getTaskDue() {
+			return task.getDue();
+		}
+
+		@Override
+		public DateTime getRecurrenceStart() {
+			return taskRecurrence != null ? taskRecurrence.getStart(): null;
+		}
+
+		@Override
+		public Recur getRecurrenceDefinition() {
+			return taskRecurrence != null ? taskRecurrence.getRecur() : null;
+		}
+
+		@Override
+		public Set<LocalDate> getRecurrenceExclDates() {
+			return recurrenceExclDates;
+		}
+
+		@Override
+		public TaskLookupInstance createInstance(TaskInstanceId id, DateTime start, DateTime due) {
+			TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), task);
+			item.setId(id);
+			item.setTaskId(task.getTaskId());
+			item.setStart(start);
+			item.setDue(due);
+			if (censorize) item.censorize();
+			return item;
+		}
+	}
+	
+	private class TaskAlertLookupRecurringContext implements RecurringInstanceContext<TaskAlertLookupInstance> {
+		private final VTaskLookup task;
+		private final OTaskRecurrence taskRecurrence;
+		private final Set<LocalDate> recurrenceExclDates;
+		
+		public TaskAlertLookupRecurringContext(Connection con, VTaskLookup task) {
+			this.task = task;
+			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
+			this.taskRecurrence = recDao.selectRecurrenceByTask(con, task.getTaskId());
+			this.recurrenceExclDates = recDao.selectRecurrenceExByTask(con, task.getTaskId());
+		}
+		
+		@Override
+		public DateTimeZone getTimezone() {
+			return task.getTimezoneObject();
+		}
+
+		@Override
+		public String getTaskId() {
+			return task.getTaskId();
+		}
+
+		@Override
+		public DateTime getTaskStart() {
+			return task.getStart();
+		}
+
+		@Override
+		public DateTime getTaskDue() {
+			return task.getDue();
+		}
+
+		@Override
+		public DateTime getRecurrenceStart() {
+			return taskRecurrence != null ? taskRecurrence.getStart(): null;
+		}
+
+		@Override
+		public Recur getRecurrenceDefinition() {
+			return taskRecurrence != null ? taskRecurrence.getRecur() : null;
+		}
+
+		@Override
+		public Set<LocalDate> getRecurrenceExclDates() {
+			return recurrenceExclDates;
+		}
+		
+		@Override
+		public TaskAlertLookupInstance createInstance(TaskInstanceId id, DateTime start, DateTime due) {
+			TaskAlertLookupInstance item = ManagerUtils.fillTaskAlertLookup(new TaskAlertLookupInstance(), task);
+			item.setId(id);
+			item.setTaskId(task.getTaskId());
+			item.setStart(start);
+			item.setDue(due);
+			return item;
+		}
+	}
+	
+	private interface RecurringInstanceContext<T> {
+		public DateTimeZone getTimezone();
+		public String getTaskId();
+		public DateTime getTaskStart();
+		public DateTime getTaskDue();
+		public DateTime getRecurrenceStart();
+		public Recur getRecurrenceDefinition();
+		public Set<LocalDate> getRecurrenceExclDates();
+		public T createInstance(TaskInstanceId id, DateTime start, DateTime due);
+	}
+	
+	private <T> List<T> calculateRecurringInstances(final RecurringInstanceContext<T> context, final DateTime spanFrom, final DateTime spanTo, final int limitNoOfInstances) throws WTException {
+		Check.notNull(context, "context");
+		ArrayList<T> instances = new ArrayList<>();
+		
+		final DateTimeZone timezone = context.getTimezone();
+		final String taskId = context.getTaskId();
+		final DateTime taskStart = context.getTaskStart();
+		final DateTime taskDue = context.getTaskDue();
+		final DateTime recurStart = context.getRecurrenceStart();
+		final Recur recur = context.getRecurrenceDefinition();
+		
+		if (taskStart != null && recurStart != null && recur != null) {
+			LocalTime taskStartTime = taskStart.withZone(timezone).toLocalTime();
+			LocalTime taskDueTime = (taskDue != null) ? taskDue.withZone(timezone).toLocalTime() : null;
+			Integer dueDays = (taskDue != null) ? Math.abs(Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays()) : null;
+			
+			// Define initial computation range taken from parameters
+			DateTime rangeFrom = spanFrom;
+			DateTime rangeTo = spanTo;
+			
+			// No range specified, set a default window starting recurrence start
+			if (rangeFrom == null) rangeFrom = recurStart;
+			if (rangeTo == null) rangeTo = recurStart.plusYears(1);
+			//if (rangeFrom == null) rangeFrom = DateTime.now(timezone).withTimeAtStartOfDay();
+			//if (rangeTo == null) rangeTo = recurStart.plusYears(1);
+			
+			List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, recurStart, false, context.getRecurrenceExclDates(), taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limitNoOfInstances);
+			for (LocalDate date : dates) {
+				final DateTime start = date.toDateTime(taskStartTime, timezone);
+				final DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
+				final TaskInstanceId id = TaskInstanceId.build(taskId, start, timezone);
+				instances.add(context.createInstance(id, start, due));
+			}
+		} else {
+			if (taskStart == null) logger.warn("Task has NO valid start instant [{}]", taskId);
+			if (recurStart == null) logger.warn("Task has NO recurrence start instant", taskId);
+			if (recur == null) logger.warn("Task has NO recurrence rule [{}]", taskId);
+		}
+		return instances;
+	}
+	
+	/*
 	private class TaskLookupInstanceMapper implements RecurringInstanceMapper<TaskLookupInstance> {
 		private final VTaskLookup task;
 		private final boolean censorize;
@@ -3427,6 +3556,50 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		public T createInstance(TaskInstanceId id, DateTime start, DateTime due);
 	}
 	
+	private <T> List<T> calculateRecurringInstances(Connection con, RecurringInstanceMapper<T> instanceMapper, DateTime rangeFrom, DateTime rangeTo, int limit) throws WTException {
+		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
+		ArrayList<T> instances = new ArrayList<>();
+		
+		DateTimeZone timezone = instanceMapper.getTimezone();
+		String taskId = instanceMapper.getTaskId();
+		DateTime taskStart = instanceMapper.getTaskStart();
+		DateTime taskDue = instanceMapper.getTaskDue();
+		
+		if (taskStart == null) {
+			logger.warn("Task has no valid start [{}]", taskId);
+		} else {
+			LocalTime taskStartTime = taskStart.withZone(timezone).toLocalTime();
+			LocalTime taskDueTime = (taskDue != null) ? taskDue.withZone(timezone).toLocalTime() : null;
+			Integer dueDays = (taskDue != null) ? Math.abs(Days.daysBetween(taskStart.toLocalDate(), taskDue.toLocalDate()).getDays()) : null;
+			
+			try {
+				OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, taskId);
+				if (orec == null) {
+					logger.warn("Unable to retrieve recurrence for task [{}]", taskId);
+				} else {
+					if (rangeFrom == null) rangeFrom = orec.getStart();
+					if (rangeTo == null) rangeTo = orec.getStart().plusYears(1);
+
+					Recur recur = orec.getRecur();
+					if (recur == null) throw new WTException("Unable to parse rrule [{}]", orec.getRule());
+
+					Set<LocalDate> exclDates = recDao.selectRecurrenceExByTask(con, taskId);
+					List<LocalDate> dates = ICal4jUtils.calculateRecurrenceSet(recur, orec.getStart(), false, exclDates, taskStart, taskStart.plusDays(1), timezone, rangeFrom, rangeTo, limit);
+					for (LocalDate date : dates) {
+						DateTime start = date.toDateTime(taskStartTime, timezone);
+						DateTime due = (taskDueTime != null) ? date.plusDays(dueDays).toDateTime(taskDueTime, timezone) : null;
+						TaskInstanceId id = TaskInstanceId.build(taskId, start, timezone);
+
+						instances.add(instanceMapper.createInstance(id, start, due));
+					}
+				}
+			} catch (Throwable t) {
+				throw ExceptionUtils.wrapThrowable(t);
+			}
+		}
+		return instances;
+	}
+	*/
 	
 	/*
 	private Task doTaskGet(Connection con, int taskId, boolean processAttachments, boolean processTags, boolean processCustomValues) throws DAOException, WTException {
