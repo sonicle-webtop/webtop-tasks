@@ -1510,7 +1510,6 @@ public class TasksManager extends BaseManager implements ITasksManager {
 								InstanceInfo childInfo = new InstanceInfo(childInstanceId, tasDao.selectInstanceInfo(con, childInstanceId));
 								Task childOrigTask = doTaskGet(con, childInfo.realTaskId(), options);
 								
-								childOrigTask.prependToSubject(copyPrefix);
 								TaskInsertResult result2 = doTaskInstanceCopy(con, childInfo, childOrigTask, parentInstanceId, targetCategoryId);
 								copied.add(new AuditTaskCopyObj(result2.otask.getTaskId(), childOrigTask.getTaskId()));
 							}
