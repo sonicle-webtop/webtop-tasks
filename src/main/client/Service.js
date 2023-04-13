@@ -126,6 +126,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				{
 					xtype: 'wtsearchfield',
 					reference: 'fldsearch',
+					suggestionServiceId: me.ID,
+					suggestionContext: 'mainsearch',
+					enableQuerySaving: true,
 					highlightKeywords: ['subject', 'location', 'doc'],
 					fields: Ext.Array.push([
 						{
@@ -1633,12 +1636,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	queryTasks: function(query) {
 		var isString = Ext.isString(query),
-				value = isString ? query : query.value,
-				obj = {
-					allText: isString ? query : query.anyText,
-					conditions: isString ? [] : query.conditionArray
-				};
-		this.reloadTasks({view: 'search', query: Ext.JSON.encode(obj), squery: value});
+			queryText = isString ? query : query.value,
+			obj = {
+				allText: isString ? query : query.anyText,
+				conditions: isString ? [] : query.conditionArray
+			};
+		this.reloadTasks({view: 'search', query: Ext.JSON.encode(obj), queryText: queryText});
 	},
 	
 	reloadTasks: function(opts) {
@@ -1654,10 +1657,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				} else {
 					sto = me.gpTasksList().getStore();
 				}
-				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query});
+				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query, queryText: opts.queryText});
 				Sonicle.Data.loadWithExtraParams(sto, pars, false, opts.callback, me);
 				if ('search' === view) {
-					me.activateView(view, opts.squery);
+					me.activateView(view, opts.queryText);
 				} else {
 					me.activateView(view);
 				}

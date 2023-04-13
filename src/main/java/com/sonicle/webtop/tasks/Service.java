@@ -140,6 +140,7 @@ import org.slf4j.Logger;
  */
 public class Service extends BaseService {
 	public static final Logger logger = WT.getLogger(Service.class);
+	public static final String META_CONTEXT_SEARCH = "mainsearch";
 	
 	private TasksManager manager;
 	private TasksServiceSettings ss;
@@ -603,6 +604,11 @@ public class Service extends BaseService {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
 				ITasksManager.TaskListView view = ServletUtils.getEnumParameter(request, "view", null, ITasksManager.TaskListView.class);
+				String queryText = ServletUtils.getStringParameter(request, "queryText", null);
+				if (!StringUtils.isBlank(queryText)) {
+					CoreManager core = WT.getCoreManager();
+					core.saveMetaEntry(SERVICE_ID, META_CONTEXT_SEARCH, queryText, queryText, false);
+				}
 				QueryObj queryObj = ServletUtils.getObjectParameter(request, "query", new QueryObj(), QueryObj.class);
 				if (view == null) queryObj = applyTasksQueryObjDefaults(queryObj);
 				SortMeta.List sortMeta = ServletUtils.getObjectParameter(request, "sort", new SortMeta.List(), SortMeta.List.class);
