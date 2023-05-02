@@ -36,7 +36,7 @@ import com.google.gson.annotations.SerializedName;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
@@ -68,15 +68,15 @@ public class JsGridTask {
     public Integer categoryId;
 	public String categoryName;
     public String categoryColor;
-	public String ownerId;
-	public String _frights;
-	public String _erights;
+	public String _owPid;
+	public String _foPerms;
+	public String _itPerms;
 	public Hierarchy _hierarchy;
 	public Integer _depth;
 	
 	public JsGridTask() {}
 	
-	public JsGridTask(ShareFolderCategory folder, CategoryPropSet folderProps, TaskLookupInstance task, Hierarchy hierarchy, Integer depth, DateTimeZone profileTz) {
+	public JsGridTask(CategoryFSFolder folder, CategoryPropSet folderProps, TaskLookupInstance task, Hierarchy hierarchy, Integer depth, DateTimeZone profileTz) {
 		DateTimeFormatter fmtYmdHms = DateTimeUtils.createYmdHmsFormatter(profileTz);
 		Category category = folder.getCategory();
 		
@@ -100,9 +100,9 @@ public class JsGridTask {
         this.categoryName = category.getName();
 		this.categoryColor = category.getColor();
 		if (folderProps != null) this.categoryColor = folderProps.getColorOrDefault(categoryColor);
-		this.ownerId = category.getProfileId().toString();
-        this._frights = folder.getPerms().toString();
-        this._erights = folder.getElementsPerms().toString();
+		this._owPid = category.getProfileId().toString();
+        this._foPerms = folder.getPermissions().getFolderPermissions().toString();
+		this._itPerms = folder.getPermissions().getItemsPermissions().toString();
 		this._hierarchy = hierarchy;
 		this._depth = depth;
 	}

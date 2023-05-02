@@ -34,33 +34,28 @@
 Ext.define('Sonicle.webtop.tasks.model.FolderNode', {
 	extend: 'Ext.data.Model',
 	mixins: [
-		'WTA.mixin.FolderNodeInterface'
+		'WTA.sdk.mixin.FolderNodeInterface'
 	],
 	
-	typeField: '_type',
-	folderIdField: '_catId',
-	profileIdField: '_pid',
+	colorField: '_color',
 	defaultField: '_default',
 	builtInField: '_builtIn',
 	activeField: '_active',
+	originPermsField: '_orPerms',
+	folderPermsField: '_foPerms',
+	itemsPermsField: '_itPerms',
 	
 	fields: [
-		WTF.field('_type', 'string', false),
-		WTF.field('_pid', 'string', false),
-		WTF.roField('_rperms', 'string'),
-		WTF.roField('_fperms', 'string'),
-		WTF.roField('_eperms', 'string'),
-		WTF.roField('_catId', 'string'),
-		WTF.roField('_builtIn', 'boolean'),
-		WTF.roField('_default', 'boolean'),
 		WTF.field('_active', 'boolean', true), // Same as checked
+		WTF.roField('_default', 'boolean'),
+		WTF.roField('_builtIn', 'boolean'),
+		//WTF.roField('_provider', 'string'),
 		WTF.roField('_color', 'string'),
 		WTF.roField('_sync', 'string'),
-		WTF.calcField('_domainId', 'string', '_pid', function(v, rec) {
-			return (rec.get('_pid')) ? rec.get('_pid').split('@')[1] : null;
-		}),
-		WTF.calcField('_userId', 'string', '_pid', function(v, rec) {
-			return (rec.get('_pid')) ? rec.get('_pid').split('@')[0] : null;
-		})
+		WTF.roField('_defPrivate', 'boolean'),
+		WTF.roField('_defReminder', 'int'),
+		WTF.roField('_orPerms', 'string'),
+		WTF.roField('_foPerms', 'string'),
+		WTF.roField('_itPerms', 'string')
 	]
 });

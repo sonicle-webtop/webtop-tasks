@@ -33,11 +33,11 @@
 package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.time.DateTimeUtils;
-import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTimeZone;
@@ -54,11 +54,12 @@ public class JsPletTasks {
 	public String subject;
 	public String body;
 	public String due;
-	public String _owner;
-	public String _frights;
-	public String _erights;
+	public String _orDN;
+	public String _owPid;
+	public String _foPerms;
+	public String _itPerms;
 	
-	public JsPletTasks(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet pset, TaskLookupInstance task, DateTimeZone profileTz) {
+	public JsPletTasks(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet props, TaskLookupInstance task, DateTimeZone profileTz) {
 		final Category category = folder.getCategory();
 		
 		this.id = task.getId().toString();
@@ -69,8 +70,9 @@ public class JsPletTasks {
 		this.body = StringUtils.left(task.getDescription(), 250);
 		this.due = DateTimeUtils.printYmdHmsWithZone(task.getDue(), profileTz);
 		
-		this._owner = (root instanceof MyShareRootCategory) ? "" : root.getDescription();
-		this._frights = folder.getPerms().toString();
-		this._erights = folder.getElementsPerms().toString();
+		this._orDN = (origin instanceof MyCategoryFSOrigin) ? null : origin.getDisplayName();
+		this._owPid = category.getProfileId().toString();
+		this._foPerms = folder.getPermissions().getFolderPermissions().toString();
+		this._itPerms = folder.getPermissions().getItemsPermissions().toString();
 	}
 }

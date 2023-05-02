@@ -36,6 +36,7 @@ import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.model.FolderShare;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
 import com.sonicle.webtop.core.model.SharePerms;
 import com.sonicle.webtop.core.model.SharePermsElements;
@@ -49,8 +50,8 @@ import com.sonicle.webtop.tasks.TaskObjectOutputType;
 import com.sonicle.webtop.tasks.TasksManager;
 import com.sonicle.webtop.tasks.TasksServiceSettings;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.TaskObject;
 import com.sonicle.webtop.tasks.model.TaskObjectChanged;
 import com.sonicle.webtop.tasks.model.TaskObjectWithBean;
@@ -102,24 +103,21 @@ public class Dav extends DavApi {
 			Map<Integer, DateTime> revisions = manager.getCategoriesLastRevision(categories.keySet());
 			for (Category category : categories.values()) {
 				//if (cal.isProviderRemote()) continue;
-				items.add(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), null, null));
+				items.add(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), FolderShare.Permissions.full()));
 			}
-			
-			List<ShareRootCategory> shareRoots = manager.listIncomingCategoryRoots();
-			for (ShareRootCategory shareRoot : shareRoots) {
-				Map<Integer, ShareFolderCategory> folders = manager.listIncomingCategoryFolders(shareRoot.getShareId());
+			for (CategoryFSOrigin origin : manager.listIncomingCategoryOrigins().values()) {
+				Map<Integer, CategoryFSFolder> folders = manager.listIncomingCategoryFolders(origin);
 				revisions = manager.getCategoriesLastRevision(folders.keySet());
-				//Map<Integer, CategoryPropSet> props = manager.getCategoryCustomProps(folders.keySet());
-				for (ShareFolderCategory folder : folders.values()) {
+				for (CategoryFSFolder folder : folders.values()) {
 					Category category = folder.getCategory();
-					//if (cal.isProviderRemote()) continue;
-					items.add(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), folder.getPerms(), folder.getElementsPerms()));
+					//if (category.isProviderRemote()) continue;
+					items.add(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), folder.getPermissions()));
 				}
 			}
 			
 			return respOk(items);
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavFolders()", currentProfileId, t);
 			return respError(t);
 		}
@@ -141,18 +139,15 @@ public class Dav extends DavApi {
 			//if (cal.isProviderRemote()) return respErrorBadRequest();
 			
 			Map<Integer, DateTime> revisions = manager.getCategoriesLastRevision(Arrays.asList(category.getCategoryId()));
-			
-			String rootShareId = manager.getIncomingCategoryShareRootId(categoryId);
-			if (rootShareId != null) {
-				Map<Integer, ShareFolderCategory> folders = manager.listIncomingCategoryFolders(rootShareId);
-				ShareFolderCategory folder = folders.get(categoryId);
-				return respOk(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), folder.getPerms(), folder.getElementsPerms()));
-				
+			CategoryFSOrigin origin = manager.getIncomingCategoryOriginByFolderId(categoryId);
+			if (origin != null) {
+				Map<Integer, CategoryFSFolder> folders = manager.listIncomingCategoryFolders(origin);
+				return respOk(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), folders.get(categoryId).getPermissions()));
 			} else {
-				return respOk(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), null, null));
+				return respOk(createDavFolder(currentProfileId, category, revisions.get(category.getCategoryId()), FolderShare.Permissions.full()));
 			}
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavFolder({})", currentProfileId, folderUid, t);
 			return respError(t);
 		}
@@ -174,9 +169,9 @@ public class Dav extends DavApi {
 			category.setDescription(body.getDescription());
 			category = manager.addCategory(category);
 			// Calendars are always added in currentProfile so we do not handle perms here (passing null = full rights)
-			return respOkCreated(createDavFolder(currentProfileId, category, null, null, null));
+			return respOkCreated(createDavFolder(currentProfileId, category, null, FolderShare.Permissions.full()));
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] addDavFolder(...)", currentProfileId, t);
 			return respError(t);
 		}
@@ -209,9 +204,9 @@ public class Dav extends DavApi {
 			manager.updateCategory(category);
 			return respOk();
 			
-		} catch(WTNotFoundException ex) {
+		} catch (WTNotFoundException ex) {
 			return respErrorNotFound();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] updateDavFolder({}, ...)", RunContext.getRunProfileId(), folderUid, t);
 			return respError(t);
 		}
@@ -235,9 +230,9 @@ public class Dav extends DavApi {
 				return respErrorNotAllowed();
 			}
 			
-		} catch(WTNotFoundException ex) {
+		} catch (WTNotFoundException ex) {
 			return respErrorNotFound();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] deleteDavFolder({})", RunContext.getRunProfileId(), folderUid, t);
 			return respError(t);
 		}
@@ -278,7 +273,7 @@ public class Dav extends DavApi {
 				return respOk(items);
 			}
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavObjects({})", RunContext.getRunProfileId(), folderUid, t);
 			return respError(t);
 		}
@@ -307,7 +302,7 @@ public class Dav extends DavApi {
 			if (object != null) return respOk(createDavObject(object));
 			return respErrorNotFound();
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavObject({}, {})", RunContext.getRunProfileId(), folderUid, href, t);
 			return respError(t);
 		}
@@ -333,7 +328,7 @@ public class Dav extends DavApi {
 			}
 			return respOkCreated();
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] addDavObject({}, ...)", RunContext.getRunProfileId(), folderUid, t);
 			return respError(t);
 		}
@@ -359,9 +354,9 @@ public class Dav extends DavApi {
 			}
 			return respOkNoContent();
 			
-		} catch(WTNotFoundException ex) {
+		} catch (WTNotFoundException ex) {
 			return respErrorNotFound();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] updateDavObject({}, {}, ...)", RunContext.getRunProfileId(), folderUid, href, t);
 			return respError(t);
 		}
@@ -380,9 +375,9 @@ public class Dav extends DavApi {
 			manager.deleteTaskObject(categoryId, href);
 			return respOkNoContent();
 			
-		} catch(WTNotFoundException ex) {
+		} catch (WTNotFoundException ex) {
 			return respErrorNotFound();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] deleteDavObject({}, {})", RunContext.getRunProfileId(), folderUid, href, t);
 			return respError(t);
 		}
@@ -413,13 +408,13 @@ public class Dav extends DavApi {
 			LangUtils.CollectionChangeSet<TaskObjectChanged> changes = manager.listTaskObjectsChanges(categoryId, since, limit);
 			return respOk(createDavObjectsChanges(revisions.get(categoryId), changes));
 			
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavObjectsChanges({}, {}, {})", RunContext.getRunProfileId(), folderUid, syncToken, limit, t);
 			return respError(t);
 		}
 	}
 	
-	private DavFolder createDavFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, SharePerms folderPerms, SharePerms elementPerms) {
+	private DavFolder createDavFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, FolderShare.Permissions permissions) {
 		UserProfile.Data owud = WT.getUserData(cat.getProfileId());
 		
 		String displayName = cat.getName();
@@ -430,25 +425,25 @@ public class Dav extends DavApi {
 		String ownerUsername = owud.getProfileEmailAddress();
 		
 		return new DavFolder()
-				.id(cat.getCategoryId())
-				.uid(ManagerUtils.encodeAsTaskFolderUid(cat.getCategoryId()))
-				.name(cat.getName())
-				.description(cat.getDescription())
-				.color(cat.getColor())
-				.syncToken(buildEtag(lastRevisionTimestamp))
-				.aclFol((folderPerms == null) ? SharePermsFolder.full().toString() : folderPerms.toString())
-				.aclEle((elementPerms == null) ? SharePermsElements.full().toString() : elementPerms.toString())
-				.ownerUsername(ownerUsername)
-				.displayName(displayName);
+			.id(cat.getCategoryId())
+			.uid(ManagerUtils.encodeAsTaskFolderUid(cat.getCategoryId()))
+			.name(cat.getName())
+			.description(cat.getDescription())
+			.color(cat.getColor())
+			.syncToken(buildEtag(lastRevisionTimestamp))
+			.aclFol(permissions.getFolderPermissions().toString())
+			.aclEle(permissions.getItemsPermissions().toString())
+			.ownerUsername(ownerUsername)
+			.displayName(displayName);
 	}
 	
 	private DavObject createDavObject(TaskObject obj) {
 		DavObject ret = new DavObject()
-				.id(obj.getTaskId())
-				.uid(obj.getPublicUid())
-				.href(obj.getHref())
-				.lastModified(obj.getRevisionTimestamp().withZone(DateTimeZone.UTC).getMillis()/1000)
-				.etag(buildEtag(obj.getRevisionTimestamp()));
+			.id(obj.getTaskId())
+			.uid(obj.getPublicUid())
+			.href(obj.getHref())
+			.lastModified(obj.getRevisionTimestamp().withZone(DateTimeZone.UTC).getMillis()/1000)
+			.etag(buildEtag(obj.getRevisionTimestamp()));
 		
 		if (obj instanceof TaskObjectWithICalendar) {
 			TaskObjectWithICalendar objwi = (TaskObjectWithICalendar)obj;
@@ -464,9 +459,9 @@ public class Dav extends DavApi {
 	
 	private DavObjectChanged createDavObjectChanged(TaskObjectChanged obj) {
 		return new DavObjectChanged()
-				.id(obj.getTaskId())
-				.href(obj.getHref())
-				.etag(buildEtag(obj.getRevisionTimestamp()));
+			.id(obj.getTaskId())
+			.href(obj.getHref())
+			.etag(buildEtag(obj.getRevisionTimestamp()));
 	}
 	
 	private DavObjectsChanges createDavObjectsChanges(DateTime lastRevisionTimestamp, LangUtils.CollectionChangeSet<TaskObjectChanged> changes) {
@@ -486,10 +481,10 @@ public class Dav extends DavApi {
 		}
 		
 		return new DavObjectsChanges()
-				.syncToken(buildEtag(lastRevisionTimestamp))
-				.inserted(inserted)
-				.updated(updated)
-				.deleted(deleted);
+			.syncToken(buildEtag(lastRevisionTimestamp))
+			.inserted(inserted)
+			.updated(updated)
+			.deleted(deleted);
 	}
 	
 	private net.fortuna.ical4j.model.Calendar parseICalendar(String s) throws WTException {

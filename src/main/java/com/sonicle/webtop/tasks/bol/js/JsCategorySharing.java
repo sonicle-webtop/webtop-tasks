@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Sonicle S.r.l.
+/*
+ * Copyright (C) 2023 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,28 +28,38 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2014 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2023 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks.bol.model;
+package com.sonicle.webtop.tasks.bol.js;
 
-import com.sonicle.webtop.core.app.WT;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
-import com.sonicle.webtop.core.model.SharePermsRoot;
-import com.sonicle.webtop.core.sdk.UserProfileId;
+import com.sonicle.commons.EnumUtils;
+import com.sonicle.webtop.core.app.model.FolderSharing;
+import com.sonicle.webtop.core.app.sdk.bol.js.JsFolderSharing;
+import com.sonicle.webtop.core.sdk.WTException;
+import com.sonicle.webtop.tasks.bol.model.CategoryNodeId;
+import java.util.Set;
 
 /**
  *
  * @author malbinola
  */
-public class MyShareRootCategory extends ShareRootCategory {
-	public static final String SHARE_ID = "0";
+public class JsCategorySharing extends JsFolderSharing {
 	
-	public MyShareRootCategory(UserProfileId ownerId) {
-		super(SHARE_ID, SharePermsRoot.full(), ownerId, null);
+	public JsCategorySharing(CategoryNodeId nodeId, String originName, String folderName, Set<FolderSharing.SubjectConfiguration> configurations) {
+		super(nodeId.toString(), toType(nodeId), nodeId.getOrigin(), String.valueOf(nodeId.getFolderId()), originName, folderName, configurations);
 	}
 	
-	@Override
-	public String getDescription() {
-		return WT.getUserData(getOwnerProfileId()).getDisplayName();
+	public static JsFolderSharing.Type toType(CategoryNodeId nodeId) {
+		return EnumUtils.forSerializedName(EnumUtils.toSerializedName(nodeId.getType()), JsFolderSharing.Type.class);
+	}
+	
+	public static FolderSharing.Scope toFolderSharingScope(CategoryNodeId nodeId) throws WTException {
+		if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType())) {
+			return FolderSharing.Scope.wildcard();
+		} else if (CategoryNodeId.Type.FOLDER.equals(nodeId.getType())) {
+			return FolderSharing.Scope.folder(String.valueOf(nodeId.getFolderId()));
+		} else {
+			throw new WTException("Cannot determine a scope for '{}'", nodeId.toString());
+		}
 	}
 }

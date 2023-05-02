@@ -110,7 +110,17 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 	 */
 	addTask: function(data, opts) {
 		opts = opts || {};
-		this.service.addTaskWithData(data, {
+		var svc = this.service,
+			FT = WTA.util.FoldersTree2,
+			tree = svc.trFolders(),
+			folder = FT.getFolderForAdd(tree, data.categoryId);
+		
+		if (!folder) folder = FT.getDefaultOrBuiltInFolder(tree);
+		if (Ext.isDefined(data.visibility)) data.isPrivate = data.visibility === 'private';
+		delete data.categoryId;
+		delete data.visibility;
+		
+		svc.addTask(folder.getFolderId(), data, {
 			callback: opts.callback,
 			scope: opts.scope,
 			dirty: opts.dirty,

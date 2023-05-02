@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.webtop.tasks.bol.model.GridView;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.web.json.bean.IntegerSet;
 import com.sonicle.commons.web.json.bean.StringSet;
@@ -75,12 +76,12 @@ public class TasksUserSettings extends BaseUserSettings {
 		return setString(TASK_REMINDER_DELIVERY, value);
 	}
 	
-	public StringSet getInactiveCategoryRoots() {
-		return getObject(INACTIVE_CATEGORY_ROOTS, new StringSet(), StringSet.class);
+	public StringSet getInactiveCategoryOrigins() {
+		return getObject(INACTIVE_CATEGORY_ORIGINS, new StringSet(), StringSet.class);
 	}
 	
-	public boolean setInactiveCategoryRoots(StringSet value) {
-		return setObject(INACTIVE_CATEGORY_ROOTS, value, StringSet.class);
+	public boolean setInactiveCategoryOrigins(StringSet value) {
+		return setObject(INACTIVE_CATEGORY_ORIGINS, value, StringSet.class);
 	}
 	
 	public IntegerSet getInactiveCategoryFolders() {
@@ -97,39 +98,5 @@ public class TasksUserSettings extends BaseUserSettings {
 	
 	public boolean setDefaultCategoryFolder(Integer categoryId) {
 		return setInteger(DEFAULT_CATEGORY_FOLDER, categoryId);
-	}
-	
-	/**
-	 * @deprecated Remove when transition (CheckedCategoryRoots -> InactiveCategoryRoots) is completed
-	 * @return
-	 */
-	@Deprecated
-	public StringSet getCheckedCategoryRoots() {
-		return getObject(CHECKED_CATEGORY_ROOTS, null, StringSet.class);
-	}
-	
-	/**
-	 * @deprecated Remove when transition (CheckedCategoryRoots -> InactiveCategoryRoots) is completed
-	 */
-	@Deprecated
-	public void clearCheckedCategoryRoots() {
-		clear(CHECKED_CATEGORY_ROOTS);
-	}
-	
-	/**
-	 * @deprecated Remove when transition (CheckedCategoryFolders -> InactiveCategoryFolders) is completed
-	 * @return
-	 */
-	@Deprecated
-	public IntegerSet getCheckedCategoryFolders() {
-		return getObject(CHECKED_CATEGORY_FOLDERS, null, IntegerSet.class);
-	}
-	
-	/**
-	 * @deprecated Remove when transition (CheckedCategoryFolders -> InactiveCategoryFolders) is completed
-	 */
-	@Deprecated
-	public void clearCheckedCategoryFolders() {
-		clear(CHECKED_CATEGORY_FOLDERS);
 	}
 }

@@ -36,7 +36,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 		'Sonicle.form.field.Display',
 		'Sonicle.form.field.ColorDisplay',
 		'Sonicle.form.field.TagDisplay',
-		'WTA.util.FoldersTree',
+		'WTA.util.FoldersTree2',
 		'WTA.ux.grid.TileList',
 		'WTA.ux.panel.CustomFieldsPreview',
 		'Sonicle.webtop.tasks.model.TaskPreview',
@@ -68,22 +68,21 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
 		
 		WTU.applyFormulas(me.getVM(), {
-			foIsEditable: WTF.foGetFn('record', '_erights', function(val) {
-				var er = WTA.util.FoldersTree.toRightsObj(val);
-				return er.UPDATE;
+			foIsEditable: WTF.foGetFn('record', '_itPerms', function(val) {
+				return WTA.util.FoldersTree2.toRightsObj(val).UPDATE;
 			}),
 			foSubject: WTF.foGetFn('record', 'subject', function(val) {
 				var TI = Sonicle.webtop.tasks.store.TaskImportance,
-						tipAttrs = Sonicle.Utils.generateTooltipAttrs,
-						impo = this.get('record.importance'),
-						s = '';
+					tipAttrs = Sonicle.Utils.generateTooltipAttrs,
+					impo = this.get('record.importance'),
+					s = '';
 				if (impo !== 1) s += '<i class="'+TI.buildIcon(impo)+'" aria-hidden="true" '+tipAttrs(TI.buildLabel(impo))+' style="margin-right:5px;font-size:initial"></i>';
 				if (this.get('record.isPrivate') === true) s += '<i class="fas fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
 				return s + val;
 			}),
 			foCategoryName: WTF.foGetFn('record', 'categoryName', function(val) {
-				var dn = this.get('record.ownerDN'),
-						s = '';
+				var dn = this.get('record._orDN'),
+					s = '';
 				if (!Ext.isEmpty(dn)) {
 					s += '&nbsp;<span class="wt-theme-text-lighter2">('+dn+')</span>';
 				}
@@ -91,7 +90,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			}),
 			foStatus: WTF.foGetFn('record', 'status', function(val) {
 				var complOn = this.get('record.completedOn'),
-						s = '';
+					s = '';
 				if ('CO' === val && Ext.isDate(complOn)) {
 					s += '&nbsp;<span class="wt-theme-text-lighter2">('+Ext.Date.format(complOn, WT.getShortDateTimeFmt())+')</span>';
 				} else if (Sonicle.String.isIn(val, ['IP','CA','WA'])) {

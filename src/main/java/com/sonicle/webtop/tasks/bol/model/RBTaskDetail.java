@@ -39,8 +39,9 @@ import com.sonicle.webtop.core.util.RRuleStringify;
 import com.sonicle.webtop.tasks.ITaskInstanceStatable;
 import com.sonicle.webtop.tasks.TasksUtils;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import java.util.Date;
@@ -71,8 +72,8 @@ public class RBTaskDetail {
 	private String categoryName;
 	private String categoryColor;
 	
-	public RBTaskDetail(RRuleStringify rrStringify, ShareRootCategory root, Category category, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone) {
-		this(rrStringify, root instanceof MyShareRootCategory ? null : LangUtils.abbreviatePersonalName(true, root.getDescription()), category, folderProps, task, userTimezone);
+	public RBTaskDetail(RRuleStringify rrStringify, CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone) {
+		this(rrStringify, origin instanceof MyCategoryFSOrigin ? null : LangUtils.abbreviatePersonalName(true, origin.getDisplayName()), folder.getCategory(), folderProps, task, userTimezone);
 	}
 
 	public RBTaskDetail(RRuleStringify rrStringify, String categoryOwner, Category category, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone) {

@@ -33,7 +33,9 @@
  */
 Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 	extend: 'WTA.sdk.UIView',
-	uses: [
+	requires: [
+		'Sonicle.VMUtils',
+		'WTA.util.FoldersTree2',
 		'Sonicle.webtop.tasks.model.FolderNode'
 	],
 	
@@ -160,8 +162,15 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 				{
 					xtype: 'sotreecolumn',
 					dataIndex: 'text',
-					renderer: WTA.util.FoldersTree.coloredBoxTreeRenderer({
-						defaultText: me.res('trfolders.default')
+					renderer: WTA.util.FoldersTree2.coloredBoxTreeRenderer({
+						defaultText: me.res('trfolders.default'),
+						getNodeText: function(node, val) {
+							if ((node.isOrigin() && node.isPersonalNode()) || node.isGrouper()) {
+								return me.mys.resTpl(val);
+							} else {
+								return val;
+							}
+						}
 					}),
 					flex: 1
 				}
@@ -174,11 +183,11 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 				},
 				selectionchange: function(s, sel) {
 					var me = this,
-							rec = sel[0];
-					if (rec) {
+						node = sel[0];
+					if (node) {
 						Sonicle.VMUtils.setData(me.getVM(), {
-							categoryId: rec.get('_catId'),
-							profileId: rec.get('_pid')
+							categoryId: node.getFolderId(),
+							profileId: node.getOwnerPid()
 						});
 					}
 				},
@@ -189,10 +198,10 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 	
 	okView: function() {
 		var me = this,
-				SVMU = Sonicle.VMUtils,
-				vm = me.getVM();
-		SVMU.setData(vm, {result: 'ok'});
-		me.fireEvent('viewok', me, SVMU.getData(vm));
+			SoVMU = Sonicle.VMUtils,
+			vm = me.getVM();
+		SoVMU.setData(vm, {result: 'ok'});
+		me.fireEvent('viewok', me, SoVMU.getData(vm));
 		me.closeView(false);
 	}
 });

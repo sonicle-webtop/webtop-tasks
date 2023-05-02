@@ -33,6 +33,9 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 	extend: 'WTA.ux.data.BaseModel',
+	mixins: [
+		'WTA.sdk.mixin.ItemWithinFolder'	
+	],
 	requires: [
 		'Sonicle.String'
 	],
@@ -62,9 +65,9 @@ Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string'),
-		WTF.roField('ownerId', 'string'),
-		WTF.roField('_frights', 'string'),
-		WTF.roField('_erights', 'string'),
+		WTF.roField('_owPid', 'string'),
+		WTF.roField('_foPerms', 'string'),
+		WTF.roField('_itPerms', 'string'),
 		WTF.roField('_hierarchy', 'string'),
 		WTF.roField('_depth', 'int'),
 		WTF.roField('_collapsed', 'boolean', {defaultValue: false}), // Used only with default value!

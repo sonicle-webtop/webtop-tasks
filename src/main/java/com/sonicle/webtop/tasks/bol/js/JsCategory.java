@@ -64,7 +64,7 @@ public class JsCategory {
 		reminder = cat.getDefaultReminder();
 	}
 	
-	public static Category createFolder(JsCategory js) {
+	public static Category createCategory(JsCategory js) {
 		Category cat = new Category();
 		cat.setCategoryId(js.categoryId);
 		cat.setDomainId(js.domainId);

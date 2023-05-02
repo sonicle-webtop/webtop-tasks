@@ -43,7 +43,9 @@ import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 /**
  *
@@ -61,6 +63,17 @@ public class CategoryDAO extends BaseDAO {
 		return nextID;
 	}
 	
+	public boolean existsById(Connection con, int categoryId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.selectCount()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.CATEGORY_ID.equal(categoryId)
+			)
+			.fetchOne(0, Integer.class) == 1;
+	}
+	
 	public Owner selectOwnerById(Connection con, Integer categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
@@ -70,6 +83,31 @@ public class CategoryDAO extends BaseDAO {
 					CATEGORIES.CATEGORY_ID.equal(categoryId)
 			)
 			.fetchOneInto(Owner.class);
+	}
+	
+	public Set<Integer> selectIdsByProfile(Connection con, String domainId, String userId) throws DAOException {
+		return selectIdsByProfileIn(con, domainId, userId, null);
+	}
+	
+	public Set<Integer> selectIdsByProfileIn(Connection con, String domainId, String userId, Collection<Integer> categoryIds) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition cndtIn = categoryIds != null ? CATEGORIES.CATEGORY_ID.in(categoryIds) : DSL.trueCondition();
+		return dsl
+			.select(
+				CATEGORIES.CATEGORY_ID
+			)
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+				.and(cndtIn)
+			)
+			.orderBy(
+				CATEGORIES.BUILT_IN.desc(),
+				//CATEGORIES.PROVIDER.asc(),
+				CATEGORIES.NAME.asc()
+			)
+			.fetchSet(CATEGORIES.CATEGORY_ID);
 	}
 	
 	public OCategory selectById(Connection con, Integer categoryId) throws DAOException {
@@ -187,20 +225,6 @@ public class CategoryDAO extends BaseDAO {
 				)
 				.orderBy(CATEGORIES.NAME)
 				.fetchInto(OCategory.class);
-	}
-	
-	public Set<Integer> selectIdsByProfile(Connection con, String domainId, String userId) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		return dsl
-			.select(
-				CATEGORIES.CATEGORY_ID
-			)
-			.from(CATEGORIES)
-			.where(
-				CATEGORIES.DOMAIN_ID.equal(domainId)
-				.and(CATEGORIES.USER_ID.equal(userId))
-			)
-			.fetchSet(CATEGORIES.CATEGORY_ID);
 	}
 	
 	public int insert(Connection con, OCategory item) throws DAOException {

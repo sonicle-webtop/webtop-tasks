@@ -34,6 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.Task', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
+		'Sonicle.Data',
 		'Sonicle.String',
 		'Sonicle.Utils',
 		'Sonicle.form.Text',
@@ -422,7 +423,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				proxy: WTF.proxy(me.mys.ID, 'GetTaskChildren'),
 				listeners: {
 					beforeload: function(s) {
-						WTU.applyExtraParams(s, {
+						Sonicle.Data.applyExtraParams(s, {
 							parentId: me.getModel().get('id')
 						});
 					}
@@ -1061,11 +1062,10 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		},
 		
 		setCategoryDefaults: function(cat, force) {
-			var mo = this.getModel();
-			if (mo) {
-				if (force || mo.get('isPrivate') === null) mo.set('isPrivate', cat.get('tasPrivate'), {dirty: false});
-				if (force || mo.get('reminder') === null) mo.set('reminder', cat.get('tasReminder'), {dirty: false});
-			}
+			var SoD = Sonicle.Data,
+				mo = this.getModel();
+			SoD.setModelDefaultValueIf(mo, 'isPrivate', cat.get('tasPrivate'), {force: force});
+			SoD.setModelDefaultValueIf(mo, 'reminder', cat.get('tasReminder'), {force: force});
 		},
 		
 		onViewLoad: function(s, success) {

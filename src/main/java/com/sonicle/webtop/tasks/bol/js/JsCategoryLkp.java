@@ -32,10 +32,11 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
+import com.sonicle.webtop.core.app.model.FolderShare;
 import com.sonicle.webtop.tasks.model.Category;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 
 /**
  *
@@ -53,20 +54,20 @@ public class JsCategoryLkp {
 	public Boolean _writable;
 	public Integer _order;
 	
-	public JsCategoryLkp(Category cat, boolean isDefault) {
-		this.categoryId = cat.getCategoryId();
-		this.name = cat.getName();
-		this.color = cat.getColor();
-		this.tasPrivate = cat.getIsPrivate();
-		this.tasReminder = cat.getDefaultReminder();
+	public JsCategoryLkp(Category category, boolean isDefault) {
+		this.categoryId = category.getCategoryId();
+		this.name = category.getName();
+		this.color = category.getColor();
+		this.tasPrivate = category.getIsPrivate();
+		this.tasReminder = category.getDefaultReminder();
 		this._default = isDefault;
-		this._profileId = cat.getProfileId().toString();
+		this._profileId = category.getProfileId().toString();
 	}
 	
-	public JsCategoryLkp(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps, boolean isDefault, int order) {
+	public JsCategoryLkp(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, boolean isDefault, int order) {
 		this(folder.getCategory().applyPropSet(folderProps), isDefault);
-		this._profileDescription = root.getDescription();
-		this._writable = folder.getElementsPerms().implies("CREATE");
+		this._profileDescription = origin.getDisplayName();
+		this._writable = folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE);
 		this._order = order;
 	}
 }

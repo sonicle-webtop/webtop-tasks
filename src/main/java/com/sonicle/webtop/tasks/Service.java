@@ -32,6 +32,9 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
@@ -39,10 +42,10 @@ import com.sonicle.commons.PathUtils;
 import com.sonicle.commons.cache.AbstractPassiveExpiringBulkMap;
 import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.beans.SortInfo;
+import com.sonicle.commons.concurrent.KeyedReentrantLocks;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.StringArray;
-import com.sonicle.commons.web.json.CId;
 import com.sonicle.commons.web.json.PayloadAsList;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.commons.web.json.MapItem;
@@ -58,22 +61,19 @@ import com.sonicle.webtop.core.CoreUserSettings;
 import com.sonicle.webtop.core.app.CoreManifest;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.tasks.bol.js.JsFolderNode;
-import com.sonicle.webtop.tasks.bol.js.JsSharing;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
-import com.sonicle.webtop.tasks.bol.model.MyShareFolderCategory;
-import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.WebTopSession;
 import com.sonicle.webtop.core.app.WebTopSession.UploadedFile;
+import com.sonicle.webtop.core.app.model.FolderShare;
+import com.sonicle.webtop.core.app.model.FolderSharing;
+import com.sonicle.webtop.core.app.sdk.AbstractFolderTreeCache;
+import com.sonicle.webtop.core.app.sdk.WTParseException;
 import com.sonicle.webtop.core.app.util.log.LogEntry;
 import com.sonicle.webtop.core.app.util.log.LogHandler;
 import com.sonicle.webtop.core.bol.js.JsCustomFieldDefsData;
 import com.sonicle.webtop.core.bol.js.JsSimple;
 import com.sonicle.webtop.core.bol.js.JsWizardData;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
-import com.sonicle.webtop.core.model.SharePermsRoot;
-import com.sonicle.webtop.core.bol.model.Sharing;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
 import com.sonicle.webtop.core.model.CustomField;
@@ -88,15 +88,20 @@ import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.util.RRuleStringify;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
-import com.sonicle.webtop.tasks.bol.js.JsFolderNode.JsFolderNodeList;
+import com.sonicle.webtop.tasks.bol.js.JsCategorySharing;
 import com.sonicle.webtop.tasks.bol.js.JsGridTask;
 import com.sonicle.webtop.tasks.bol.js.JsPletTasks;
 import com.sonicle.webtop.tasks.bol.js.JsTask;
 import com.sonicle.webtop.tasks.bol.js.JsTaskPreview;
+import com.sonicle.webtop.tasks.bol.model.CategoryNodeId;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryFSFolder;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryFSOrigin;
 import com.sonicle.webtop.tasks.bol.model.RBTaskDetail;
 import com.sonicle.webtop.tasks.bol.model.RBTaskList;
 import com.sonicle.webtop.tasks.io.ICalendarInput;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
@@ -120,9 +125,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
@@ -146,15 +151,12 @@ public class Service extends BaseService {
 	private TasksServiceSettings ss;
 	private TasksUserSettings us;
 	
+	private final KeyedReentrantLocks<String> locks = new KeyedReentrantLocks<>();
 	private final SearchableCustomFieldTypeCache cacheSearchableCustomFieldType = new SearchableCustomFieldTypeCache(5, TimeUnit.SECONDS);
-	private final LinkedHashMap<String, ShareRootCategory> roots = new LinkedHashMap<>();
-	private final LinkedHashMap<Integer, ShareFolderCategory> folders = new LinkedHashMap<>();
-	private final HashMap<Integer, CategoryPropSet> folderProps = new HashMap<>();
-	private final HashMap<String, ArrayList<ShareFolderCategory>> foldersByRoot = new HashMap<>();
-	private final HashMap<Integer, ShareRootCategory> rootByFolder = new HashMap<>();
-	
-	private StringSet inactiveRoots = null;
-	private IntegerSet inactiveFolders = null;
+	private final FoldersTreeCache foldersTreeCache = new FoldersTreeCache();
+	private final LoadingCache<Integer, Optional<CategoryPropSet>> foldersPropsCache = Caffeine.newBuilder().build(new FoldersPropsCacheLoader());
+	private StringSet inactiveOrigins = null;
+	private IntegerSet inactiveFolders = null;	
 	
 	@Override
 	public void initialize() throws Exception {
@@ -170,15 +172,8 @@ public class Service extends BaseService {
 	
 	@Override
 	public void cleanup() throws Exception {
-		inactiveFolders.clear();
-		inactiveFolders = null;
-		inactiveRoots.clear();
-		inactiveRoots = null;
-		rootByFolder.clear();
-		foldersByRoot.clear();
-		folderProps.clear();
-		folders.clear();
-		roots.clear();
+		if (inactiveFolders != null) inactiveFolders.clear();
+		if (foldersTreeCache != null) foldersTreeCache.clear();
 		us = null;
 		ss = null;
 		manager = null;
@@ -215,82 +210,16 @@ public class Service extends BaseService {
 	}
 	
 	private void initFolders() throws WTException {
-		synchronized(roots) {
-			updateRootFoldersCache();
-			updateFoldersCache();
-			
-			// HANDLE TRANSITION: cleanup code when process is completed!
-			StringSet checkedRoots = us.getCheckedCategoryRoots();
-			if (checkedRoots != null) { // Migration code... (remove after migration)
-				List<String> toInactive = roots.keySet().stream()
-						.filter(shareId -> !checkedRoots.contains(shareId))
-						.collect(Collectors.toList());
-				inactiveRoots = new StringSet(toInactive);
-				us.setInactiveCategoryRoots(inactiveRoots);
-				us.clearCheckedCategoryRoots();
-				
-			} else { // New code... (keep after migrarion)
-				inactiveRoots = us.getInactiveCategoryRoots();
-				// Clean-up orphans
-				if (inactiveRoots.removeIf(shareId -> !roots.containsKey(shareId))) {
-					us.setInactiveCategoryRoots(inactiveRoots);
-				}
-			}
-			
-			IntegerSet checkedFolders = us.getCheckedCategoryFolders();
-			if (checkedFolders != null) { // Migration code... (remove after migration)
-				List<Integer> toInactive = folders.keySet().stream()
-						.filter(categoryId -> !checkedFolders.contains(categoryId))
-						.collect(Collectors.toList());
-				inactiveFolders = new IntegerSet(toInactive);
-				us.setInactiveCategoryFolders(inactiveFolders);
-				us.clearCheckedCategoryFolders();
-				
-			} else { // New code... (keep after migrarion)
-				inactiveFolders = us.getInactiveCategoryFolders();
-				// Clean-up orphans
-				if (inactiveFolders.removeIf(categoryId -> !folders.containsKey(categoryId))) {
-					us.setInactiveCategoryFolders(inactiveFolders);
-				}
-			}
+		foldersTreeCache.init();
+		// Retrieves inactive origins set
+		inactiveOrigins = us.getInactiveCategoryOrigins();
+		if (inactiveOrigins.removeIf(key -> shouldCleanupInactiveOriginKey(key))) { // Clean-up orphans
+			us.setInactiveCategoryOrigins(inactiveOrigins);
 		}
-	}
-	
-	private void updateRootFoldersCache() throws WTException {
-		UserProfileId pid = getEnv().getProfile().getId();
-		synchronized(roots) {
-			roots.clear();
-			roots.put(MyShareRootCategory.SHARE_ID, new MyShareRootCategory(pid));
-			for (ShareRootCategory root : manager.listIncomingCategoryRoots()) {
-				roots.put(root.getShareId(), root);
-			}
-		}
-	}
-	
-	private void updateFoldersCache() throws WTException {
-		synchronized(roots) {
-			foldersByRoot.clear();
-			folders.clear();
-			rootByFolder.clear();
-			for (ShareRootCategory root : roots.values()) {
-				foldersByRoot.put(root.getShareId(), new ArrayList<ShareFolderCategory>());
-				if (root instanceof MyShareRootCategory) {
-					for (Category cat : manager.listMyCategories().values()) {
-						final MyShareFolderCategory fold = new MyShareFolderCategory(root.getShareId(), cat);
-						foldersByRoot.get(root.getShareId()).add(fold);
-						folders.put(cat.getCategoryId(), fold);
-						rootByFolder.put(cat.getCategoryId(), root);
-					}
-				} else {
-					for (ShareFolderCategory fold : manager.listIncomingCategoryFolders(root.getShareId()).values()) {
-						final int catId = fold.getCategory().getCategoryId();
-						foldersByRoot.get(root.getShareId()).add(fold);
-						folders.put(catId, fold);
-						folderProps.put(catId, manager.getCategoryCustomProps(catId));
-						rootByFolder.put(catId, root);
-					}
-				}
-			}
+		// Retrieves inactive folders set
+		inactiveFolders = us.getInactiveCategoryFolders();
+		if (inactiveFolders.removeIf(categoryId -> !foldersTreeCache.existsFolder(categoryId))) { // Clean-up orphans
+			us.setInactiveCategoryFolders(inactiveFolders);
 		}
 	}
 	
@@ -299,95 +228,133 @@ public class Service extends BaseService {
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			if (crud.equals(Crud.READ)) {
+			if (Crud.READ.equals(crud)) {
 				String node = ServletUtils.getStringParameter(request, "node", true);
 				boolean chooser = ServletUtils.getBooleanParameter(request, "chooser", false);
+				boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
 				
-				if (node.equals("root")) { // Node: root -> list roots
-					for (ShareRootCategory root : roots.values()) {
-						children.add(createRootNode(chooser, root));
-					}
-				} else { // Node: folder -> list folders (categories)
-					boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
-					ShareRootCategory root = roots.get(node);
-					
-					Integer defltCategoryId = manager.getDefaultCategoryId();
-					if (root instanceof MyShareRootCategory) {
-						for (Category cat : manager.listMyCategories().values()) {
-							MyShareFolderCategory folder = new MyShareFolderCategory(node, cat);
-							if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
-							
-							final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
-							children.add(createFolderNode(chooser, folder, null, root.getPerms(), isDefault));
-						}
-					} else {
-						if (foldersByRoot.containsKey(root.getShareId())) {
-							for (ShareFolderCategory folder : foldersByRoot.get(root.getShareId())) {
-								if (writableOnly && !folder.getElementsPerms().implies("CREATE")) continue;
-								
-								final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
-								final CategoryPropSet pset = folderProps.get(folder.getCategory().getCategoryId());
-								final ExtTreeNode etn = createFolderNode(chooser, folder, pset, root.getPerms(), isDefault);
-								if (etn != null) children.add(etn);
+				if (node.equals("root")) { // Tree ROOT node -> list folder origins
+					for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
+						boolean add = true;
+						if (writableOnly && !(origin instanceof MyCategoryFSOrigin)) {
+							// Exclude origins whose folders do NOT have writing rights
+							for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+								if (!folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) {
+									add = false;
+									break;
+								}
 							}
 						}
+						if (add) {
+							final ExtTreeNode xnode = createFolderNodeLevel0(chooser, origin);
+							if (xnode != null) children.add(xnode);
+						}
+					}
+					
+				} else {
+					CategoryNodeId nodeId = new CategoryNodeId(node);
+					if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType())) { // Tree node -> list folder of specified origin
+						final Integer defaultCategoryId = manager.getDefaultCategoryId();
+						final CategoryFSOrigin origin = foldersTreeCache.getOriginByProfile(nodeId.getOriginAsProfileId());
+						for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+							if (writableOnly && !folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) continue;
+							
+							final boolean isDefault = folder.getFolderId().equals(defaultCategoryId);
+							final ExtTreeNode xnode = createFolderNodeLevel1(chooser, origin, folder, isDefault);
+							if (xnode != null) children.add(xnode);
+						}
+						
+					} else {
+						throw new WTParseException("Unable to parse '{}' as node ID", node);
 					}
 				}
 				new JsonResult("children", children).printTo(out);
 				
 			} else if (crud.equals(Crud.UPDATE)) {
-				PayloadAsList<JsFolderNodeList> pl = ServletUtils.getPayloadAsList(request, JsFolderNodeList.class);
+				PayloadAsList<JsFolderNode.List> pl = ServletUtils.getPayloadAsList(request, JsFolderNode.List.class);
 				
 				for (JsFolderNode node : pl.data) {
-					if (node._type.equals(JsFolderNode.TYPE_ROOT)) {
-						toggleActiveRoot(node.id, node._active);
-						
-					} else if (node._type.equals(JsFolderNode.TYPE_FOLDER)) {
-						CId cid = new CId(node.id);
-						toggleActiveFolder(Integer.valueOf(cid.getToken(1)), node._active);
+					CategoryNodeId nodeId = new CategoryNodeId(node.id);
+					if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType()) || CategoryNodeId.Type.GROUPER.equals(nodeId.getType())) {
+						toggleActiveOrigin(nodeId.getOrigin(), node._active);
+					} else if (CategoryNodeId.Type.FOLDER.equals(nodeId.getType())) {
+						toggleActiveFolder(nodeId.getFolderId(), node._active);
 					}
 				}
 				new JsonResult().printTo(out);
 				
-			} else if (crud.equals(Crud.DELETE)) {
-				PayloadAsList<JsFolderNodeList> pl = ServletUtils.getPayloadAsList(request, JsFolderNodeList.class);
+			} else if(crud.equals(Crud.DELETE)) {
+				PayloadAsList<JsFolderNode.List> pl = ServletUtils.getPayloadAsList(request, JsFolderNode.List.class);
 				
 				for (JsFolderNode node : pl.data) {
-					if (node._type.equals(JsFolderNode.TYPE_FOLDER)) {
-						CId cid = new CId(node.id);
-						manager.deleteCategory(Integer.valueOf(cid.getToken(1)));
+					CategoryNodeId nodeId = new CategoryNodeId(node.id);
+					if (CategoryNodeId.Type.FOLDER.equals(nodeId.getType())) {
+						manager.deleteCategory(nodeId.getFolderId());
 					}
 				}
 				new JsonResult().printTo(out);
 			}
 			
-		} catch (Throwable t) {
-			logger.error("Error in ManageFoldersTree", t);
+		} catch (Exception ex) {
+			logger.error("Error in action ManageFoldersTree", ex);
 		}
 	}
 	
-	public void processLookupCategoryRoots(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
-		List<JsSimple> items = new ArrayList<>();
-		
-		try {
-			boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", true);
-			
-			for (ShareRootCategory root : roots.values()) {
-				if (root instanceof MyShareRootCategory) {
-					UserProfile up = getEnv().getProfile();
-					items.add(new JsSimple(up.getStringId(), up.getDisplayName()));
-				} else {
-					//TODO: se writableOnly verificare che il gruppo condiviso sia scrivibile
-					items.add(new JsSimple(root.getOwnerProfileId().toString(), root.getDescription()));
-				}
-			}
-			
-			new JsonResult("roots", items, items.size()).printTo(out);
-			
-		} catch (Throwable t) {
-			logger.error("Error in LookupCategoryRoots", t);
-			new JsonResult(t).printTo(out);
+	private ExtTreeNode createFolderNodeLevel0(boolean chooser, CategoryFSOrigin origin) {
+		CategoryNodeId nodeId = CategoryNodeId.build(CategoryNodeId.Type.ORIGIN, origin.getProfileId());
+		boolean checked = isOriginActive(toInactiveOriginKey(origin));
+		if (origin instanceof MyCategoryFSOrigin) {
+			return createFolderNodeLevel0(chooser, nodeId, "{trfolders.origin.my}", "wtcon-icon-categoryMy", origin.getWildcardPermissions(), checked);
+		} else {
+			return createFolderNodeLevel0(chooser, nodeId, origin.getDisplayName(), "wtcon-icon-categoryIncoming", origin.getWildcardPermissions(), checked);
 		}
+	}
+	
+	private ExtTreeNode createFolderNodeLevel0(boolean chooser, CategoryNodeId nodeId, String text, String iconClass, FolderShare.Permissions originPermissions, boolean isActive) {
+		ExtTreeNode node = new ExtTreeNode(nodeId.toString(), text, false);
+		node.put("_orPerms", originPermissions.getFolderPermissions().toString(true));
+		node.put("_active", isActive);
+		node.setIconClass(iconClass);
+		if (!chooser) node.setChecked(isActive);
+		node.put("expandable", false);
+		node.setExpanded(true);
+		return node;
+	}
+	
+	private ExtTreeNode createFolderNodeLevel1(boolean chooser, CategoryFSOrigin origin, CategoryFSFolder folder, boolean isDefault) {
+		CategoryNodeId.Type type = CategoryNodeId.Type.FOLDER;
+		final CategoryNodeId nodeId = CategoryNodeId.build(type, origin.getProfileId(), folder.getFolderId());
+		final String name = folder.getDisplayName();
+		final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+		final boolean active = !inactiveFolders.contains(folder.getFolderId());
+		return createFolderNodeLevel1(chooser, nodeId, name, folder.getPermissions(), folder.getCategory(), props, isDefault, active);
+	}
+	
+	private ExtTreeNode createFolderNodeLevel1(boolean chooser, CategoryNodeId nodeId, String name, FolderShare.Permissions folderPermissions, Category category, CategoryPropSet folderProps, boolean isDefault, boolean isActive) {
+		String color = category.getColor();
+		Category.Sync sync = Category.Sync.OFF;
+		
+		if (folderProps != null) { // Props are not null only for incoming folders
+			if (folderProps.getHiddenOrDefault(false)) return null;
+			color = folderProps.getColorOrDefault(color);
+			sync = folderProps.getSyncOrDefault(sync);
+		} else {
+			sync = category.getSync();
+		}
+		
+		ExtTreeNode node = new ExtTreeNode(nodeId.toString(), name, true);
+		node.put("_foPerms", folderPermissions.getFolderPermissions().toString());
+		node.put("_itPerms", folderPermissions.getItemsPermissions().toString());
+		node.put("_builtIn", category.getBuiltIn());
+		//node.put("_provider", EnumUtils.toSerializedName(category.getProvider()));
+		node.put("_color", Category.getHexColor(color));
+		node.put("_sync", EnumUtils.toSerializedName(sync));
+		node.put("_default", isDefault);
+		node.put("_active", isActive);
+		node.put("_defPrivate", category.getIsPrivate());
+		node.put("_defReminder", category.getDefaultReminder());
+		if (!chooser) node.setChecked(isActive);
+		return node;
 	}
 	
 	public void processLookupCategoryFolders(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
@@ -395,21 +362,18 @@ public class Service extends BaseService {
 		
 		try {
 			Integer defltCategoryId = manager.getDefaultCategoryId();
-			synchronized(roots) {
-				for (ShareRootCategory root : roots.values()) {
-					if (foldersByRoot.containsKey(root.getShareId())) {
-						for (ShareFolderCategory folder : foldersByRoot.get(root.getShareId())) {
-							final boolean isDefault = folder.getCategory().getCategoryId().equals(defltCategoryId);
-							items.add(new JsCategoryLkp(root, folder, folderProps.get(folder.getCategory().getCategoryId()), isDefault, items.size()));
-						}
-					}
+			for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
+				for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+					final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+					final boolean isDefault = folder.getFolderId().equals(defltCategoryId);
+					items.add(new JsCategoryLkp(origin, folder, props, isDefault, items.size()));
 				}
 			}
 			new JsonResult("folders", items, items.size()).printTo(out);
 			
-		} catch (Throwable t) {
-			logger.error("Error in LookupCategoryFolders", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in LookupCategoryFolders", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -417,24 +381,46 @@ public class Service extends BaseService {
 		
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			if (crud.equals(Crud.READ)) {
-				String id = ServletUtils.getStringParameter(request, "id", true);
+			if (Crud.READ.equals(crud)) {
+				String node = ServletUtils.getStringParameter(request, "id", true);
 				
-				Sharing sharing = manager.getSharing(id);
-				String description = buildSharingPath(sharing);
-				new JsonResult(new JsSharing(sharing, description)).printTo(out);
+				CategoryNodeId nodeId = new CategoryNodeId(node);
+				FolderSharing.Scope scope = JsCategorySharing.toFolderSharingScope(nodeId);
+				Set<FolderSharing.SubjectConfiguration> configurations = manager.getFolderShareConfigurations(nodeId.getOriginAsProfileId(), scope);
+				String[] sdn = buildSharingDisplayNames(nodeId);
+				new JsonResult(new JsCategorySharing(nodeId, sdn[0], sdn[1], configurations)).printTo(out);
 				
-			} else if (crud.equals(Crud.UPDATE)) {
-				Payload<MapItem, Sharing> pl = ServletUtils.getPayload(request, Sharing.class);
+			} else if (Crud.UPDATE.equals(crud)) {
+				Payload<MapItem, JsCategorySharing> pl = ServletUtils.getPayload(request, JsCategorySharing.class);
 				
-				manager.updateSharing(pl.data);
+				CategoryNodeId nodeId = new CategoryNodeId(pl.data.id);
+				FolderSharing.Scope scope = JsCategorySharing.toFolderSharingScope(nodeId);
+				manager.updateFolderShareConfigurations(nodeId.getOriginAsProfileId(), scope, pl.data.toSubjectConfigurations());
 				new JsonResult().printTo(out);
 			}
 			
-		} catch (Throwable t) {
-			logger.error("Error in ManageSharing", t);
-			new JsonResult().printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in ManageSharing", ex);
+			new JsonResult(ex).printTo(out);
 		}
+	}
+	
+	private String[] buildSharingDisplayNames(CategoryNodeId nodeId) throws WTException {
+		String originDn = null, folderDn = null;
+	
+		CategoryFSOrigin origin = foldersTreeCache.getOrigin(nodeId.getOriginAsProfileId());
+		if (origin instanceof MyCategoryFSOrigin) {
+			originDn = lookupResource(TasksLocale.CATEGORIES_MY);
+		} else if (origin instanceof CategoryFSOrigin) {
+			originDn = origin.getDisplayName();
+		}
+		
+		if (CategoryNodeId.Type.FOLDER.equals(nodeId.getType())) {
+			CategoryFSFolder folder = foldersTreeCache.getFolder(nodeId.getFolderId());
+			folderDn = (folder != null) ? folder.getCategory().getName() : String.valueOf(nodeId.getFolderId());
+		}
+		
+		return new String[]{originDn, folderDn};
 	}
 	
 	public void processManageCategory(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
@@ -443,7 +429,7 @@ public class Service extends BaseService {
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
 			if (crud.equals(Crud.READ)) {
-				Integer id = ServletUtils.getIntParameter(request, "id", true);
+				int id = ServletUtils.getIntParameter(request, "id", true);
 				
 				item = manager.getCategory(id);
 				new JsonResult(new JsCategory(item)).printTo(out);
@@ -451,22 +437,22 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				item = manager.addCategory(JsCategory.createFolder(pl.data));
-				updateFoldersCache();
+				item = manager.addCategory(JsCategory.createCategory(pl.data));
+				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				manager.updateCategory(JsCategory.createFolder(pl.data));
-				updateFoldersCache();
+				manager.updateCategory(JsCategory.createCategory(pl.data));
+				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.DELETE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
 				manager.deleteCategory(pl.data.categoryId);
-				updateFoldersCache();
+				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				toggleActiveFolder(pl.data.categoryId, true); // forgets it by simply activating it
 				new JsonResult().printTo(out);
 				
@@ -479,57 +465,59 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 			
-		} catch (Throwable t) {
-			logger.error("Error in ManageCategory", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in ManageCategory", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
 	public void processManageHiddenCategories(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		try {
 			String crud = ServletUtils.getStringParameter(request, "crud", true);
-			if (crud.equals(Crud.READ)) {
-				String rootId = ServletUtils.getStringParameter(request, "rootId", true);
-				if (rootId.equals(MyShareRootCategory.SHARE_ID)) throw new WTException("Personal root is not supported");
+			if (Crud.READ.equals(crud)) {
+				String node = ServletUtils.getStringParameter(request, "node", true);
 				
-				ArrayList<JsSimple> items = new ArrayList<>();
-				synchronized(roots) {
-					for (ShareFolderCategory folder : foldersByRoot.get(rootId)) {
-						CategoryPropSet pset = folderProps.get(folder.getCategory().getCategoryId());
-						if ((pset != null) && pset.getHiddenOrDefault(false)) {
-							items.add(new JsSimple(folder.getCategory().getCategoryId(), folder.getCategory().getName()));
+				CategoryNodeId nodeId = new CategoryNodeId(node);
+				if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType())) {
+					final CategoryFSOrigin origin = foldersTreeCache.getOrigin(nodeId.getOriginAsProfileId());
+					if (origin instanceof MyCategoryFSOrigin) throw new WTException("Unsupported for personal origin");
+					
+					ArrayList<JsSimple> items = new ArrayList<>();
+					for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+						final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+						if ((props != null) && props.getHiddenOrDefault(false)) {
+							items.add(new JsSimple(folder.getFolderId(), folder.getCategory().getName()));
 						}
 					}
+					new JsonResult(items).printTo(out);
+					
+				} else {
+					throw new WTException("Invalid node [{}]", node);
 				}
-				new JsonResult(items).printTo(out);
 				
-			} else if (crud.equals(Crud.UPDATE)) {
+			} else if (Crud.UPDATE.equals(crud)) {
 				Integer categoryId = ServletUtils.getIntParameter(request, "categoryId", true);
 				Boolean hidden = ServletUtils.getBooleanParameter(request, "hidden", false);
 				
 				updateCategoryFolderVisibility(categoryId, hidden);
 				new JsonResult().printTo(out);
 				
-			} else if (crud.equals(Crud.DELETE)) {
+			} else if (Crud.DELETE.equals(crud)) {
 				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, true);
 				
-				HashSet<String> pids = new HashSet<>();
-				synchronized(roots) {
-					for (String id : ids) {
-						int categoryId = Integer.valueOf(id);
-						ShareFolderCategory fold = folders.get(categoryId);
-						if (fold != null) {
-							updateCategoryFolderVisibility(categoryId, null);
-							pids.add(fold.getCategory().getProfileId().toString());
-						}
-					}
+				HashSet<String> originProfileIds = new HashSet<>();
+				for (String folderId : ids) {
+					int categoryId = Integer.valueOf(folderId);
+					CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(categoryId);
+					if (origin == null) continue;
+					originProfileIds.add(origin.getProfileId().toString());
+					updateCategoryFolderVisibility(categoryId, null);
 				}
-				new JsonResult(pids).printTo(out);
+				new JsonResult(originProfileIds).printTo(out);
 			}
 			
-		} catch (Throwable t) {
-			logger.error("Error in ManageHiddenCategories", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -541,9 +529,9 @@ public class Service extends BaseService {
 			Integer defltCategoryId = manager.getDefaultCategoryId();
 			new JsonResult(String.valueOf(defltCategoryId)).printTo(out);
 				
-		} catch (Throwable t) {
-			logger.error("Error in SetDefaultCategory", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in SetDefaultCategory", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -555,9 +543,9 @@ public class Service extends BaseService {
 			updateCategoryFolderColor(id, color);
 			new JsonResult().printTo(out);
 				
-		} catch (Throwable t) {
-			logger.error("Error in SetCategoryColor", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in SetCategoryColor", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 				
@@ -569,9 +557,9 @@ public class Service extends BaseService {
 			updateCategoryFolderSync(id, EnumUtils.forSerializedName(sync, Category.Sync.class));
 			new JsonResult().printTo(out);
 				
-		} catch (Throwable t) {
-			logger.error("Error in SetCategorySync", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in SetCategorySync", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -619,22 +607,21 @@ public class Service extends BaseService {
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
 				SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
 				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
-					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
-					if (root == null) continue;
-					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
-					if (fold == null) continue;
+					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
+					if (origin == null) continue;
+					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
+					if (folder == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
-					
+					final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 					JsGridTask js = null;
 					if (!instance.getHasChildren() && instance.getParentInstanceId() == null) { // simple task
-						js = new JsGridTask(fold, pset, instance, null, 0, userTimeZone);
+						js = new JsGridTask(folder, props, instance, null, 0, userTimeZone);
 					} else if (instance.getHasChildren()) { // parent task
 						parents.add(instance.getTaskId());
-						js = new JsGridTask(fold, pset, instance, JsGridTask.Hierarchy.PARENT, 0, userTimeZone);
+						js = new JsGridTask(folder, props, instance, JsGridTask.Hierarchy.PARENT, 0, userTimeZone);
 					} else if (instance.getParentInstanceId() != null) { // child task
 						boolean parentInResultset = parents.contains(instance.getParentInstanceId().getTaskId());
-						js = new JsGridTask(fold, pset, instance, JsGridTask.Hierarchy.CHILD, parentInResultset ? 1 : 0, userTimeZone);
+						js = new JsGridTask(folder, props, instance, JsGridTask.Hierarchy.CHILD, parentInResultset ? 1 : 0, userTimeZone);
 					}
 					items.add(js);
 				}
@@ -689,9 +676,9 @@ public class Service extends BaseService {
 				new JsonResult().printTo(out);
 			}
 		
-		} catch (Throwable t) {
-			logger.error("Error in ManageGridTasks", t);
-			new JsonResult(t).printTo(out);
+		} catch (Exception ex) {
+			logger.error("Error in ManageGridTasks", ex);
+			new JsonResult(ex).printTo(out);
 		}
 	}
 	
@@ -735,19 +722,19 @@ public class Service extends BaseService {
 					for (TaskInstanceId iid : iids) {
 						TaskInstance instance = manager.getTaskInstance(iid);
 						if (instance == null) continue;
-						final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
-						if (root == null) continue;
-						final ShareFolderCategory fold = folders.get(instance.getCategoryId());
-						if (fold == null) continue;
-						final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+						final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
+						if (origin == null) continue;
+						final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
+						if (folder == null) continue;
 						
+						final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 						boolean showNested = false;
 						if (instance.isParent()) {
 							lastParent = instance.getTaskId();
 						} else if (instance.isChild()) {
 							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
 						}
-						items.add(new RBTaskList(root, fold.getCategory(), pset, instance, userTimeZone, showNested));
+						items.add(new RBTaskList(origin, folder, props, instance, userTimeZone, showNested));
 					}
 					
 				} else {
@@ -761,19 +748,19 @@ public class Service extends BaseService {
 					List<Integer> visibleCategoryIds = getActiveFolderIds();
 					SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
 					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
-						final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
-						if (root == null) continue;
-						final ShareFolderCategory fold = folders.get(instance.getCategoryId());
-						if (fold == null) continue;
-						final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
+						final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
+						if (origin == null) continue;
+						final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
+						if (folder == null) continue;
 						
+						final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 						boolean showNested = false;
 						if (instance.isParent()) {
 							lastParent = instance.getTaskId();
 						} else if (instance.isChild()) {
 							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
 						}
-						items.add(new RBTaskList(root, fold.getCategory(), pset, instance, userTimeZone, showNested));
+						items.add(new RBTaskList(origin, folder, props, instance, userTimeZone, showNested));
 					}
 				}
 				rpt.setDataSource(items);
@@ -796,13 +783,13 @@ public class Service extends BaseService {
 				for (TaskInstanceId iid : iids) {
 					TaskInstance instance = manager.getTaskInstance(iid, BitFlag.none());
 					if (instance == null) continue;
-					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
-					if (root == null) continue;
-					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
-					if (fold == null) continue;
-					final CategoryPropSet pset = folderProps.get(instance.getCategoryId());
-					
-					items.add(new RBTaskDetail(rrs, root, fold.getCategory(), pset, instance, userTimeZone));
+					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
+					if (origin == null) continue;
+					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
+					if (folder == null) continue;
+
+					final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+					items.add(new RBTaskDetail(rrs, origin, folder, props, instance, userTimeZone));
 				}
 				rpt.setDataSource(items);
 			}
@@ -810,9 +797,9 @@ public class Service extends BaseService {
 			ServletUtils.setFileStreamHeaders(response, filename + ".pdf");
 			WT.generateReportToStream(rpt, AbstractReport.OutputType.PDF, response.getOutputStream());
 			
-		} catch (Throwable t) {
-			logger.error("Error in action PrintTasks", t);
-			ServletUtils.writeErrorHandlingJs(response, t.getMessage());
+		} catch (Exception ex) {
+			logger.error("Error in action PrintTasks", ex);
+			ServletUtils.writeErrorHandlingJs(response, ex.getMessage());
 		} finally {
 			IOUtils.closeQuietly(baos);
 		}
@@ -832,11 +819,11 @@ public class Service extends BaseService {
 				TaskInstance task = manager.getTaskInstance(instanceId, options);
 				if (task == null) throw new WTException("Task not found [{}]", instanceId);
 				
-				ShareRootCategory root = rootByFolder.get(task.getCategoryId());
-				if (root == null) throw new WTException("Root not found [{}]", task.getCategoryId());
-				ShareFolderCategory folder = folders.get(task.getCategoryId());
+				final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(task.getCategoryId());
+				if (origin == null) throw new WTException("Origin not found [{}]", task.getCategoryId());
+				final CategoryFSFolder folder = foldersTreeCache.getFolder(task.getCategoryId());
 				if (folder == null) throw new WTException("Folder not found [{}]", task.getCategoryId());
-				CategoryPropSet pset = folderProps.get(task.getCategoryId());
+				final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 				
 				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.PREVIEWABLE));
 				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
@@ -849,12 +836,12 @@ public class Service extends BaseService {
 					}
 				}
 
-				new JsonResult(new JsTaskPreview(root, folder, pset, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone())).printTo(out);
+				new JsonResult(new JsTaskPreview(origin, folder, props, task, cpanels.values(), cfields, up.getLanguageTag(), up.getTimeZone())).printTo(out);
 			}
 			
-		} catch (Throwable t) {
-			logger.error("Error in GetTaskPreview", t);
-			new JsonResult(t).printTo(out);	
+		} catch (Exception ex) {
+			logger.error("Error in GetTaskPreview", ex);
+			new JsonResult(ex).printTo(out);	
 		}
 	}
 	
@@ -1141,40 +1128,41 @@ public class Service extends BaseService {
 		
 		try {
 			String query = ServletUtils.getStringParameter(request, "query", null);
-			UserProfile userProfile = getEnv().getProfile();
-			DateTimeZone userTimeZone = userProfile.getTimeZone();
+			UserProfile up = getEnv().getProfile();
+			DateTimeZone utz = up.getTimeZone();
 			
 			if (query == null) {
-				final ShareRootCategory root = roots.get(MyShareRootCategory.SHARE_ID);
+				final CategoryFSOrigin origin = foldersTreeCache.getOrigin(up.getId());
 				//TODO: evaluate to add a user-setting to specify categories in which look for
 				final Set<Integer> ids = manager.listMyCategoryIds();
-				List<TaskLookupInstance> instances = manager.listTaskInstances(ids, ITasksManager.TaskListView.UPCOMING, userTimeZone);
+				List<TaskLookupInstance> instances = manager.listTaskInstances(ids, ITasksManager.TaskListView.UPCOMING, utz);
 				for (TaskLookupInstance instance : instances) {
-					final ShareFolderCategory fold = folders.get(instance.getCategoryId());
-					if (fold == null) continue;
+					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
+					if (folder == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
-					items.add(new JsPletTasks(root, fold, pset, instance, userTimeZone));
+					final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+					items.add(new JsPletTasks(origin, folder, props, instance, utz));
 				}
 				
 			} else {
-				String pattern = LangUtils.patternizeWords(query);
-				for (TaskLookupInstance instance : manager.listTaskInstances(folders.keySet(), TaskQuery.createCondition(pattern), null, userTimeZone)) {
-					final ShareRootCategory root = rootByFolder.get(instance.getCategoryId());
-					if (root == null) continue;
-					final ShareFolderCategory folder = folders.get(instance.getCategoryId());
+				final Set<Integer> ids = foldersTreeCache.getFolderIDs();
+				final String pattern = LangUtils.patternizeWords(query);
+				for (TaskLookupInstance instance : manager.listTaskInstances(ids, TaskQuery.createCondition(pattern), null, utz)) {
+					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
+					if (origin == null) continue;
+					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
 					if (folder == null) continue;
 					
-					CategoryPropSet pset = folderProps.get(instance.getCategoryId());
-					items.add(new JsPletTasks(root, folder, pset, instance, userTimeZone));
+					final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
+					items.add(new JsPletTasks(origin, folder, props, instance, utz));
 				}
 			}
 			
 			new JsonResult(items).printTo(out);
 			
-		} catch (Throwable t) {
-			logger.error("Error in PortletTasks", t);
-			new JsonResult(t).printTo(out);	
+		} catch (Exception ex) {
+			logger.error("Error in PortletTasks", ex);
+			new JsonResult(ex).printTo(out);	
 		}
 	}
 	
@@ -1182,74 +1170,69 @@ public class Service extends BaseService {
 		UserProfile.Data ud = getEnv().getProfile().getData();
 		CoreUserSettings cus = getEnv().getCoreUserSettings();
 		return new ReportConfig.Builder()
-				.useLocale(ud.getLocale())
-				.useTimeZone(ud.getTimeZone().toTimeZone())
-				.dateFormatShort(cus.getShortDateFormat())
-				.dateFormatLong(cus.getLongDateFormat())
-				.timeFormatShort(cus.getShortTimeFormat())
-				.timeFormatLong(cus.getLongTimeFormat())
-				.generatedBy(WT.getPlatformName() + " " + lookupResource(TasksLocale.SERVICE_NAME))
-				.printedBy(ud.getDisplayName());
-	}
-	
-	private String buildSharingPath(Sharing sharing) throws WTException {
-		StringBuilder sb = new StringBuilder();
-		
-		// Root description part
-		CId cid = new CId(sharing.getId());
-		if(roots.containsKey(cid.getToken(0))) {
-			ShareRootCategory root = roots.get(cid.getToken(0));
-			if(root instanceof MyShareRootCategory) {
-				sb.append(lookupResource(TasksLocale.CATEGORIES_MY));
-			} else {
-				sb.append(root.getDescription());
-			}
-		}
-		
-		// Folder description part
-		if(sharing.getLevel() == 1) {
-			int catId = Integer.valueOf(cid.getToken(1));
-			Category category = manager.getCategory(catId);
-			sb.append("/");
-			sb.append((category != null) ? category.getName() : cid.getToken(1));
-		}
-		
-		return sb.toString();
+			.useLocale(ud.getLocale())
+			.useTimeZone(ud.getTimeZone().toTimeZone())
+			.dateFormatShort(cus.getShortDateFormat())
+			.dateFormatLong(cus.getLongDateFormat())
+			.timeFormatShort(cus.getShortTimeFormat())
+			.timeFormatLong(cus.getLongTimeFormat())
+			.generatedBy(WT.getPlatformName() + " " + lookupResource(TasksLocale.SERVICE_NAME))
+			.printedBy(ud.getDisplayName());
 	}
 	
 	private ArrayList<Integer> getActiveFolderIds() {
 		ArrayList<Integer> ids = new ArrayList<>();
-		synchronized(roots) {
-			for (ShareRootCategory root : getActiveRoots()) {
-				for (ShareFolderCategory folder : foldersByRoot.get(root.getShareId())) {
-					if (inactiveFolders.contains(folder.getCategory().getCategoryId())) continue;
-					ids.add(folder.getCategory().getCategoryId());
-				}
+		for (CategoryFSOrigin origin : getActiveOrigins()) {
+			for (CategoryFSFolder folder: foldersTreeCache.getFoldersByOrigin(origin)) {
+				if (inactiveFolders.contains(folder.getFolderId())) continue;
+				ids.add(folder.getFolderId());
 			}
 		}
 		return ids;
 	}
 	
-	private List<ShareRootCategory> getActiveRoots() {
-		return roots.values().stream()
-				.filter(root -> !inactiveRoots.contains(root.getShareId()))
-				.collect(Collectors.toList());
+	private List<CategoryFSOrigin> getActiveOrigins() {
+		return foldersTreeCache.getOrigins().stream()
+			.filter(origin -> !inactiveOrigins.contains(toInactiveOriginKey(origin)))
+			.collect(Collectors.toList());
 	}
 	
-	private void toggleActiveRoot(String shareId, boolean active) {
-		toggleActiveRoots(new String[]{shareId}, active);
+	private boolean shouldCleanupInactiveOriginKey(String originKey) {
+		return !foldersTreeCache.existsOrigin(UserProfileId.parseQuielty(originKey));
 	}
 	
-	private void toggleActiveRoots(String[] shareIds, boolean active) {
-		synchronized(roots) {
-			for (String shareId : shareIds) {
+	private boolean isOriginActive(String originKey) {
+		return !inactiveOrigins.contains(originKey);
+	}
+	
+	private String toInactiveOriginKey(CategoryNodeId nodeId) {
+		return nodeId.getOrigin();
+	}
+	
+	private String toInactiveOriginKey(CategoryFSOrigin origin) {
+		return origin.getProfileId().toString();
+	}
+	
+	private void toggleActiveOrigin(String originKey, boolean active) {
+		toggleActiveOrigins(new String[]{originKey}, active);
+	}
+	
+	private void toggleActiveOrigins(String[] originKeys, boolean active) {	
+		try {
+			locks.tryLock("inactiveOrigins", 60, TimeUnit.SECONDS);
+			for (String originId : originKeys) {
 				if (active) {
-					inactiveRoots.remove(shareId);
+					inactiveOrigins.remove(originId);
 				} else {
-					inactiveRoots.add(shareId);
+					inactiveOrigins.add(originId);
 				}
-			}	
-			us.setInactiveCategoryRoots(inactiveRoots);
+			}
+			us.setInactiveCategoryOrigins(inactiveOrigins);
+			
+		} catch (InterruptedException ex) {
+			// Do nothing...
+		} finally {
+			locks.unlock("inactiveOrigins");
 		}
 	}
 	
@@ -1258,7 +1241,8 @@ public class Service extends BaseService {
 	}
 	
 	private void toggleActiveFolders(Integer[] folderIds, boolean active) {
-		synchronized(roots) {
+		try {
+			locks.tryLock("inactiveFolders", 60, TimeUnit.SECONDS);
 			for (int folderId : folderIds) {
 				if (active) {
 					inactiveFolders.remove(folderId);
@@ -1267,115 +1251,65 @@ public class Service extends BaseService {
 				}
 			}
 			us.setInactiveCategoryFolders(inactiveFolders);
+			
+		} catch (InterruptedException ex) {
+			// Do nothing...
+		} finally {
+			locks.unlock("inactiveFolders");
 		}
 	}
 	
 	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
-		synchronized(roots) {
-			try {
-				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
-				pset.setHidden(hidden);
-				manager.updateCategoryCustomProps(categoryId, pset);
-				
-				// Update internal cache
-				ShareFolderCategory folder = folders.get(categoryId);
-				if (!(folder instanceof MyShareFolderCategory)) {
-					folderProps.put(categoryId, pset);
-				}
-			} catch(WTException ex) {
-				logger.error("Error saving custom category props", ex);
+		try {
+			locks.tryLock("folderVisibility-"+categoryId, 60, TimeUnit.SECONDS);
+			CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
+			pset.setHidden(hidden);
+			manager.updateCategoryCustomProps(categoryId, pset);
+			
+			final CategoryFSFolder folder = foldersTreeCache.getFolder(categoryId);
+			if (!(folder instanceof MyCategoryFSFolder)) {
+				foldersPropsCache.put(categoryId, Optional.of(pset));
 			}
+		
+		} catch (WTException ex) {
+			logger.error("Error saving custom category props", ex);
+		} catch (InterruptedException ex) {
+			// Do nothing...
+		} finally {
+			locks.unlock("folderVisibility-"+categoryId);
 		}
 	}
 	
 	private void updateCategoryFolderColor(int categoryId, String color) throws WTException {
-		synchronized(roots) {
-			if (folders.get(categoryId) instanceof MyShareFolderCategory) {
-				Category cat = manager.getCategory(categoryId);
-				cat.setColor(color);
-				manager.updateCategory(cat);
-				updateFoldersCache();
-			} else {
-				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
-				pset.setColor(color);
-				manager.updateCategoryCustomProps(categoryId, pset);
-				folderProps.put(categoryId, pset);
-			}
+		final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(categoryId);
+		if (origin instanceof MyCategoryFSOrigin) {
+			Category category = manager.getCategory(categoryId);
+			category.setColor(color);
+			manager.updateCategory(category);
+			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
+			
+		} else if (origin instanceof CategoryFSOrigin) {
+			CategoryPropSet props = manager.getCategoryCustomProps(categoryId);
+			props.setColor(color);
+			manager.updateCategoryCustomProps(categoryId, props);
+			foldersPropsCache.put(categoryId, Optional.of(props));
 		}
 	}
 	
 	private void updateCategoryFolderSync(int categoryId, Category.Sync sync) throws WTException {
-		synchronized(roots) {
-			if (folders.get(categoryId) instanceof MyShareFolderCategory) {
-				Category cat = manager.getCategory(categoryId);
-				cat.setSync(sync);
-				manager.updateCategory(cat);
-				updateFoldersCache();
-			} else {
-				CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
-				pset.setSync(sync);
-				manager.updateCategoryCustomProps(categoryId, pset);
-				folderProps.put(categoryId, pset);
-			}
+		final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(categoryId);
+		if (origin instanceof MyCategoryFSOrigin) {
+			Category category = manager.getCategory(categoryId);
+			category.setSync(sync);
+			manager.updateCategory(category);
+			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
+			
+		} else if (origin instanceof CategoryFSOrigin) {
+			CategoryPropSet props = manager.getCategoryCustomProps(categoryId);
+			props.setSync(sync);
+			manager.updateCategoryCustomProps(categoryId, props);
+			foldersPropsCache.put(categoryId, Optional.of(props));
 		}
-	}
-	
-	private ExtTreeNode createRootNode(boolean chooser, ShareRootCategory root) {
-		if(root instanceof MyShareRootCategory) {
-			return createRootNode(chooser, root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), lookupResource(TasksLocale.CATEGORIES_MY), false, "wttasks-icon-categoryMy")
-					.setExpanded(true);
-		} else {
-			return createRootNode(chooser, root.getShareId(), root.getOwnerProfileId().toString(), root.getPerms().toString(), root.getDescription(), false, "wttasks-icon-categoryIncoming")
-					.setExpanded(true);
-		}
-	}
-	
-	private ExtTreeNode createRootNode(boolean chooser, String id, String pid, String rights, String text, boolean leaf, String iconClass) {
-		boolean active = !inactiveRoots.contains(id);
-		ExtTreeNode node = new ExtTreeNode(id, text, leaf);
-		node.put("_type", JsFolderNode.TYPE_ROOT);
-		node.put("_pid", pid);
-		node.put("_rrights", rights);
-		node.put("_active", active);
-		node.setIconClass(iconClass);
-		if (!chooser) node.setChecked(active);
-		node.put("expandable", false);
-		
-		return node;
-	}
-	
-	private ExtTreeNode createFolderNode(boolean chooser, ShareFolderCategory folder, CategoryPropSet folderProps, SharePermsRoot rootPerms, boolean isDefault) {
-		Category cat = folder.getCategory();
-		String id = CId.build(folder.getShareId(), cat.getCategoryId()).toString();
-		String color = cat.getColor();
-		Category.Sync sync = Category.Sync.OFF;
-		boolean active = !inactiveFolders.contains(cat.getCategoryId());
-		
-		if (folderProps != null) { // Props are not null only for incoming folders
-			if (folderProps.getHiddenOrDefault(false)) return null;
-			color = folderProps.getColorOrDefault(color);
-			sync = folderProps.getSyncOrDefault(sync);
-		} else {
-			sync = cat.getSync();
-		}
-		
-		ExtTreeNode node = new ExtTreeNode(id, cat.getName(), true);
-		node.put("_type", JsFolderNode.TYPE_FOLDER);
-		node.put("_pid", cat.getProfileId().toString());
-		node.put("_rrights", rootPerms.toString());
-		node.put("_frights", folder.getPerms().toString());
-		node.put("_erights", folder.getElementsPerms().toString());
-		node.put("_catId", cat.getCategoryId());
-		node.put("_builtIn", cat.getBuiltIn());
-		node.put("_color", Category.getHexColor(color));
-		node.put("_sync", EnumUtils.toSerializedName(sync));
-		node.put("_default", isDefault);
-		node.put("_active", active);
-		node.put("_isPrivate", cat.getIsPrivate());
-		node.put("_defReminder", cat.getDefaultReminder());
-		if (!chooser) node.setChecked(active);
-		
-		return node;
 	}
 	
 	private class SearchableCustomFieldTypeCache extends AbstractPassiveExpiringBulkMap<String, CustomField.Type> {
@@ -1393,6 +1327,72 @@ public class Service extends BaseService {
 			} catch(Throwable t) {
 				logger.error("[SearchableCustomFieldTypeCache] Unable to build cache", t);
 				throw new UnsupportedOperationException();
+			}
+		}
+	}
+	
+	private class FoldersPropsCacheLoader implements CacheLoader<Integer, Optional<CategoryPropSet>> {
+		@Override
+		public Optional<CategoryPropSet> load(Integer k) throws Exception {
+			try {
+				logger.trace("[FoldersPropsCache] Loading... [{}]", k);
+				final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(k);
+				if (origin == null) return Optional.empty(); // Disable lookup for unknown folder IDs
+				if (origin instanceof MyCategoryFSOrigin) return Optional.empty(); // Disable lookup for personal folder IDs
+				return Optional.ofNullable(manager.getCategoryCustomProps(k));
+				
+			} catch (Exception ex) {
+				logger.error("[FoldersPropsCache] Unable to load [{}]", k);
+				return null;
+			}
+		}
+	}
+	
+	private class FoldersTreeCache extends AbstractFolderTreeCache<Integer, CategoryFSOrigin, CategoryFSFolder, Object> {
+		
+		@Override
+		protected void internalBuildCache(AbstractFolderTreeCache.Target options) {
+			UserProfileId pid = getEnv().getProfile().getId();
+				
+			if (AbstractFolderTreeCache.Target.ALL.equals(options) || AbstractFolderTreeCache.Target.ORIGINS.equals(options)) {
+				try {
+					this.internalClear(AbstractFolderTreeCache.Target.ORIGINS);
+					this.origins.put(pid, new MyCategoryFSOrigin(pid));
+					for (CategoryFSOrigin origin : manager.listIncomingCategoryOrigins().values()) {
+						this.origins.put(origin.getProfileId(), origin);
+					}
+					
+				} catch (WTException ex) {
+					logger.error("[FoldersTreeCache] Error updating Origins", ex);
+				}
+			}	
+			if (AbstractFolderTreeCache.Target.ALL.equals(options) || AbstractFolderTreeCache.Target.FOLDERS.equals(options)) {
+				try {
+					this.internalClear(AbstractFolderTreeCache.Target.FOLDERS);
+					for (CategoryFSOrigin origin : this.origins.values()) {
+						if (origin instanceof MyCategoryFSOrigin) {
+							for (Category category : manager.listMyCategories().values()) {
+								final MyCategoryFSFolder folder = new MyCategoryFSFolder(category.getCategoryId(), category);
+								this.folders.put(folder.getFolderId(), folder);
+								this.foldersByOrigin.put(origin.getProfileId(), folder);
+								this.originsByFolder.put(folder.getFolderId(), origin);
+							}
+						} else if (origin instanceof CategoryFSOrigin) {
+							for (CategoryFSFolder folder : manager.listIncomingCategoryFolders(origin.getProfileId()).values()) {
+								// Make sure to track only folders with at least READ premission: 
+								// it is ugly having in UI empty folder nodes for just manage update/delete/sharing operations.
+								if (!folder.getPermissions().getFolderPermissions().has(FolderShare.FolderRight.READ)) continue;
+								
+								this.folders.put(folder.getFolderId(), folder);
+								this.foldersByOrigin.put(origin.getProfileId(), folder);
+								this.originsByFolder.put(folder.getFolderId(), origin);
+							}
+						}
+					}
+					
+				} catch (WTException ex) {
+					logger.error("[FoldersTreeCache] Error updating Folders", ex);
+				}
 			}
 		}
 	}

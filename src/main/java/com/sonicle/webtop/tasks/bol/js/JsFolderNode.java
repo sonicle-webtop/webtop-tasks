@@ -39,18 +39,13 @@ import java.util.ArrayList;
  * @author malbinola
  */
 public class JsFolderNode {
-	public static final String TYPE_ROOT = "root";
-	public static final String TYPE_FOLDER = "folder";
-	
 	public String id;
-	public String _type;
-	public String _rootId;
 	public Boolean _active;
 	
 	public JsFolderNode() {}
 	
-	public static class JsFolderNodeList extends ArrayList<JsFolderNode> {
-		public JsFolderNodeList() {
+	public static class List extends ArrayList<JsFolderNode> {
+		public List() {
 			super();
 		}
 	}
