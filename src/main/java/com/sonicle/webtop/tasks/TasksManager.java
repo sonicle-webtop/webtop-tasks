@@ -949,6 +949,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DateTime from = null;
 			DateTime to = null;
 			int noOfRecurringInst = 2*365;
+			DateTime recurringInstFrom = null;
 			DateTime now = DateTimeUtils.now().withZone(targetTimezone);
 			if (view != null) {
 				queryCondition = tasDao.toCondition(view, now);
@@ -990,6 +991,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				Days daysInRange = DateTimeUtils.daysBetween(from, to);
 				if (daysInRange != null) noOfRecurringInst = daysInRange.getDays() + 1;
+				if (recurringInstFrom == null) recurringInstFrom = DateTimeUtils.now().withTimeAtStartOfDay();
 			}
 			
 			con = WT.getConnection(SERVICE_ID);
@@ -1016,7 +1018,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					}
 					
 				} else {
-					final List<TaskLookupInstance> items = calculateRecurringInstances(new TaskLookupRecurringContext(con, vtas, keepPrivate), from, to, noOfRecurringInst);
+					final List<TaskLookupInstance> items = calculateRecurringInstances(new TaskLookupRecurringContext(con, vtas, keepPrivate), recurringInstFrom, to, noOfRecurringInst);
 					
 					if (nestResults) {
 						TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), vtas);
@@ -3487,7 +3489,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 			// No range specified, set a default window starting recurrence start
 			if (rangeFrom == null) rangeFrom = recurStart;
-			if (rangeTo == null) rangeTo = recurStart.plusYears(1);
+			if (rangeTo == null) rangeTo = rangeFrom.plusYears(1);
 			//if (rangeFrom == null) rangeFrom = DateTime.now(timezone).withTimeAtStartOfDay();
 			//if (rangeTo == null) rangeTo = recurStart.plusYears(1);
 			
