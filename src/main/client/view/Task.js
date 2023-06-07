@@ -308,7 +308,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							disableNavigation: true,
 							preHtml: '<span style="position:relative;bottom:-2px;">' + Sonicle.grid.column.Nest.hierarchySvg(null, null, 'red') + '</span>&nbsp;',
 							handler: function(p1, p2, e) {
-								var cmx = WT.showContextMenu(e, me.getRef('cxmChildren'));
+								var cmx = Sonicle.Utils.showContextMenu(e, me.getRef('cxmChildren'));
 								cmx.getStore().load();
 							}
 						}, {
