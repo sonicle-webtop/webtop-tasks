@@ -2580,14 +2580,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			});
 		},
 		
-		createHiddenCategories: function(rootNodeId) {
+		createHiddenCategories: function(originNodeId) {
 			var me = this;
 			return WT.createView(me.ID, 'view.HiddenCategories', {
 				viewCfg: {
 					action: 'ManageHiddenCategories',
 					extraParams: {
-						crud: 'list',
-						rootId: rootNodeId
+						node: originNodeId
 					}
 				}
 			});
