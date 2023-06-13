@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.webtop.tasks.bol.model.GridView;
 import com.sonicle.webtop.core.sdk.BaseServiceSettings;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
 import com.sonicle.webtop.tasks.model.Category;

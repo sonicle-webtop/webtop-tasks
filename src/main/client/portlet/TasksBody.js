@@ -101,8 +101,7 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 			],
 			listeners: {
 				rowdblclick: function(s, rec) {
-					var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
-					me.mys.openTaskUI(er.UPDATE, rec.getId());
+					me.mys.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
 				}
 			}
 		});

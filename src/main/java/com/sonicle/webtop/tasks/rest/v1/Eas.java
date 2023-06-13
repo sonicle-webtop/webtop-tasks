@@ -37,21 +37,17 @@ import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.model.FolderShare;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
-import com.sonicle.webtop.core.model.SharePerms;
-import com.sonicle.webtop.core.model.SharePermsElements;
-import com.sonicle.webtop.core.model.SharePermsFolder;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
-import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.tasks.ITasksManager.TaskUpdateOptions;
 import com.sonicle.webtop.tasks.TaskObjectOutputType;
 import com.sonicle.webtop.tasks.TasksManager;
-import com.sonicle.webtop.tasks.TasksUserSettings;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskEx;
@@ -101,26 +97,26 @@ public class Eas extends EasApi {
 			Integer defltCategoryId = manager.getDefaultCategoryId();
 			Map<Integer, Category> cats = manager.listMyCategories();
 			Map<Integer, DateTime> revisions = manager.getCategoriesLastRevision(cats.keySet());
-			for (Category cat : cats.values()) {
-				if (Category.Sync.OFF.equals(cat.getSync())) continue;
+			for (Category category : cats.values()) {
+				if (Category.Sync.OFF.equals(category.getSync())) continue;
 				
-				final boolean isDefault = cat.getCategoryId().equals(defltCategoryId);
-				items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), null, ShareFolderCategory.realElementsPerms(cat.getSync()), isDefault));
+				final boolean isDefault = category.getCategoryId().equals(defltCategoryId);
+				final FolderShare.Permissions permissions = Category.Sync.READ.equals(category.getSync()) ? FolderShare.Permissions.fullFolderOnly() : FolderShare.Permissions.full();
+				items.add(createSyncFolder(currentProfileId, category, revisions.get(category.getCategoryId()), permissions, isDefault));
 			}
 			
-			List<ShareRootCategory> shareRoots = manager.listIncomingCategoryRoots();
-			for (ShareRootCategory shareRoot : shareRoots) {
-				Map<Integer, ShareFolderCategory> folders = manager.listIncomingCategoryFolders(shareRoot.getShareId());
+			for (CategoryFSOrigin origin : manager.listIncomingCategoryOrigins().values()) {
+				Map<Integer, CategoryFSFolder> folders = manager.listIncomingCategoryFolders(origin);
+				Map<Integer, CategoryPropSet> folderProps = manager.getCategoriesCustomProps(folders.keySet());
 				revisions = manager.getCategoriesLastRevision(folders.keySet());
-				Map<Integer, CategoryPropSet> props = manager.getCategoriesCustomProps(folders.keySet());
-				
-				for (ShareFolderCategory folder : folders.values()) {
-					Category cat = folder.getCategory();
-					CategoryPropSet catProps = props.get(cat.getCategoryId());
-					if (Category.Sync.OFF.equals(catProps.getSyncOrDefault(Category.Sync.OFF))) continue;
+				for (CategoryFSFolder folder : folders.values()) {
+					Category category = folder.getCategory();
+					CategoryPropSet props = folderProps.get(category.getCategoryId());
+					if (Category.Sync.OFF.equals(props.getSyncOrDefault(Category.Sync.OFF))) continue;
 					
-					final boolean isDefault = cat.getCategoryId().equals(defltCategoryId);
-					items.add(createSyncFolder(currentProfileId, cat, revisions.get(cat.getCategoryId()), folder.getPerms(), folder.getRealElementsPerms(catProps.getSync()), isDefault));
+					final boolean isDefault = category.getCategoryId().equals(defltCategoryId);
+					final FolderShare.Permissions permissions = Category.Sync.READ.equals(props.getSync()) ? FolderShare.Permissions.withFolderPermissionsOnly(folder.getPermissions()) : folder.getPermissions();
+					items.add(createSyncFolder(currentProfileId, category, revisions.get(category.getCategoryId()), permissions, isDefault));
 				}
 			}
 			
@@ -267,7 +263,7 @@ public class Eas extends EasApi {
 		}
 	}
 	
-	private SyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, SharePerms folderPerms, SharePerms elementPerms, boolean isDefault) {
+	private SyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, FolderShare.Permissions permissions, boolean isDefault) {
 		String displayName = cat.getName();
 		if (!currentProfileId.equals(cat.getProfileId())) {
 			UserProfile.Data owud = WT.getUserData(cat.getProfileId());
@@ -281,8 +277,8 @@ public class Eas extends EasApi {
 				.displayName(displayName)
 				.etag(buildEtag(lastRevisionTimestamp))
 				.deflt(isDefault)
-				.foAcl((folderPerms == null) ? SharePermsFolder.full().toString() : folderPerms.toString())
-				.elAcl((elementPerms == null) ? SharePermsElements.full().toString() : elementPerms.toString())
+				.foAcl(permissions.getFolderPermissions().toString())
+				.elAcl(permissions.getItemsPermissions().toString())
 				.ownerId(cat.getProfileId().toString());
 	}
 	

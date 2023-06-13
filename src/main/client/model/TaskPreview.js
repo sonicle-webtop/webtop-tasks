@@ -32,6 +32,9 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
 	extend: 'WTA.ux.data.EmptyModel',
+	mixins: [
+		'WTA.sdk.mixin.ItemWithinFolder'	
+	],
 	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'GetTaskPreview'),
 	
 	idProperty: 'id',
@@ -55,10 +58,10 @@ Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string'),
-		WTF.roField('ownerId', 'string'),
-		WTF.roField('ownerDN', 'string'),
-		WTF.roField('_frights', 'string'),
-		WTF.roField('_erights', 'string'),
+		WTF.roField('_orDN', 'string'),
+		WTF.roField('_owPid', 'string'),
+		WTF.roField('_foPerms', 'string'),
+		WTF.roField('_itPerms', 'string'),
 		WTF.roField('_cfdefs', 'string')
 	],
 	hasMany: [

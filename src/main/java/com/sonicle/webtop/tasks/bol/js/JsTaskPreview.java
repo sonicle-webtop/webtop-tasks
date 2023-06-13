@@ -43,11 +43,11 @@ import com.sonicle.webtop.core.model.CustomField;
 import com.sonicle.webtop.core.model.CustomFieldValue;
 import com.sonicle.webtop.core.model.CustomPanel;
 import com.sonicle.webtop.core.sdk.UserProfileId;
-import com.sonicle.webtop.tasks.bol.model.MyShareRootCategory;
+import com.sonicle.webtop.tasks.bol.model.MyCategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareFolderCategory;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import jakarta.mail.internet.InternetAddress;
@@ -82,13 +82,13 @@ public class JsTaskPreview {
 	public Integer categoryId;
 	public String categoryName;
 	public String categoryColor;
-	public String ownerId;
-	public String ownerDN;
-	public String _frights;
-	public String _erights;
+	public String _orDN;
+	public String _owPid;
+	public String _foPerms;
+	public String _itPerms;
 	public String _cfdefs;
 	
-	public JsTaskPreview(ShareRootCategory root, ShareFolderCategory folder, CategoryPropSet folderProps, TaskInstance item, Collection<CustomPanel> customPanels, Map<String, CustomField> customFields, String profileLanguageTag, DateTimeZone profileTz) {
+	public JsTaskPreview(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, TaskInstance item, Collection<CustomPanel> customPanels, Map<String, CustomField> customFields, String profileLanguageTag, DateTimeZone profileTz) {
 		Category category = folder.getCategory();
 		boolean isSeriesMaster = StringUtils.endsWith(item.getId().toString(), ".00000000") && item.getRecurrence() != null;
 		
@@ -128,10 +128,10 @@ public class JsTaskPreview {
 		this.categoryId = category.getCategoryId();
 		this.categoryName = category.getName();
 		this.categoryColor = (folderProps != null) ? folderProps.getColorOrDefault(category.getColor()) : folder.getCategory().getColor();
-		this.ownerId = new UserProfileId(category.getDomainId(), category.getUserId()).toString();
-		this.ownerDN = (root instanceof MyShareRootCategory) ? null : root.getDescription();
-		this._frights = folder.getPerms().toString();
-		this._erights = folder.getElementsPerms().toString();
+		this._orDN = (origin instanceof MyCategoryFSOrigin) ? null : origin.getDisplayName();
+		this._owPid = category.getProfileId().toString();
+		this._foPerms = folder.getPermissions().getFolderPermissions().toString();
+		this._itPerms = folder.getPermissions().getItemsPermissions().toString();
 		_cfdefs = LangUtils.serialize(new ObjCustomFieldDefs(panels, fields), ObjCustomFieldDefs.class);
 	}
 }

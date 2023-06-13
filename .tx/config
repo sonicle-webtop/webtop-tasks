@@ -1,20 +1,21 @@
 [main]
 host = https://www.transifex.com
 
-[webtop-tasks.server_locale]
-file_filter = src/main/resources/com/sonicle/webtop/tasks/locale_<lang>.properties
-source_file = src/main/resources/com/sonicle/webtop/tasks/locale_en.properties
-source_lang = en
-type = PROPERTIES
-
-[webtop-tasks.client_locale]
+[o:sonicle:p:webtop-tasks:r:client_locale]
 file_filter = src/main/client/locale_<lang>.properties
 source_file = src/main/client/locale_en.properties
 source_lang = en
-type = PROPERTIES
+type        = PROPERTIES
 
-[webtop-tasks.rpt_tasksdetail]
+[o:sonicle:p:webtop-tasks:r:rpt_tasksdetail]
 file_filter = src/main/reports/com/sonicle/webtop/tasks/rpt/tasksdetail_<lang>.properties
 source_file = src/main/reports/com/sonicle/webtop/tasks/rpt/tasksdetail_en.properties
 source_lang = en
-type = PROPERTIES
+type        = PROPERTIES
+
+[o:sonicle:p:webtop-tasks:r:server_locale]
+file_filter = src/main/resources/com/sonicle/webtop/tasks/locale_<lang>.properties
+source_file = src/main/resources/com/sonicle/webtop/tasks/locale_en.properties
+source_lang = en
+type        = PROPERTIES
+

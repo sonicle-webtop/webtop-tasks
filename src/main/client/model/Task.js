@@ -66,7 +66,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('progress', 'int', true, {defaultValue: 0}),
 		WTF.field('status', 'string', true, {defaultValue: 'NA'}),
 		WTF.field('importance', 'string', false, {defaultValue: 5}),
-		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
+		WTF.field('isPrivate', 'boolean', false),
 		WTF.field('docRef', 'string', true),
 		WTF.field('reminder', 'int', true),
 		WTF.field('contact', 'string', true),
@@ -89,7 +89,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.roField('_childTotalCount', 'int'),
 		WTF.roField('_childComplCount', 'int'),
 		WTF.roField('_parentSubject', 'string'),
-		WTF.roField('_ownerId', 'string'),
+		WTF.roField('_owPid', 'string'),
 		WTF.roField('_cfdefs', 'string')
 	],
 	hasMany: [

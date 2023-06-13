@@ -46,7 +46,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.grid.column.Tag',
 		'Sonicle.grid.plugin.StateResetMenu',
 		'Sonicle.tree.Column',
-		'WTA.util.FoldersTree',
+		'WTA.util.FoldersTree2',
+		'WTA.ux.SelectTagsBox',
 		'WTA.ux.field.Search',
 		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
@@ -58,9 +59,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'Sonicle.webtop.tasks.ux.panel.TaskPreview'
 	],
 	uses: [
-		'WTA.ux.SelectTagsBox',
 		'Sonicle.webtop.tasks.ux.RecurringConfirmBox',
-		'Sonicle.webtop.tasks.view.Sharing',
+		'Sonicle.webtop.tasks.view.FolderSharing',
 		'Sonicle.webtop.tasks.view.Category',
 		'Sonicle.webtop.tasks.view.Task',
 		'Sonicle.webtop.tasks.view.ImportTasks',
@@ -106,8 +106,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	init: function() {
 		var me = this,
-				tagsStore = WT.getTagsStore(),
-				scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.ID, me.getVar('cfieldsSearchable'));
+			tagsStore = WT.getTagsStore(),
+			scfields = WTA.ux.field.Search.customFieldDefs2Fields(me.ID, me.getVar('cfieldsSearchable'));
 		
 		me.activeGridView = me.getVar('gridView');
 		me.initActions();
@@ -126,6 +126,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				{
 					xtype: 'wtsearchfield',
 					reference: 'fldsearch',
+					suggestionServiceId: me.ID,
+					suggestionContext: 'mainsearch',
+					enableQuerySaving: true,
 					highlightKeywords: ['subject', 'location', 'doc'],
 					fields: Ext.Array.push([
 						{
@@ -245,8 +248,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					columns: [{
 						xtype: 'sotreecolumn',
 						dataIndex: 'text',
-						renderer: WTA.util.FoldersTree.coloredCheckboxTreeRenderer({
-							defaultText: me.res('trfolders.default')
+						renderer: WTA.util.FoldersTree2.coloredCheckboxTreeRenderer({
+							defaultText: me.res('trfolders.default'),
+							getNodeText: function(node, val) {
+								if ((node.isOrigin() && node.isPersonalNode()) || node.isGrouper()) {
+									return me.resTpl(val);
+								} else {
+									return val;
+								}
+							}
 						}),
 						flex: 1
 					}],
@@ -254,24 +264,24 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						checkchange: function(n, ck) {
 							n.refreshActive();
 						},
-						beforeselect: function(s, rec) {
+						beforeselect: function(s, node) {
 							if (me.treeSelEnabled === false) return false;
 						},
-						beforedeselect: function(s, rec) {
+						beforedeselect: function(s, node) {
 							if (me.treeSelEnabled === false) return false;
 						},
-						itemclick: function(s, rec, itm, i, e) {
+						itemclick: function(s, node, itm, i, e) {
 							if (me.treeSelEnabled === false) {
 								if (!e.getTarget(s.checkboxSelector, itm)) {
-									s.setChecked(rec, !rec.get('checked'), e);
+									s.setChecked(node, !node.get('checked'), e);
 								}
 							}
 						},
-						itemcontextmenu: function(vw, rec, itm, i, e) {
-							if (rec.isFolderRoot()) {
-								WT.showContextMenu(e, me.getRef('cxmRootFolder'), {node: rec});
+						itemcontextmenu: function(vw, node, itm, i, e) {
+							if (node.isOrigin() || node.isGrouper()) {
+								Sonicle.Utils.showContextMenu(e, me.getRef('cxmFolderRoot'), {node: node});
 							} else {
-								WT.showContextMenu(e, me.getRef('cxmFolder'), {node: rec});
+								Sonicle.Utils.showContextMenu(e, me.getRef('cxmFolder'), {node: node});
 							}
 						}
 					}
@@ -280,8 +290,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		}));
 		
 		var viewGroup = Ext.id(null, 'tasks-view-'),
-				sortFieldGroup = Ext.id(null, 'tasks-sortfield-'),
-				sortDirGroup = Ext.id(null, 'tasks-sortdir-');
+			sortFieldGroup = Ext.id(null, 'tasks-sortfield-'),
+			sortDirGroup = Ext.id(null, 'tasks-sortdir-');
 		me.setMainComponent(Ext.create({
 			xtype: 'container',
 			layout: 'border',
@@ -309,7 +319,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								remoteSort: true,
 								listeners: {
 									beforeload: function(s) {
-										WTU.applyExtraParams(s, {
+										Sonicle.Data.applyExtraParams(s, {
 											view: me.activeGridView
 											//groupBy: me.activeGroupBy,
 											//showBy: me.getVar('showBy')
@@ -517,11 +527,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
-									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
-									me.openTaskUI(er.UPDATE, rec.getId());
+									me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
 								},
 								rowcontextmenu: function(s, rec, itm, i, e) {
-									WT.showContextMenu(e, me.getRef('cxmGrid'), {
+									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
 										task: rec,
 										tasks: s.getSelection()
 									});
@@ -543,7 +552,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								}),
 								listeners: {
 									beforeload: function(s) {
-										WTU.applyExtraParams(s, {
+										Sonicle.Data.applyExtraParams(s, {
 											view: 'none'
 											//groupBy: me.activeGroupBy,
 											//showBy: me.getVar('showBy')
@@ -604,11 +613,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 								},
 								rowdblclick: function(s, rec) {
-									var er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
-									me.openTaskUI(er.UPDATE, rec.getId());
+									me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
 								},
 								rowcontextmenu: function(s, rec, itm, i, e) {
-									WT.showContextMenu(e, me.getRef('cxmGrid'), {
+									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
 										task: rec,
 										tasks: s.getSelection()
 									});
@@ -669,8 +677,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	createGridConfig: function(tagsStore, nest, cfg) {
 		var me = this,
-				durRes = function(sym) { return WT.res('word.dur.'+sym); },
-				durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+			durRes = function(sym) { return WT.res('word.dur.'+sym); },
+			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
 		
 		return Ext.apply({
 			xtype: 'grid',
@@ -1048,7 +1056,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: WTF.cssIconCls(WT.XID, 'sharing'),
 			handler: function(s, e) {
 				var node = e.menuData.node;
-				if (node) me.editShare(node.getId());
+				if (node) me.manageFolderSharingUI(node.getId());
 			}
 		});
 		me.addAct('manageHiddenCategories', {
@@ -1224,7 +1232,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			handler: function() {
 				var sel = me.getSelectedTasks();
 				if (sel.length > 0) {
-					me.addSubTaskUI(sel[0].get('categoryId'), sel[0].get('id'), sel[0].get('subject'));
+					me.addTaskUI(sel[0].get('categoryId'), sel[0].get('id'), sel[0].get('subject'));
 				}
 			}
 		});
@@ -1301,7 +1309,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-select-one',
 			handler: function(s, e) {
 				var node = e.menuData.node;
-				if (node) WTA.util.FoldersTree.activateSingleFolder(node.getFolderRootNode(), node.getId());
+				if (node) WTA.util.FoldersTree2.activateSingleFolder(node.getFolderRootNode(), node.getId());
 			}
 		});
 		me.addAct('viewAllFolders', {
@@ -1309,7 +1317,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-select-all',
 			handler: function(s, e) {
 				var node = e.menuData.node;
-				if (node) WTA.util.FoldersTree.setActiveAllFolders(node.getFolderRootNode(), true);
+				if (node) WTA.util.FoldersTree2.setActiveAllFolders(node.getFolderRootNode(), true);
 			}
 		});
 		me.addAct('viewNoneFolders', {
@@ -1317,7 +1325,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			iconCls: 'wt-icon-select-none',
 			handler: function(s, e) {
 				var node = e.menuData.node;
-				if (node) WTA.util.FoldersTree.setActiveAllFolders(node.getFolderRootNode(), false);
+				if (node) WTA.util.FoldersTree2.setActiveAllFolders(node.getFolderRootNode(), false);
 			}
 		});
 		if (me.hasAuditUI()) {
@@ -1326,7 +1334,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				tooltip: null,
 				handler: function(s, e) {
 					var node = e.menuData.node;
-					if (node) me.openAuditUI(node.get('_catId'), 'CATEGORY');
+					if (node) me.openAuditUI(node.getFolderId(), 'CATEGORY');
 				}
 			});
 		}
@@ -1334,10 +1342,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			text: WT.res('act-open.lbl'),
 			tooltip: null,
 			handler: function() {
-				var rec = me.getSelectedTask(), er;
+				var rec = me.getSelectedTask();
 				if (rec) {
-					er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
-					me.openTaskUI(er.UPDATE, rec.getId());
+					me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
 				}
 			}
 		});
@@ -1345,10 +1352,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			text: me.res('act-openSeries.lbl'),
 			tooltip: null,
 			handler: function() {
-				var rec = me.getSelectedTask(), er;
+				var rec = me.getSelectedTask();
 				if (rec && (rec.isSeriesItem() || rec.isSeriesBroken())) {
-					er = WTA.util.FoldersTree.toRightsObj(rec.get('_erights'));
-					me.openTaskUI(er.UPDATE, rec.getId(), true);
+					me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId(), true);
 				}
 			}
 		});
@@ -1357,7 +1363,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			handler: function(s, e) {
 				var folderId = (e && e.menuData) ? e.menuData.node.getFolderId() : null,
-						node = WTA.util.FoldersTree.getFolderForAdd(me.trFolders(), folderId);
+					node = WTA.util.FoldersTree2.getFolderForAdd(me.trFolders(), folderId);
 				if (node) me.addTaskUI(node.getFolderId());
 			}
 		});
@@ -1436,7 +1442,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	initCxm: function() {
 		var me = this;
 		
-		me.addRef('cxmRootFolder', Ext.create({
+		me.addRef('cxmFolderRoot', Ext.create({
 			xtype: 'menu',
 			items: [
 				me.getAct('addCategory'),
@@ -1457,11 +1463,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			],
 			listeners: {
 				beforeshow: function(s) {
-					var rec = s.menuData.node,
-							mine = rec.isPersonalNode(),
-							rr = WTA.util.FoldersTree.toRightsObj(rec.get('_rrights'));
-					me.getAct('addCategory').setDisabled(!rr.MANAGE);
-					me.getAct('editSharing').setDisabled(!rr.MANAGE);
+					var node = s.menuData.node,
+						mine = node.isPersonalNode(),
+						or = node.getOriginRights();
+					me.getAct('addCategory').setDisabled(!or.MANAGE);
+					me.getAct('editSharing').setDisabled(!or.MANAGE);
 					me.getAct('manageHiddenCategories').setDisabled(mine);
 				}
 			}
@@ -1517,29 +1523,28 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			],
 			listeners: {
 				beforeshow: function(s) {
-					var FT = WTA.util.FoldersTree,
-							rec = s.menuData.node,
-							mine = rec.isPersonalNode(),
-							rr = FT.toRightsObj(rec.get('_rrights')),
-							fr = FT.toRightsObj(rec.get('_frights')),
-							er = FT.toRightsObj(rec.get('_erights'));
+					var node = s.menuData.node,
+						mine = node.isPersonalNode(),
+						fr = node.getFolderRights(),
+						ir = node.getItemsRights();
+					
 					me.getAct('editCategory').setDisabled(!fr.UPDATE);
-					me.getAct('deleteCategory').setDisabled(!fr.DELETE || rec.isBuiltInFolder());
-					me.getAct('importTasks').setDisabled(!er.CREATE);
-					me.getAct('editSharing').setDisabled(!rr.MANAGE);
-					me.getAct('addTask').setDisabled(!er.CREATE);
+					me.getAct('deleteCategory').setDisabled(!fr.DELETE || node.isBuiltInFolder());
+					me.getAct('editSharing').setDisabled(!fr.MANAGE);
+					me.getAct('addTask').setDisabled(!ir.CREATE);
+					me.getAct('importTasks').setDisabled(!ir.CREATE);
 					me.getAct('hideCategory').setDisabled(mine);
 					me.getAct('restoreCategoryColor').setDisabled(mine);
-					me.getAct('applyTags').setDisabled(!er.UPDATE);
+					me.getAct('applyTags').setDisabled(!ir.UPDATE);
 					
 					var picker = s.down('menu#categoryColor').down('colorpicker');
 					picker.menuData = s.menuData; // Picker's handler doesn't carry the event, injects menuData inside the picket itself
-					picker.select(rec.get('_color'), true);
-					s.down('menu#categorySync').getComponent(rec.get('_sync')).setChecked(true);
+					picker.select(node.get('_color'), true);
+					s.down('menu#categorySync').getComponent(node.get('_sync')).setChecked(true);
 					
 					var defltCmp = s.down('menuitem#defaultCategory');
-					defltCmp.setChecked(rec.isDefaultFolder());
-					defltCmp.setDisabled(!er.CREATE);
+					defltCmp.setChecked(node.isDefaultFolder());
+					defltCmp.setDisabled(!ir.CREATE);
 				}
 			}
 		}));
@@ -1575,12 +1580,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			listeners: {
 				beforeshow: function(s) {
 					var SoU = Sonicle.Utils,
-							sel = me.getSelectedTasks(),
-							progMni = ['p_0','p_25','p_50','p_75','p_100'],
-							progChk = false,
-							impoMni = ['i_9','i_5','i_1'],
-							impoChk = false,
-							prog, impo;
+						sel = me.getSelectedTasks(),
+						progMni = ['p_0','p_25','p_50','p_75','p_100'],
+						progChk = false,
+						impoMni = ['i_9','i_5','i_1'],
+						impoChk = false,
+						prog, impo;
 					
 					if (sel.length === 1) {
 						prog = sel[0].get('progress');
@@ -1603,7 +1608,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	onActivate: function() {
 		var me = this,
-				gp = me.gpTasks();
+			gp = me.gpTasks();
 		
 		if (me.pendingReload === true) {
 			delete me.pendingReload;
@@ -1619,26 +1624,34 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
 	},
 	
-	loadRootNode: function(pid, reloadItemsIf) {
+	loadOriginNode: function(originPid, reloadItemsIf) {
 		var me = this,
-				sto = me.trFolders().getStore(),
-				node;
+			FT = WTA.util.FoldersTree2,
+			tree = me.trFolders(),
+			node = FT.getOrigin(tree, originPid),
+			fnode;
 		
-		node = sto.findNode('_pid', pid, false);
+		// If node was not found, passed profileId may be the owner 
+		// of a Resource: get the first match and check if it was found 
+		// from a resource grouper parent.
+		if (!node) {
+			fnode = FT.getFolderByOwnerProfile(tree, originPid);
+			if (fnode && fnode.isResource() && fnode.parentNode.isGrouper()) node = fnode.parentNode;
+		}
 		if (node) {
-			sto.load({node: node});
+			tree.getStore().load({node: node});
 			if (reloadItemsIf && node.get('checked')) me.reloadTasks();
 		}
 	},
 	
 	queryTasks: function(query) {
 		var isString = Ext.isString(query),
-				value = isString ? query : query.value,
-				obj = {
-					allText: isString ? query : query.anyText,
-					conditions: isString ? [] : query.conditionArray
-				};
-		this.reloadTasks({view: 'search', query: Ext.JSON.encode(obj), squery: value});
+			queryText = isString ? query : query.value,
+			obj = {
+				allText: isString ? query : query.anyText,
+				conditions: isString ? [] : query.conditionArray
+			};
+		this.reloadTasks({view: 'search', query: Ext.JSON.encode(obj), queryText: queryText});
 	},
 	
 	reloadTasks: function(opts) {
@@ -1654,10 +1667,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				} else {
 					sto = me.gpTasksList().getStore();
 				}
-				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query});
+				if (opts.query !== undefined) Ext.apply(pars, {query: opts.query, queryText: opts.queryText});
 				Sonicle.Data.loadWithExtraParams(sto, pars, false, opts.callback, me);
 				if ('search' === view) {
-					me.activateView(view, opts.squery);
+					me.activateView(view, opts.queryText);
 				} else {
 					me.activateView(view);
 				}
@@ -1683,12 +1696,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	showManageTagsUI: function() {
 		var me = this,
-				vw = WT.createView(WT.ID, 'view.Tags', {
-					swapReturn: true,
-					viewCfg: {
-						enableSelection: false
-					}
-				});
+			vw = WT.createView(WT.ID, 'view.Tags', {
+				swapReturn: true,
+				viewCfg: {
+					enableSelection: false
+				}
+			});
 		vw.on('viewclose', function(s) {
 			if (s.syncCount > 0) me.reloadTasks();
 		});
@@ -1723,7 +1736,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.addCategory(domainId, userId, {
 			callback: function(success, model) {
-				if (success) me.loadRootNode(model.get('_profileId'));
+				if (success) me.loadOriginNode(model.get('_profileId'));
 			}
 		});
 	},
@@ -1732,7 +1745,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		me.editCategory(categoryId, {
 			callback: function(success, model) {
-				if (success) me.loadRootNode(model.get('_profileId'), true);
+				if (success) me.loadOriginNode(model.get('_profileId'), true);
 			}
 		});
 	},
@@ -1749,8 +1762,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		vct.getView().on('viewcallback', function(s, success, json) {
 			if (success) {
-				Ext.iterate(json.data, function(pid) {
-					me.loadRootNode(pid);
+				Ext.iterate(json.data, function(originPid) {
+					me.loadOriginNode(originPid);
 				});
 			}
 		});
@@ -1764,7 +1777,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.updateCategoryVisibility(node.getFolderId(), true, {
 					callback: function(success) {
 						if (success) {
-							me.loadRootNode(node.getProfileId());
+							me.loadOriginNode(node.getOwnerPid());
 							me.setActive(false);
 						}
 					}
@@ -1778,7 +1791,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateCategoryColor(node.getFolderId(), color, {
 			callback: function(success) {
 				if (success) {
-					me.loadRootNode(node.getProfileId());
+					me.loadOriginNode(node.getOwnerPid());
 					if (node.isActive()) me.reloadTasks();
 				}
 			}
@@ -1790,7 +1803,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateCategorySync(node.getFolderId(), sync, {
 			callback: function(success) {
 				if (success) {
-					me.loadRootNode(node.getProfileId());
+					me.loadOriginNode(node.getOwnerPid());
 				}
 			}
 		});
@@ -1801,10 +1814,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.updateDefaultCategory(node.getFolderId(), {
 			callback: function(success, data) {
 				if (success) {
-					var FT = WTA.util.FoldersTree,
-							tree = me.trFolders(),
-							nn = FT.getFolderById(tree, data);
-					if (nn) FT.setFolderAsDefault(tree, nn.getId());
+					var FT = WTA.util.FoldersTree2,
+						tree = me.trFolders(),
+						node = FT.getFolderById(tree, data);
+					if (node) FT.setFolderAsDefault(tree, node.getId());
 				}
 			}
 		});
@@ -1861,18 +1874,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		vw.showView();
 	},
 	
-	addTaskUI: function(categoryId) {
-		var me = this;
-		me.addTask(categoryId, {
-			callback: function(success) {
-				if(success) me.reloadTasks();
-			}
-		});
-	},
-	
-	addSubTaskUI: function(categoryId, parentId, parentSubject) {
-		var me = this;
-		me.addSubTask(categoryId, parentId, parentSubject, {
+	addTaskUI: function(categoryId, parentId, parentSubject) {
+		var me = this, data = {};
+		// Default values are handled in setCategoryDefaults of Task view
+		//if (Ext.isBoolean(isPrivate)) data['isPrivate'] = isPrivate;
+		//if (Ext.isNumber(reminder)) data['reminder'] = reminder;
+		if (Ext.isDefined(parentId)) data['parentId'] = parentId;
+		if (Ext.isDefined(parentSubject)) data['parentSubject'] = parentSubject;
+		me.addTask(categoryId, data, {
 			callback: function(success) {
 				if(success) me.reloadTasks();
 			}
@@ -2046,16 +2055,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		Sonicle.URLMgr.openFile(url, {filename: Sonicle.String.deflt(filename, fname), newWindow: true});
 	},
 	
-	
-	
-	editShare: function(id) {
+	manageFolderSharingUI: function(nodeId) {
 		var me = this,
-				vw = WT.createView(me.ID, 'view.Sharing', {swapReturn: true});
+			vw = WT.createView(me.ID, 'view.FolderSharing', {swapReturn: true});
 		
 		vw.showView(function() {
 			vw.begin('edit', {
 				data: {
-					id: id
+					id: nodeId
 				}
 			});
 		});
@@ -2169,9 +2176,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	addTask: function(categoryId, opts) {
+	addTask: function(categoryId, moreData, opts) {
 		opts = opts || {};
 		var me = this,
+			prep = me.prepareTaskData(Ext.apply(moreData || {}, {categoryId: categoryId})),
 			vw = WT.createView(me.ID, 'view.Task', {
 				swapReturn: true,
 				viewCfg: {
@@ -2184,33 +2192,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		vw.showView(function() {
 			vw.begin('new', {
-				data: {
-					categoryId: categoryId
-				}
-			});
-		});
-		return vw;
-	},
-	
-	addTaskWithData: function(data, opts) {
-		opts = opts || {};
-		var me = this,
-			ret = me.parseTaskApiData(data),
-			vw = WT.createView(me.ID, 'view.Task', {
-				swapReturn: true,
-				viewCfg: {
-					uploadTag: opts.uploadTag
-				}
-			});
-		
-		vw.on('viewsave', function(s, success, model) {
-			Ext.callback(opts.callback, opts.scope || me, [success, model]);
-		});
-		vw.showView(function() {
-			vw.begin('new', {
-				data: ret[0],
-				cfData: ret[1],
-				dirty: opts.dirty
+				data: prep.data,
+				cfData: prep.cfData,
+				dirty: Ext.isBoolean(opts.dirty) ? opts.dirty : false
 			});
 		});
 		return vw;
@@ -2408,10 +2392,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	 * @private
 	 */
 	isDisabled: function(action) {
-		var me = this,
-				FT = WTA.util.FoldersTree,
-				sel, er;
-		
+		var me = this, sel;
 		switch(action) {
 			case 'showTask':
 			case 'copyTask':
@@ -2439,8 +2420,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			case 'moveTask':
 				sel = me.getSelectedTasks();
 				if (sel.length === 1) {
-					er = FT.toRightsObj(sel[0].get('_erights'));
-					return !er.DELETE || sel[0].isChild();
+					return !sel[0].getItemsRights().DELETE || sel[0].isChild();
 				} else {
 					return true;
 				}
@@ -2449,11 +2429,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				if (sel.length === 0) {
 					return true;
 				} else if (sel.length === 1) {
-					er = FT.toRightsObj(sel[0].get('_erights'));
-					return !er.DELETE;
+					return !sel[0].getItemsRights().DELETE;
 				} else {
 					for(var i=0; i<sel.length; i++) {
-						if (!FT.toRightsObj(sel[i].get('_erights')).DELETE) return true;
+						if (!sel[i].getItemsRights().DELETE) return true;
 					}
 					return false;
 				}
@@ -2465,11 +2444,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					if (sel.length === 0) {
 						return true;
 					} else if (sel.length === 1) {
-						er = FT.toRightsObj(sel[0].get('_erights'));
-						return !er.UPDATE;
+						return !sel[0].getItemsRights().UPDATE;
 					} else {
 						for (var i=0; i<sel.length; i++) {
-							if (!FT.toRightsObj(sel[i].get('_erights')).UPDATE) return true;
+							if (!sel[i].getItemsRights().UPDATE) return true;
 						}
 						return false;
 					}
@@ -2546,44 +2524,45 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		},
 		
-		parseTaskApiData: function(data) {
+		prepareTaskData: function(data) {
 			data = data || {};
 			var me = this,
-				WTFT = WTA.util.FoldersTree,
-				tree = me.trFolders(),
-				folder = WTFT.getFolderForAdd(tree, data.categoryId),
-				obj = {}, cfobj;
-			
-			obj.categoryId = folder ? folder.getFolderId() : WTFT.getDefaultOrBuiltInFolder(tree);
-			if (Ext.isDefined(data.parentId)) {
-				obj.parentId = data.parentId;
-				if (Ext.isDefined(data.parentSubject)) {
-					obj._parentSubject = data.parentSubject;
+				isDef = Ext.isDefined,
+				copy = function(tgt, src, name, newName) {
+					Sonicle.Object.copyProp(tgt, true, src, name, newName);
+				},
+				o = {}, cfo;
+
+			o.categoryId = isDef(data.categoryId) ? data.categoryId : WTA.util.FoldersTree2.getDefaultOrBuiltInFolder(me.trFolders());
+			if (isDef(data.parentId)) {
+				o.parentId = data.parentId;
+				if (isDef(data.parentSubject)) {
+					o._parentSubject = data.parentSubject;
 				}
 			}
-			if (Ext.isDefined(data.subject)) obj.subject = data.subject;
-			if (Ext.isDefined(data.location)) obj.location = data.location;
-			if (Ext.isDefined(data.description)) obj.description = data.description;
-			if (Ext.isDefined(data.start)) obj.start = data.start;
-			if (Ext.isDefined(data.due)) obj.due = data.due;
-			if (Ext.isDefined(data.progress)) obj.progress = data.progress;
-			if (Ext.isDefined(data.status)) obj.status = data.status;
-			if (Ext.isDefined(data.importance)) obj.importance = data.importance;
-			if (Ext.isDefined(data.visibility)) obj.isPrivate = (data.visibility === 'private');
-			if (Ext.isDefined(data.reminder)) obj.reminder = data.reminder;
-			if (Ext.isDefined(data.docRef)) obj.docRef = data.docRef;
-			if (Ext.isDefined(data.tags)) {
+			copy(o, data, 'subject');
+			copy(o, data, 'location');
+			copy(o, data, 'description');
+			copy(o, data, 'start');
+			copy(o, data, 'due');
+			copy(o, data, 'progress');
+			copy(o, data, 'status');
+			copy(o, data, 'importance');
+			copy(o, data, 'isPrivate');
+			copy(o, data, 'reminder');
+			copy(o, data, 'docRef');
+			if (isDef(data.tags)) {
 				if (Ext.isArray(data.tags)) {
-					obj.tags = Sonicle.String.join('|', data.tags);
+					o.tags = Sonicle.String.join('|', data.tags);
 				} else if (Ext.isString(data.tags)) {
-					obj.tags = data.tags;
+					o.tags = data.tags;
 				}
 			}
-			if (Ext.isDefined(data.customFields) && Ext.isObject(data.customFields)) {
-				cfobj = data.customFields;
+			if (isDef(data.customFields) && Ext.isObject(data.customFields)) {
+				cfo = data.customFields;
 			}
 			
-			return [obj, cfobj];
+			return {data: o, cfdata: cfo};
 		},
 		
 		confirmOnRecurring: function(msg, cb, scope) {
@@ -2601,14 +2580,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			});
 		},
 		
-		createHiddenCategories: function(rootNodeId) {
+		createHiddenCategories: function(originNodeId) {
 			var me = this;
 			return WT.createView(me.ID, 'view.HiddenCategories', {
 				viewCfg: {
 					action: 'ManageHiddenCategories',
 					extraParams: {
-						crud: 'list',
-						rootId: rootNodeId
+						node: originNodeId
 					}
 				}
 			});
@@ -2625,7 +2603,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					},
 					writableOnly: true,
 					showDeepCopy: copy,
-					defaultFolder: WTA.util.FoldersTree.getDefaultFolder(me.trFolders())
+					defaultFolder: WTA.util.FoldersTree2.getDefaultFolder(me.trFolders())
 				}
 			});
 		},

@@ -32,6 +32,9 @@
  */
 Ext.define('Sonicle.webtop.tasks.model.PletTasks', {
 	extend: 'WTA.ux.data.BaseModel',
+	mixins: [
+		'WTA.sdk.mixin.ItemWithinFolder'	
+	],
 	
 	idProperty: 'id',
 	fields: [
@@ -42,9 +45,10 @@ Ext.define('Sonicle.webtop.tasks.model.PletTasks', {
 		WTF.roField('subject', 'string'),
 		WTF.roField('body', 'string'),
 		WTF.roField('due', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('_owner', 'string'),
-		WTF.roField('_frights', 'string'),
-		WTF.roField('_erights', 'string')
+		WTF.roField('_orDN', 'string'),
+		WTF.roField('_owPid', 'string'),
+		WTF.roField('_foPerms', 'string'),
+		WTF.roField('_itPerms', 'string')
 	],
 	
 	isOverdue: function() {

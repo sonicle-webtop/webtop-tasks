@@ -38,8 +38,9 @@ import com.sonicle.webtop.core.util.JRHelper;
 import com.sonicle.webtop.tasks.ITaskInstanceStatable;
 import com.sonicle.webtop.tasks.TasksUtils;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryFSFolder;
+import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
-import com.sonicle.webtop.tasks.model.ShareRootCategory;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import java.util.Date;
@@ -66,8 +67,8 @@ public class RBTaskList {
 	private String categoryColor;
 	private Boolean showNested;
 	
-	public RBTaskList(ShareRootCategory root, Category category, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone, boolean showNested) {
-		this(root instanceof MyShareRootCategory ? null : LangUtils.abbreviatePersonalName(true, root.getDescription()), category, folderProps, task, userTimezone, showNested);
+	public RBTaskList(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone, boolean showNested) {
+		this(origin instanceof MyCategoryFSOrigin ? null : LangUtils.abbreviatePersonalName(true, origin.getDisplayName()), folder.getCategory(), folderProps, task, userTimezone, showNested);
 	}
 	
 	public RBTaskList(String categoryOwner, Category category, CategoryPropSet folderProps, TaskInstance task, DateTimeZone userTimezone, boolean showNested) {
@@ -89,8 +90,8 @@ public class RBTaskList {
 		this.showNested = showNested;
 	}
 	
-	public RBTaskList(ShareRootCategory root, Category category, CategoryPropSet folderProps, TaskLookupInstance task, DateTimeZone userTimezone, boolean showNested) {
-		this(root instanceof MyShareRootCategory ? null : LangUtils.abbreviatePersonalName(true, root.getDescription()), category, folderProps, task, userTimezone, showNested);
+	public RBTaskList(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, TaskLookupInstance task, DateTimeZone userTimezone, boolean showNested) {
+		this(origin instanceof MyCategoryFSOrigin ? null : LangUtils.abbreviatePersonalName(true, origin.getDisplayName()), folder.getCategory(), folderProps, task, userTimezone, showNested);
 	}
 	
 	public RBTaskList(String categoryOwner, Category category, CategoryPropSet folderProps, TaskLookupInstance task, DateTimeZone userTimezone, boolean showNested) {

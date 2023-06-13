@@ -30,7 +30,7 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Copyright (C) 2021 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks;
+package com.sonicle.webtop.tasks.bol.model;
 
 import com.google.gson.annotations.SerializedName;
 
