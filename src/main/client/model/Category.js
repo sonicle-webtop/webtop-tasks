@@ -45,7 +45,7 @@ Ext.define('Sonicle.webtop.tasks.model.Category', {
 		WTF.field('description', 'string', true),
 		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
 		WTF.field('sync', 'string', false, {defaultValue: 'O'}),
-		WTF.field('isPrivate', 'boolean', true),
+		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('reminder', 'int', true),
 		WTF.calcField('_profileId', 'string', ['domainId', 'userId'], function(v, rec) {
 			return rec.get('userId') + '@' + rec.get('domainId');

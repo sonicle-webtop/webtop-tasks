@@ -1078,7 +1078,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			tooltip: null,
 			handler: function(s, e) {
 				var node = e.menuData.node;
-				if (node) me.addCategoryUI(node.get('_domainId'), node.get('_userId'));
+				if (node) me.addCategoryUI(node.getOwnerDomainId(), node.getOwnerUserId());
 			}
 		});
 		me.addAct('editCategory', {
