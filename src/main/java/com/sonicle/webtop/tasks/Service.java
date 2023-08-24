@@ -290,8 +290,10 @@ public class Service extends BaseService {
 					CategoryNodeId nodeId = new CategoryNodeId(node.id);
 					if (CategoryNodeId.Type.FOLDER.equals(nodeId.getType())) {
 						manager.deleteCategory(nodeId.getFolderId());
+						toggleActiveFolder(nodeId.getFolderId(), true); // forgets it by simply activating it
 					}
 				}
+				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 			}
 			
