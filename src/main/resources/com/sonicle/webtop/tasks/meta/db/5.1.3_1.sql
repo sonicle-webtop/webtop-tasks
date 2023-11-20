@@ -11,9 +11,7 @@ CREATE TABLE "tasks"."category_props" (
 "hidden" bool,
 "color" varchar(20),
 "sync" varchar(1)
-)
-WITH (OIDS=FALSE)
-;
+);
 
 CREATE INDEX "category_props_ak1" ON "tasks"."category_props" USING btree ("category_id");
 ALTER TABLE "tasks"."category_props" ADD PRIMARY KEY ("domain_id", "user_id", "category_id");

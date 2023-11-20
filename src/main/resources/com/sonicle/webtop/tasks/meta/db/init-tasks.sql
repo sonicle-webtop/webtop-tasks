@@ -28,10 +28,7 @@ CREATE TABLE "tasks"."categories" (
 "sync" varchar(1) NOT NULL,
 "is_private" bool NOT NULL,
 "is_default" bool NOT NULL
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Table structure for category_props
@@ -44,10 +41,7 @@ CREATE TABLE "tasks"."category_props" (
 "hidden" bool,
 "color" varchar(20),
 "sync" varchar(1)
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Table structure for tasks
@@ -74,10 +68,7 @@ CREATE TABLE "tasks"."tasks" (
 "reminded_on" timestamptz(6),
 "href" varchar(2048),
 "etag" varchar(2048)
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Table structure for tasks_attachments
@@ -91,10 +82,7 @@ CREATE TABLE "tasks"."tasks_attachments" (
 "filename" varchar(255) NOT NULL,
 "size" int8 NOT NULL,
 "media_type" varchar(255) NOT NULL
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Table structure for tasks_attachments_data
@@ -103,10 +91,7 @@ DROP TABLE IF EXISTS "tasks"."tasks_attachments_data";
 CREATE TABLE "tasks"."tasks_attachments_data" (
 "task_attachment_id" varchar(36) NOT NULL,
 "bytes" bytea NOT NULL
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Table structure for tasks_icalendars
@@ -114,10 +99,7 @@ WITH (OIDS=FALSE)
 CREATE TABLE "tasks"."tasks_icalendars" (
 "task_id" int4 NOT NULL,
 "raw_data" text
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Indexes structure for table categories

@@ -36,10 +36,7 @@ AND (ttsks.href IS NULL);
 CREATE TABLE "tasks"."tasks_icalendars" (
 "task_id" int4 NOT NULL,
 "raw_data" text
-)
-WITH (OIDS=FALSE)
-
-;
+);
 
 -- ----------------------------
 -- Primary Key structure for table tasks_icalendars
