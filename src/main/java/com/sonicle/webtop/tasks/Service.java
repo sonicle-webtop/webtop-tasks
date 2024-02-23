@@ -575,7 +575,7 @@ public class Service extends BaseService {
 			List<JsSimple> items = new ArrayList<>();
 			Condition<TaskQuery> pred = new TaskQuery().parent().eq(parentId);
 			Set<Integer> categoryIds = manager.listAllCategoryIds();
-			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, pred, null, userTimeZone)) {
+			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, pred, SortInfo.asc("subject"), userTimeZone)) {
 				items.add(new JsSimple(instance.getIdAsString(), instance.getSubject()));
 			}
 			new JsonResult(items).printTo(out);
