@@ -342,6 +342,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								type: 'rowmodel',
 								mode : 'MULTI'
 							},
+							recoverLostSelection: true,
+							viewConfig: {
+								preserveScrollOnRefresh: true,
+								preserveScrollOnReload: true
+							},
 							plugins: [
 								{
 									ptype: 'so-gridstateresetmenu',
@@ -680,7 +685,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			durRes = function(sym) { return WT.res('word.dur.'+sym); },
 			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
 		
-		return Ext.apply({
+		return Ext.merge({
 			xtype: 'grid',
 			viewConfig: {
 				getRowClass: function (rec, idx) {

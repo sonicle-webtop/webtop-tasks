@@ -1,3 +1,7 @@
+$	5.12.0
+	%	Versione 5.12.0
+	*	<h1>Miglioramento gestione della selezione</h1>
+		<p>La selezione cercherà di essere ripristinata alla posizione precedente durante l'aggiornamento dei dati.</p>
 $	5.8.0
 	%	Versione 5.8.0
 	*	<h1>Gestione migliorata</h1>
