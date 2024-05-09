@@ -741,7 +741,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'subject',
 					hideText: false,
 					getText: function(v) {
-						return v;
+						return Ext.String.htmlEncode(v);
 					},
 					getIconCls: function(v, rec) {
 						var type = 'default';

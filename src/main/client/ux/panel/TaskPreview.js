@@ -78,7 +78,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 					s = '';
 				if (impo !== 1) s += '<i class="'+TI.buildIcon(impo)+'" aria-hidden="true" '+tipAttrs(TI.buildLabel(impo))+' style="margin-right:5px;font-size:initial"></i>';
 				if (this.get('record.isPrivate') === true) s += '<i class="fas fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
-				return s + val;
+				return s + Ext.String.htmlEncode(val);
 			}),
 			foCategoryName: WTF.foGetFn('record', 'categoryName', function(val) {
 				var dn = this.get('record._orDN'),
