@@ -292,6 +292,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 								value: '{record.location}',
 								hidden: '{!foHasLocation}'
 							},
+							renderer: Ext.util.Format.htmlEncode,
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
 							iconCls: 'fas fa-map-marker-alt',
@@ -302,6 +303,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 								value: '{record.docRef}',
 								hidden: '{!foHasDocRef}'
 							},
+							renderer: Ext.util.Format.htmlEncode,
 							plugins: [{ptype: 'sofieldtooltip', tooltipTarget: 'label'}],
 							labelWidth: 25,
 							iconCls: 'far fa-file-alt',
