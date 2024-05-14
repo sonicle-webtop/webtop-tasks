@@ -251,6 +251,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						renderer: WTA.util.FoldersTree2.coloredCheckboxTreeRenderer({
 							defaultText: me.res('trfolders.default'),
 							getNodeText: function(node, val) {
+								val = Ext.String.htmlEncode(val);
 								if ((node.isOrigin() && node.isPersonalNode()) || node.isGrouper()) {
 									return me.resTpl(val);
 								} else {
@@ -741,7 +742,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					dataIndex: 'subject',
 					hideText: false,
 					getText: function(v) {
-						return v;
+						return Ext.String.htmlEncode(v);
 					},
 					getIconCls: function(v, rec) {
 						var type = 'default';
