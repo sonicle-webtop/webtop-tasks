@@ -223,6 +223,16 @@ public class Service extends BaseService {
 		}
 	}
 	
+	private void appendOriginFolderNodes(final ArrayList<ExtTreeNode> children, final CategoryFSOrigin origin, final Integer defaultCalendarId, final boolean writableOnly, final boolean chooser) {
+		for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+			if (writableOnly && !folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) continue;
+
+			final boolean isDefault = folder.getFolderId().equals(defaultCalendarId);
+			final ExtTreeNode xnode = createCategoryFolderNode(chooser, origin, folder, isDefault);
+			if (xnode != null) children.add(xnode);
+		}
+	}
+	
 	public void processManageFoldersTree(HttpServletRequest request, HttpServletResponse response, PrintWriter out) {
 		ArrayList<ExtTreeNode> children = new ArrayList<>();
 		
@@ -231,44 +241,102 @@ public class Service extends BaseService {
 			if (Crud.READ.equals(crud)) {
 				String node = ServletUtils.getStringParameter(request, "node", true);
 				boolean chooser = ServletUtils.getBooleanParameter(request, "chooser", false);
-				boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
+				boolean bulk = ServletUtils.getBooleanParameter(request, "bulk", false);
 				
-				if (node.equals("root")) { // Tree ROOT node -> list folder origins
+				if (bulk && node.equals("root")) {
+					boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
+					final Integer defaultCategoryId = manager.getDefaultCategoryId();
+					boolean hasOthers = false;
+					
+					// Classic root nodes
 					for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
-						boolean add = true;
-						if (writableOnly && !(origin instanceof MyCategoryFSOrigin)) {
-							// Exclude origins whose folders do NOT have writing rights
-							for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
-								if (!folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) {
-									add = false;
-									break;
-								}
+						if (!chooser && !(origin instanceof MyCategoryFSOrigin)) {
+							hasOthers = true;
+							continue;
+						}
+						final ExtTreeNode onode = createOriginFolderNode(chooser, origin);
+						if (onode != null) {
+							ArrayList<ExtTreeNode> ochildren = new ArrayList<>();
+							// Tree node -> append folders of specified origin
+							appendOriginFolderNodes(ochildren, origin, defaultCategoryId, writableOnly, chooser);
+							if (!ochildren.isEmpty()) {
+								onode.setChildren(ochildren);
+								if (chooser) onode.setExpanded(true);
+								children.add(onode.setLoaded(true));
 							}
 						}
-						if (add) {
-							final ExtTreeNode xnode = createFolderNodeLevel0(chooser, origin);
-							if (xnode != null) children.add(xnode);
+					}
+					// Others root node
+					if (!chooser && hasOthers) {
+						final ExtTreeNode gnode = createOthersFolderNode(chooser);
+						if (gnode != null) {
+							ArrayList<ExtTreeNode> gchildren = new ArrayList<>();
+							for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
+								if (origin instanceof MyCategoryFSOrigin) continue;
+								
+								final ExtTreeNode onode = createOriginFolderNode(chooser, origin);
+								if (onode != null) {
+									ArrayList<ExtTreeNode> ochildren = new ArrayList<>();
+									// Tree node -> append folders of specified incoming origin
+									appendOriginFolderNodes(ochildren, origin, defaultCategoryId, writableOnly, chooser);
+									onode.setChildren(ochildren);
+									gchildren.add(onode.setLoaded(true));
+								}
+							}
+							gnode.setChildren(gchildren);
+							children.add(gnode.setLoaded(true));
 						}
 					}
+					new JsonResult("children", children).printTo(out);
 					
 				} else {
-					CategoryNodeId nodeId = new CategoryNodeId(node);
-					if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType())) { // Tree node -> list folder of specified origin
-						final Integer defaultCategoryId = manager.getDefaultCategoryId();
-						final CategoryFSOrigin origin = foldersTreeCache.getOriginByProfile(nodeId.getOriginAsProfileId());
-						for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
-							if (writableOnly && !folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) continue;
-							
-							final boolean isDefault = folder.getFolderId().equals(defaultCategoryId);
-							final ExtTreeNode xnode = createFolderNodeLevel1(chooser, origin, folder, isDefault);
+					if (node.equals("root")) { // Tree ROOT node -> list folder origins (incoming origins will be grouped)
+						boolean hasOthers = false;
+						
+						// Classic root nodes
+						for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
+							if (!chooser && !(origin instanceof MyCategoryFSOrigin)) {
+								hasOthers = true;
+								continue;
+							}
+							final ExtTreeNode xnode = createOriginFolderNode(chooser, origin);
+							if (xnode != null) children.add(xnode);
+						}
+						// Others root node
+						if (!chooser && hasOthers) {
+							final ExtTreeNode xnode = createOthersFolderNode(chooser);
 							if (xnode != null) children.add(xnode);
 						}
 						
 					} else {
-						throw new WTParseException("Unable to parse '{}' as node ID", node);
+						boolean writableOnly = ServletUtils.getBooleanParameter(request, "writableOnly", false);
+						CategoryNodeId nodeId = new CategoryNodeId(node);
+						if (nodeId.isGrouperOther() && !chooser) { // Tree node (others grouper) -> list all incoming origins
+							for (CategoryFSOrigin origin : foldersTreeCache.getOrigins()) {
+								if (origin instanceof MyCategoryFSOrigin) continue;
+
+								// Will pass here incoming origins only (resources' origins excluded)
+								final ExtTreeNode xnode = createOriginFolderNode(chooser, origin);
+								children.add(xnode);
+							}
+
+						} else if (CategoryNodeId.Type.ORIGIN.equals(nodeId.getType())) { // Tree node -> list folder of specified origin
+							final Integer defaultCategoryId = manager.getDefaultCategoryId();
+							final CategoryFSOrigin origin = foldersTreeCache.getOriginByProfile(nodeId.getOriginAsProfileId());
+							for (CategoryFSFolder folder : foldersTreeCache.getFoldersByOrigin(origin)) {
+								if (writableOnly && !folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE)) continue;
+
+								final boolean isDefault = folder.getFolderId().equals(defaultCategoryId);
+								final ExtTreeNode xnode = createCategoryFolderNode(chooser, origin, folder, isDefault);
+								if (xnode != null) children.add(xnode);
+							}	
+
+						} else {
+							throw new WTParseException("Unable to parse '{}' as node ID", node);
+						}
 					}
+					new JsonResult("children", children).printTo(out);
 				}
-				new JsonResult("children", children).printTo(out);
 				
 			} else if (crud.equals(Crud.UPDATE)) {
 				PayloadAsList<JsFolderNode.List> pl = ServletUtils.getPayloadAsList(request, JsFolderNode.List.class);
@@ -302,37 +370,51 @@ public class Service extends BaseService {
 		}
 	}
 	
-	private ExtTreeNode createFolderNodeLevel0(boolean chooser, CategoryFSOrigin origin) {
+	private ExtTreeNode createOriginFolderNode(boolean chooser, CategoryFSOrigin origin) {
 		CategoryNodeId nodeId = CategoryNodeId.build(CategoryNodeId.Type.ORIGIN, origin.getProfileId());
 		boolean checked = isOriginActive(toInactiveOriginKey(origin));
 		if (origin instanceof MyCategoryFSOrigin) {
-			return createFolderNodeLevel0(chooser, nodeId, "{trfolders.origin.my}", "wtcon-icon-categoryMy", origin.getWildcardPermissions(), checked);
+			return createOriginFolderNode(chooser, nodeId, "{trfolders.origin.my}", "wttasks-icon-categoryMy", origin.getWildcardPermissions(), checked);
 		} else {
-			return createFolderNodeLevel0(chooser, nodeId, origin.getDisplayName(), "wtcon-icon-categoryIncoming", origin.getWildcardPermissions(), checked);
+			return createOriginFolderNode(chooser, nodeId, origin.getDisplayName(), "wttasks-icon-categoryIncoming", origin.getWildcardPermissions(), checked);
 		}
 	}
 	
-	private ExtTreeNode createFolderNodeLevel0(boolean chooser, CategoryNodeId nodeId, String text, String iconClass, FolderShare.Permissions originPermissions, boolean isActive) {
+	private ExtTreeNode createOriginFolderNode(boolean chooser, CategoryNodeId nodeId, String text, String iconClass, FolderShare.Permissions originPermissions, boolean isActive) {
 		ExtTreeNode node = new ExtTreeNode(nodeId.toString(), text, false);
 		node.put("_orPerms", originPermissions.getFolderPermissions().toString(true));
 		node.put("_active", isActive);
 		node.setIconClass(iconClass);
 		if (!chooser) node.setChecked(isActive);
-		node.put("expandable", false);
-		node.setExpanded(true);
+		node.put("expandable", true);
 		return node;
 	}
 	
-	private ExtTreeNode createFolderNodeLevel1(boolean chooser, CategoryFSOrigin origin, CategoryFSFolder folder, boolean isDefault) {
+	private ExtTreeNode createOthersFolderNode(boolean chooser) {
+		CategoryNodeId nodeId = CategoryNodeId.build(CategoryNodeId.Type.GROUPER, CategoryNodeId.GROUPER_OTHERS_ORIGIN);
+		boolean checked = isOriginActive(toInactiveOriginKey(nodeId));
+		return createOthersFolderNode(chooser, nodeId, checked);
+	}
+	
+	private ExtTreeNode createOthersFolderNode(boolean chooser, CategoryNodeId nodeId, boolean isActive) {
+		ExtTreeNode node = new ExtTreeNode(nodeId.toString(), "{trfolders.origin.others}", false);
+		node.put("_active", isActive);
+		if (!chooser) node.setChecked(isActive);
+		node.put("expandable", true);
+		node.setIconClass("wttas-icon-categoryOthers");
+		return node;
+	}
+	
+	private ExtTreeNode createCategoryFolderNode(boolean chooser, CategoryFSOrigin origin, CategoryFSFolder folder, boolean isDefault) {
 		CategoryNodeId.Type type = CategoryNodeId.Type.FOLDER;
 		final CategoryNodeId nodeId = CategoryNodeId.build(type, origin.getProfileId(), folder.getFolderId());
 		final String name = folder.getDisplayName();
 		final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 		final boolean active = !inactiveFolders.contains(folder.getFolderId());
-		return createFolderNodeLevel1(chooser, nodeId, name, folder.getPermissions(), folder.getCategory(), props, isDefault, active);
+		return createCategoryFolderNode(chooser, nodeId, name, folder.getPermissions(), folder.getCategory(), props, isDefault, active);
 	}
 	
-	private ExtTreeNode createFolderNodeLevel1(boolean chooser, CategoryNodeId nodeId, String name, FolderShare.Permissions folderPermissions, Category category, CategoryPropSet folderProps, boolean isDefault, boolean isActive) {
+	private ExtTreeNode createCategoryFolderNode(boolean chooser, CategoryNodeId nodeId, String name, FolderShare.Permissions folderPermissions, Category category, CategoryPropSet folderProps, boolean isDefault, boolean isActive) {
 		String color = category.getColor();
 		Category.Sync sync = Category.Sync.OFF;
 		
@@ -348,7 +430,6 @@ public class Service extends BaseService {
 		node.put("_foPerms", folderPermissions.getFolderPermissions().toString());
 		node.put("_itPerms", folderPermissions.getItemsPermissions().toString());
 		node.put("_builtIn", category.getBuiltIn());
-		//node.put("_provider", EnumUtils.toSerializedName(category.getProvider()));
 		node.put("_color", Category.getHexColor(color));
 		node.put("_sync", EnumUtils.toSerializedName(sync));
 		node.put("_default", isDefault);
@@ -1061,7 +1142,7 @@ public class Service extends BaseService {
 					if (cfield != null) cfields.put(fieldId, cfield);
 				}
 			}
-			new JsonResult(new JsCustomFieldDefsData(cpanels.values(), cfields, cvalues, up.getLanguageTag(), up.getTimeZone())).printTo(out);
+			new JsonResult(new JsCustomFieldDefsData(cpanels.values(), cfields, cvalues, up.getLanguageTag(), up.getTimeZone())).setTotal(cfields.size()).printTo(out);
 			
 		} catch (Throwable t) {
 			logger.error("Error in GetCustomFieldsDefsData", t);

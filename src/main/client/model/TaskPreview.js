@@ -58,7 +58,7 @@ Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
 		WTF.roField('categoryId', 'int'),
 		WTF.roField('categoryName', 'string'),
 		WTF.roField('categoryColor', 'string'),
-		WTF.roField('_orDN', 'string'),
+		WTF.roField('_orDN', 'string'), // Empty when mine!
 		WTF.roField('_owPid', 'string'),
 		WTF.roField('_foPerms', 'string'),
 		WTF.roField('_itPerms', 'string'),

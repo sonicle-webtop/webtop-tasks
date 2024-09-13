@@ -47,7 +47,7 @@ Ext.define('Sonicle.webtop.tasks.store.GridView', {
 	constructor: function(cfg) {
 		var me = this;
 		Ext.each(me.config.data, function(row) {
-			row[1] = WT.res('com.sonicle.webtop.tasks', 'gptasks.viewOptions.'+row[0]+'.tip.tit');
+			row[1] = WT.res('com.sonicle.webtop.tasks', 'gptasks.viewOptions.'+row[0]+'.lbl');
 		});
 		me.callParent([cfg]);
 	}

@@ -1,6 +1,6 @@
 /*
  * webtop-tasks is a WebTop Service developed by Sonicle S.r.l.
- * Copyright (C) 2014 Sonicle S.r.l.
+ * Copyright (C) 2024 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -39,30 +39,25 @@ Ext.define('Sonicle.webtop.tasks.store.TaskStatus', {
 	
 	model: 'WTA.ux.data.SimpleIconModel',
 	data: [
-		['NA', '', 'far fa-pause-circle wt-theme-text-error'],
-		['CO', '', 'fas fa-check wt-theme-text-off'],
-		['IP', '', 'far fa-play-circle wt-theme-text-ok'],
-		['CA', '', 'fas fa-history wt-theme-text-alt'],
-		['WA', '', 'far fa-hand-paper wt-theme-text-warn']
+		['NA', '', ''],
+		['CO', '', ''],
+		['IP', '', ''],
+		['CA', '', ''],
+		['WA', '', '']
 	],
 	
 	constructor: function(cfg) {
 		var me = this;
 		Ext.each(me.config.data, function(row) {
 			row[1] = WT.res('com.sonicle.webtop.tasks', 'store.taskStatus.'+row[0]);
+			row[2] = Sonicle.webtop.tasks.store.TaskStatus.buildIcon(row[0]);
 		});
 		me.callParent([cfg]);
 	},
 	
 	statics: {
 		buildIcon: function(id) {
-			return {
-				'NA': 'far fa-pause-circle wt-theme-text-error',
-				'CO': 'fas fa-check wt-theme-text-off',
-				'IP': 'far fa-play-circle wt-theme-text-ok',
-				'CA': 'fas fa-history wt-theme-text-alt',
-				'WA': 'far fa-hand-paper wt-theme-text-warn'
-			}[id];
+			return 'wttasks-icon-taskStatus-'+id;
 		}
 	}
 });

@@ -44,6 +44,13 @@ Ext.define('Sonicle.webtop.tasks.ServiceApi', {
 		return Ext.create('Sonicle.webtop.tasks.portlet.TasksBody', Ext.apply(cfg||{},{ mys: this.service }));
 	},
 	
+	createTasksPortletBodyCfg: function(cfg) {
+		return Ext.apply(cfg || {}, {
+			xclass: 'Sonicle.webtop.tasks.portlet.TasksBody',
+			mys: this.service
+		});
+	},
+	
 	openReminder: function(type, id) {
 		if (Sonicle.String.isIn(type, ['task', 'task-recurring'])) {
 			this.service.openTaskUI(true, id, false);

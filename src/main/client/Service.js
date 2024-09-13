@@ -119,9 +119,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			xtype: 'toolbar',
 			referenceHolder: true,
 			items: [
-				'-',
-				me.getAct('refresh'),
-				me.getAct('printTaskView'),
 				'->',
 				{
 					xtype: 'wtsearchfield',
@@ -177,7 +174,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								displayField: 'name',
 								colorField: 'color',
 								sourceField: 'source',
-								sourceCls: 'wt-source'
+								listConfig: {
+									sourceCls: 'wt-source'
+								}
 							}
 						}
 					], scfields),
@@ -207,33 +206,76 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			]
 		}));
 		
+		var mineOrigin = 'O|'+WT.getVar('profileId');
 		me.setToolComponent(Ext.create({
 			xtype: 'panel',
-			layout: 'border',
 			referenceHolder: true,
-			title: me.getName(),
+			layout: 'vbox',
 			items: [
 				{
-					region: 'center',
-					xtype: 'treepanel',
+					xtype: 'wtplainpanel',
+					bodyCls: 'wttasks-tool-searchpanel-body',
+					items: [
+						{
+							xtype: 'textfield',
+							emptyText: me.res('fldfolderssearch.emp'),
+							triggers: {
+								clear: {
+									type: 'soclear',
+									weight: -1,
+									hideWhenEmpty: true,
+									hideWhenMouseOut: true
+								}
+							},
+							listeners: {
+								change: {
+									fn: function(s, nv) {
+										WTA.util.FoldersTree2.filterFolder(this.trFolders(), nv);
+									},
+									scope: me,
+									buffer: 250
+								}
+							},
+							width: '100%'
+						}
+					],
+					width: '100%'
+				}, {
+					xtype: 'sotreepanel',
 					reference: 'trfolders',
+					cls: 'wttasks-tool-tree',
+					bodyCls: 'wt-tool-bg',
 					border: false,
 					useArrows: true,
+					hideRowBackground: true,
+					stateful: WT.plTags.desktop ? true : false,
+					stateId: me.buildStateId('trfolders'),
+					statefulExpansion: true,
+					defaultExpandedNodesState: Sonicle.Object.setProp({}, mineOrigin, '/root/'+mineOrigin),
 					rootVisible: false,
 					store: {
 						autoLoad: true,
 						autoSync: true,
+						hierarchyBulkLoad: true,
 						model: 'Sonicle.webtop.tasks.model.FolderNode',
 						proxy: WTF.apiProxy(me.ID, 'ManageFoldersTree', 'children', {
 							writer: {
-								allowSingle: false // Always wraps records into an array
+								allowSingle: false // Make update/delete using array payload
 							}
 						}),
 						root: {
 							id: 'root',
 							expanded: true
 						},
+						filterer: 'bottomup',
 						listeners: {
+							beforeload: function(s, op) {
+								if (op.getAction() === 'read' && op.getId() === 'root') {
+									op.setParams(Ext.apply(op.getParams() || {}, {
+										bulk: true
+									}));
+								}
+							},
 							write: function(s,op) {
 								me.reloadTasks();
 							}
@@ -245,22 +287,43 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						ignoreRightMouseSelection: true
 					},
 					hideHeaders: true,
-					columns: [{
-						xtype: 'sotreecolumn',
-						dataIndex: 'text',
-						renderer: WTA.util.FoldersTree2.coloredCheckboxTreeRenderer({
-							defaultText: me.res('trfolders.default'),
-							getNodeText: function(node, val) {
-								val = Ext.String.htmlEncode(val);
-								if ((node.isOrigin() && node.isPersonalNode()) || node.isGrouper()) {
-									return me.resTpl(val);
-								} else {
-									return val;
+					columns: [
+						{
+							xtype: 'sotreecolumn',
+							dataIndex: 'text',
+							renderer: WTA.util.FoldersTree2.coloredCheckboxTreeRenderer({
+								defaultText: me.res('trfolders.default'),
+								showElbow: true,
+								getNodeText: function(node, val) {
+									val = Ext.String.htmlEncode(val);
+									if ((node.isOrigin() && node.isPersonalNode()) || node.isGrouper()) {
+										return me.resTpl(val);
+									} else {
+										return val;
+									}
 								}
-							}
-						}),
-						flex: 1
-					}],
+							}),
+							flex: 1
+						}, {
+							xtype: 'soactioncolumn',
+							showOnSelection: true,
+							showOnOver: true,
+							items: [
+								{
+									iconCls: 'fas fa-ellipsis-v',
+									handler: function(v, ridx, cidx, itm, e, node, row) {
+										if (node.isOrigin()) {
+											Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeOrigin'), {node: node});
+										} else if (node.isGrouper()) {
+											Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeGrouper'), {node: node});
+										} else {
+											Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeFolder'), {node: node});
+										}
+									}
+								}
+							]
+						}
+					],
 					listeners: {
 						checkchange: function(n, ck) {
 							n.refreshActive();
@@ -271,23 +334,19 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						beforedeselect: function(s, node) {
 							if (me.treeSelEnabled === false) return false;
 						},
-						itemclick: function(s, node, itm, i, e) {
-							if (me.treeSelEnabled === false) {
-								if (!e.getTarget(s.checkboxSelector, itm)) {
-									s.setChecked(node, !node.get('checked'), e);
-								}
-							}
-						},
-						itemcontextmenu: function(vw, node, itm, i, e) {
+						itemcontextmenu: function(s, node, itm, i, e) {
 							if (node.isOrigin() || node.isGrouper()) {
-								Sonicle.Utils.showContextMenu(e, me.getRef('cxmFolderRoot'), {node: node});
+								Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeOrigin'), {node: node});
 							} else {
-								Sonicle.Utils.showContextMenu(e, me.getRef('cxmFolder'), {node: node});
+								Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeFolder'), {node: node});
 							}
 						}
-					}
+					},
+					width: '100%',
+					flex: 1
 				}
-			]
+			],
+			border: false
 		}));
 		
 		var viewGroup = Ext.id(null, 'tasks-view-'),
@@ -303,332 +362,321 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'container',
 					reference: 'pnlcard',
 					layout: 'card',
-					cativeItem: me.lastMainView = 'list',
+					activeItem: me.lastMainView = 'list',
 					items: [
-						me.createGridConfig(tagsStore, true, {
-							reference: 'gptaskslist',
+						{
+							xtype: 'wtpanel',
 							itemId: 'list',
-							stateful: true,
-							stateId: me.buildStateId('gptaskslist'),
-							store: {
-								model: 'Sonicle.webtop.tasks.model.GridTask',
-								proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', null, {
-									extraParams: {
-										query: null
-									}
-								}),
-								remoteSort: true,
-								listeners: {
-									beforeload: function(s) {
-										Sonicle.Data.applyExtraParams(s, {
-											view: me.activeGridView
-											//groupBy: me.activeGroupBy,
-											//showBy: me.getVar('showBy')
-										});
-									},
-									load: function() {
-										// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
-										// 1) Create a daily task with many repetitions
-										// 2) Move to not completed view
-										// 3) Select the task created above, right-click opening context menu and choose "Complete"
-										// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
-										// 5) After some operations, selection breaks returning wrong items on getSelected
-										me.trFolders().focus();
-										// ------------------------------
-										me.pnlPreview().setSelection(me.getSelectedTasks(true));
-									}
-								}
+							cls: 'wttasks-main-list',
+							layout: 'vbox',
+							defaults: {
+								width: '100%'
 							},
-							selModel: {
-								type: 'rowmodel',
-								mode : 'MULTI'
-							},
-							recoverLostSelection: true,
-							viewConfig: {
-								preserveScrollOnRefresh: true,
-								preserveScrollOnReload: true
-							},
-							plugins: [
+							items: [
 								{
-									ptype: 'so-gridstateresetmenu',
-									menuStateResetText: WT.res('act-clearColumnState.lbl'),
-									menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
-									listeners: {
-										stateresetclick: function(s, grid) {
-											WT.clearState(grid);
-										}
-									}
-								}
-							],
-							tbar: [
-								{
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.today.tip.tit'), text: me.res('gptasks.viewOptions.today.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.today.tip.tit'), text: me.res('gptasks.viewOptions.today.tip.txt')},
-									offIconCls: 'wttasks-icon-viewToday-grayed',
-									onIconCls: 'wttasks-icon-viewToday',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'today',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'today'});
-									}
-								}, {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.next7.tip.tit'), text: me.res('gptasks.viewOptions.next7.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.next7.tip.tit'), text: me.res('gptasks.viewOptions.next7.tip.txt')},
-									offIconCls: 'wttasks-icon-viewNext7-grayed',
-									onIconCls: 'wttasks-icon-viewNext7',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'next7',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'next7'});
-									}
-								}, '-', {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.notStarted.tip.tit'), text: me.res('gptasks.viewOptions.notStarted.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.notStarted.tip.tit'), text: me.res('gptasks.viewOptions.notStarted.tip.txt')},
-									offIconCls: 'wttasks-icon-viewNotStarted-grayed',
-									onIconCls: 'wttasks-icon-viewNotStarted',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'notStarted',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'notStarted'});
-									}
-								}, {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.late.tip.tit'), text: me.res('gptasks.viewOptions.late.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.late.tip.tit'), text: me.res('gptasks.viewOptions.late.tip.txt')},
-									offIconCls: 'wttasks-icon-viewLate-grayed',
-									onIconCls: 'wttasks-icon-viewLate',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'late',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'late'});
-									}
-								}, {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.completed.tip.tit'), text: me.res('gptasks.viewOptions.completed.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.completed.tip.tit'), text: me.res('gptasks.viewOptions.completed.tip.txt')},
-									offIconCls: 'wttasks-icon-viewCompleted-grayed',
-									onIconCls: 'wttasks-icon-viewCompleted',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'completed',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'completed'});
-									}
-								}, {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.notCompleted.tip.tit'), text: me.res('gptasks.viewOptions.notCompleted.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.notCompleted.tip.tit'), text: me.res('gptasks.viewOptions.notCompleted.tip.txt')},
-									offIconCls: 'wttasks-icon-viewNotCompleted-grayed',
-									onIconCls: 'wttasks-icon-viewNotCompleted',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'notCompleted',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'notCompleted'});
-									}
-								}, {
-									xtype: 'sotogglebutton',
-									offTooltip: {title: me.res('gptasks.viewOptions.all.tip.tit'), text: me.res('gptasks.viewOptions.all.tip.txt')},
-									onTooltip: {title: me.res('gptasks.viewOptions.all.tip.tit'), text: me.res('gptasks.viewOptions.all.tip.txt')},
-									offIconCls: 'wttasks-icon-viewAll-grayed',
-									onIconCls: 'wttasks-icon-viewAll',
-									toggleGroup: viewGroup,
-									allowDepress: false,
-									pressed: me.activeGridView === 'all',
-									toggleHandler: function() {
-										me.reloadTasks({view: 'list', gridView: 'all'});
-									}
-								},
-								'->',
-								{
-									iconCls: 'wt-icon-viewOptions',
-									tooltip: me.res('gptasks.viewOptions.tip'),
-									menu: {
-										defaults: {
-											scope: me
-										},
-										items: [
-											{
-												xtype: 'somenuheader',
-												text: me.res('gptasks.viewOptions.sortField.lbl')
-											}, {
-												itemId: 'sortField-subject',
-												text: me.res('gptasks.viewOptions.sortField.subject.lbl'),
-												checked: false,
-												group: sortFieldGroup,
-												checkHandler: me.onViewOptionsSortFieldChange
-											}, {
-												itemId: 'sortField-start',
-												text: me.res('gptasks.viewOptions.sortField.start.lbl'),
-												checked: false,
-												group: sortFieldGroup,
-												checkHandler: me.onViewOptionsSortFieldChange
-											}, {
-												itemId: 'sortField-due',
-												text: me.res('gptasks.viewOptions.sortField.due.lbl'),
-												checked: false,
-												group: sortFieldGroup,
-												checkHandler: me.onViewOptionsSortFieldChange
-											}, '-', {
-												itemId: 'sortDir-ASC',
-												text: me.res('gptasks.viewOptions.sortDirection.asc.lbl'),
-												checked: false,
-												group: sortDirGroup,
-												checkHandler: me.onViewOptionsSortDirChange
-											}, {
-												itemId: 'sortDir-DESC',
-												text: me.res('gptasks.viewOptions.sortDirection.desc.lbl'),
-												checked: false,
-												group: sortDirGroup,
-												checkHandler: me.onViewOptionsSortDirChange
-											}
-										],
-										listeners: {
-											scope: me,
-											beforeshow: function(s) {
-												var me = this,
-													sto = me.gpTasksList().getStore(),
-													meta = sto.getProxy().getReader().metaData,
-													sortField = (meta && meta.sortInfo) ? meta.sortInfo.field : null,
-													sortDir = (meta && meta.sortInfo) ? meta.sortInfo.direction : null,
-													cmp;
-												
-												sortField = sortField || 'start';
-												sortDir = sortDir || 'ASC';
-												
-												me.skipViewOptionsCheckChange++;
-												if (!sto.isLoading()) {
-													cmp = s.getComponent('sortField-' + sortField);
-													if (cmp) cmp.setChecked(true);
-													cmp = s.getComponent('sortDir-' + sortDir);
-													if (cmp) cmp.setChecked(true);
+									xtype: 'toolbar',
+									cls: 'wttasks-main-list-toolbar',
+									border: false,
+									overflowHandler: 'scroller',
+									items: [
+										{
+											xtype: 'segmentedbutton',
+											reference: 'sbtntaskslist',
+											defaults: {
+												ui: '{segmented}',
+												toggleGroup: viewGroup,
+												toggleHandler: function(s, pressed) {
+													if (pressed) me.reloadTasks({view: 'list', gridView: s.getItemId()});
 												}
-												me.skipViewOptionsCheckChange--;
+											},
+											items: [
+												{
+													itemId: 'today',
+													text: me.res('gptasks.viewOptions.today.lbl'),
+													tooltip: me.res('gptasks.viewOptions.today.tip')
+												}, {
+													itemId: 'next7',
+													text: me.res('gptasks.viewOptions.next7.lbl'),
+													tooltip: me.res('gptasks.viewOptions.next7.tip')
+												}, {
+													itemId: 'notStarted',
+													text: me.res('gptasks.viewOptions.notStarted.lbl'),
+													tooltip: me.res('gptasks.viewOptions.notStarted.tip')
+												}, {
+													itemId: 'late',
+													text: me.res('gptasks.viewOptions.late.lbl'),
+													tooltip: me.res('gptasks.viewOptions.late.tip')
+												}, {
+													itemId: 'completed',
+													text: me.res('gptasks.viewOptions.completed.lbl'),
+													tooltip: me.res('gptasks.viewOptions.completed.tip')
+												}, {
+													itemId: 'notCompleted',
+													text: me.res('gptasks.viewOptions.notCompleted.lbl'),
+													tooltip: me.res('gptasks.viewOptions.notCompleted.tip')
+												}, {
+													itemId: 'all',
+													text: me.res('gptasks.viewOptions.all.lbl'),
+													tooltip: me.res('gptasks.viewOptions.all.tip')
+												}
+											]
+										},
+										'->',
+										me.getAct('refresh'),
+										{
+											iconCls: 'wt-icon-viewOptions',
+											tooltip: me.res('gptasks.viewOptions.tip'),
+											menu: {
+												defaults: {
+													scope: me
+												},
+												items: [
+													{
+														xtype: 'somenuheader',
+														text: me.res('gptasks.viewOptions.sortField.lbl')
+													}, {
+														itemId: 'sortField-subject',
+														text: me.res('gptasks.viewOptions.sortField.subject.lbl'),
+														checked: false,
+														group: sortFieldGroup,
+														checkHandler: me.onViewOptionsSortFieldChange
+													}, {
+														itemId: 'sortField-start',
+														text: me.res('gptasks.viewOptions.sortField.start.lbl'),
+														checked: false,
+														group: sortFieldGroup,
+														checkHandler: me.onViewOptionsSortFieldChange
+													}, {
+														itemId: 'sortField-due',
+														text: me.res('gptasks.viewOptions.sortField.due.lbl'),
+														checked: false,
+														group: sortFieldGroup,
+														checkHandler: me.onViewOptionsSortFieldChange
+													}, '-', {
+														itemId: 'sortDir-ASC',
+														text: me.res('gptasks.viewOptions.sortDirection.asc.lbl'),
+														checked: false,
+														group: sortDirGroup,
+														checkHandler: me.onViewOptionsSortDirChange
+													}, {
+														itemId: 'sortDir-DESC',
+														text: me.res('gptasks.viewOptions.sortDirection.desc.lbl'),
+														checked: false,
+														group: sortDirGroup,
+														checkHandler: me.onViewOptionsSortDirChange
+													}
+												],
+												listeners: {
+													scope: me,
+													beforeshow: function(s) {
+														var me = this,
+															sto = me.gpTasksList().getStore(),
+															meta = sto.getProxy().getReader().metaData,
+															sortField = (meta && meta.sortInfo) ? meta.sortInfo.field : null,
+															sortDir = (meta && meta.sortInfo) ? meta.sortInfo.direction : null,
+															cmp;
+
+														sortField = sortField || 'start';
+														sortDir = sortDir || 'ASC';
+
+														me.skipViewOptionsCheckChange++;
+														if (!sto.isLoading()) {
+															cmp = s.getComponent('sortField-' + sortField);
+															if (cmp) cmp.setChecked(true);
+															cmp = s.getComponent('sortDir-' + sortDir);
+															if (cmp) cmp.setChecked(true);
+														}
+														me.skipViewOptionsCheckChange--;
+													}
+												}
 											}
 										}
-									}
-								}
-							],
-							listeners: {
-								selectionchange: function(s) {
-									me.updateDisabled('showTask');
-									me.updateDisabled('showTaskSeries');
-									me.updateDisabled('addSubTask');
-									me.updateDisabled('printTask');
-									me.updateDisabled('copyTask');
-									me.updateDisabled('moveTask');
-									me.updateDisabled('deleteTask');
-									me.updateDisabled('tags');
-									me.updateDisabled('setTaskImportance');
-									me.updateDisabled('setTaskProgress');
-									me.updateDisabled('setTaskCompleted');
-									me.pnlPreview().setSelection(s.getSelection());
-									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
+									]
 								},
-								rowdblclick: function(s, rec) {
-									me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
-								},
-								rowcontextmenu: function(s, rec, itm, i, e) {
-									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
-										task: rec,
-										tasks: s.getSelection()
-									});
-								}
-							}
-						}),
-						
-						me.createGridConfig(tagsStore, false, {
-							reference: 'gptasksresults',
-							itemId: 'search',
-							stateful: true,
-							stateId: me.buildStateId('gptasksresults'),
-							store: {
-								model: 'Sonicle.webtop.tasks.model.GridTask',
-								proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', null, {
-									extraParams: {
-										query: null
-									}
-								}),
-								listeners: {
-									beforeload: function(s) {
-										Sonicle.Data.applyExtraParams(s, {
-											view: 'none'
-											//groupBy: me.activeGroupBy,
-											//showBy: me.getVar('showBy')
-										});
-									},
-									load: function() {
-										// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
-										// 1) Create a daily task with many repetitions
-										// 2) Move to not completed view
-										// 3) Select the task created above, right-click opening context menu and choose "Complete"
-										// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
-										// 5) After some operations, selection breaks returning wrong items on getSelected
-										me.trFolders().focus();
-										// ------------------------------
-										me.pnlPreview().setSelection(me.getSelectedTasks(true));
-										me.fldSearch().highlight(me.gpTasks().getEl(), '.x-grid-item-container');
-									}
-								}
-							},
-							selModel: {
-								type: 'rowmodel',
-								mode : 'MULTI'
-							},
-							plugins: [
-								{
-									ptype: 'so-gridstateresetmenu',
-									menuStateResetText: WT.res('act-clearColumnState.lbl'),
-									menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
-									listeners: {
-										stateresetclick: function(s, grid) {
-											WT.clearState(grid);
+								me.createGridCfg(tagsStore, true, {
+									itemId: 'gp',
+									reference: 'gptaskslist',
+									border: true,
+									cls: 'wttasks-main-list-grid',
+									stateful: true,
+									stateId: me.buildStateId('gptaskslist'),
+									store: {
+										model: 'Sonicle.webtop.tasks.model.GridTask',
+										proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', null, {
+											extraParams: {
+												query: null
+											}
+										}),
+										remoteSort: true,
+										listeners: {
+											beforeload: function(s) {
+												Sonicle.Data.applyExtraParams(s, {
+													view: me.activeGridView
+													//groupBy: me.activeGroupBy,
+													//showBy: me.getVar('showBy')
+												});
+											},
+											load: function() {
+												// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
+												// 1) Create a daily task with many repetitions
+												// 2) Move to not completed view
+												// 3) Select the task created above, right-click opening context menu and choose "Complete"
+												// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
+												// 5) After some operations, selection breaks returning wrong items on getSelected
+												me.trFolders().focus();
+												// ------------------------------
+												me.pnlPreview().setSelection(me.getSelectedTasks(true));
+											}
 										}
-									}
-								}
-							],
-							tools: [
-								{
-									type: 'close',
-									callback: function() {
-										me.activateView('list');
-									}
-								}
-							],
-							listeners: {
-								selectionchange: function(s) {
-									me.updateDisabled('showTask');
-									me.updateDisabled('showTaskSeries');
-									me.updateDisabled('addSubTask');
-									me.updateDisabled('printTask');
-									me.updateDisabled('copyTask');
-									me.updateDisabled('moveTask');
-									me.updateDisabled('deleteTask');
-									me.updateDisabled('tags');
-									me.updateDisabled('setTaskImportance');
-									me.updateDisabled('setTaskProgress');
-									me.updateDisabled('setTaskCompleted');
-									me.pnlPreview().setSelection(s.getSelection());
-									if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
-								},
-								rowdblclick: function(s, rec) {
-									me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
-								},
-								rowcontextmenu: function(s, rec, itm, i, e) {
-									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
-										task: rec,
-										tasks: s.getSelection()
-									});
-								}
-							}
-						})
+									},
+									selModel: {
+										type: 'rowmodel',
+										mode : 'MULTI'
+									},
+									recoverLostSelection: true,
+									viewConfig: {
+										preserveScrollOnRefresh: true,
+										preserveScrollOnReload: true
+									},
+									plugins: [
+										{
+											ptype: 'so-gridstateresetmenu',
+											menuStateResetText: WT.res('act-clearColumnState.lbl'),
+											menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
+											listeners: {
+												stateresetclick: function(s, grid) {
+													WT.clearState(grid);
+												}
+											}
+										}
+									],
+									listeners: {
+										selectionchange: function(s) {
+											me.updateDisabled('openTask');
+											me.updateDisabled('openTaskSeries');
+											me.updateDisabled('addSubTask');
+											me.updateDisabled('printTask');
+											me.updateDisabled('copyTask');
+											me.updateDisabled('moveTask');
+											me.updateDisabled('deleteTask');
+											me.updateDisabled('tags');
+											me.updateDisabled('setTaskImportance');
+											me.updateDisabled('setTaskProgress');
+											me.updateDisabled('setTaskCompleted');
+											me.pnlPreview().setSelection(s.getSelection());
+											if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
+										},
+										rowdblclick: function(s, rec) {
+											me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
+										},
+										rowcontextmenu: function(s, rec, itm, i, e) {
+											Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
+												task: rec,
+												tasks: s.getSelection()
+											});
+										}
+									},
+									flex: 1
+								})
+							]
+						}, {
+							xtype: 'wtpanel',
+							itemId: 'search',
+							layout: 'vbox',
+							cls: 'wttasks-main-search',
+							defaults: {
+								width: '100%'
+							},
+							items: [
+								me.createGridCfg(tagsStore, false, {
+									itemId: 'gp',
+									reference: 'gptasksresults',
+									cls: 'wttasks-main-search-grid',
+									stateful: true,
+									stateId: me.buildStateId('gptasksresults'),
+									store: {
+										model: 'Sonicle.webtop.tasks.model.GridTask',
+										proxy: WTF.apiProxy(me.ID, 'ManageGridTasks', null, {
+											extraParams: {
+												query: null
+											}
+										}),
+										listeners: {
+											beforeload: function(s) {
+												Sonicle.Data.applyExtraParams(s, {
+													view: 'none'
+													//groupBy: me.activeGroupBy,
+													//showBy: me.getVar('showBy')
+												});
+											},
+											load: function() {
+												// FIXME: Do trick to avoid breaking selection during many sequential setComplete operations
+												// 1) Create a daily task with many repetitions
+												// 2) Move to not completed view
+												// 3) Select the task created above, right-click opening context menu and choose "Complete"
+												// 4) Then again, right-click opening context menu on the next instance and choose "Complete"
+												// 5) After some operations, selection breaks returning wrong items on getSelected
+												me.trFolders().focus();
+												// ------------------------------
+												me.pnlPreview().setSelection(me.getSelectedTasks(true));
+												me.fldSearch().highlight(me.gpTasks().getEl(), '.x-grid-item-container');
+											}
+										}
+									},
+									selModel: {
+										type: 'rowmodel',
+										mode : 'MULTI'
+									},
+									plugins: [
+										{
+											ptype: 'so-gridstateresetmenu',
+											menuStateResetText: WT.res('act-clearColumnState.lbl'),
+											menuStateResetTooltip: WT.res('act-clearColumnState.tip'),
+											listeners: {
+												stateresetclick: function(s, grid) {
+													WT.clearState(grid);
+												}
+											}
+										}
+									],
+									tools: [
+										{
+											type: 'close',
+											callback: function() {
+												me.activateView('list');
+											}
+										}
+									],
+									listeners: {
+										selectionchange: function(s) {
+											me.updateDisabled('openTask');
+											me.updateDisabled('openTaskSeries');
+											me.updateDisabled('addSubTask');
+											me.updateDisabled('printTask');
+											me.updateDisabled('copyTask');
+											me.updateDisabled('moveTask');
+											me.updateDisabled('deleteTask');
+											me.updateDisabled('tags');
+											me.updateDisabled('setTaskImportance');
+											me.updateDisabled('setTaskProgress');
+											me.updateDisabled('setTaskCompleted');
+											me.pnlPreview().setSelection(s.getSelection());
+											if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
+										},
+										rowdblclick: function(s, rec) {
+											me.openTaskUI(rec.getItemsRights().UPDATE, rec.getId());
+										},
+										rowcontextmenu: function(s, rec, itm, i, e) {
+											Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
+												task: rec,
+												tasks: s.getSelection()
+											});
+										}
+									},
+									flex: 1
+								})
+							]
+						}
 					]
 				}, {
 					region: 'east',
@@ -643,22 +691,30 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					mys: me,
 					tagsStore: tagsStore,
 					listeners: {
+						showmenu: function(s, e) {
+							Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'), {
+								hideActions: true
+							});
+						},
+						print: function(s) {
+							me.getAct('printTask').execute();
+						},
 						clearselection: function(s) {
 							me.gpTasks().getSelectionModel().deselectAll();
 						},
-						edittask: function(s, id) {
-							me.openTaskUI(true, id);
+						opentask: function(s, edit, id) {
+							me.openTaskUI(edit, id);
 						},
 						setcompleted: function(s, ids) {
-							WT.confirm(me.res('task.confirm.complete.selection'), function(bid) {
-								if (bid === 'yes') {
+							WT.confirmOk(me.res('task.confirm.complete.selection'), function(bid) {
+								if (bid === 'ok') {
 									me.setTaskItemsCompleted(ids, {
 										callback: function(success) {
 											if (success) me.reloadTasks();
 										}
 									});
 								}
-							}, me);		
+							}, me, {title: me.res('task.confirm.complete.tit'), okText: me.res('task.confirm.complete.ok')});
 						},
 						sendbyemail: function(s, ids) {
 							me.sendTaskItemsByEmail(ids, {
@@ -670,7 +726,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						writeemail: function(s, rcpts) {
 							WT.handleNewMailMessage(rcpts);
 						},
-						opentaskaudit: function(s, id) {
+						showaudit: function(s, id) {
 							me.openAuditUI(id, 'TASK');
 						}
 					},
@@ -679,292 +735,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			]
 		}));
-	},
-	
-	createGridConfig: function(tagsStore, nest, cfg) {
-		var me = this,
-			durRes = function(sym) { return WT.res('word.dur.'+sym); },
-			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
-		
-		return Ext.merge({
-			xtype: 'grid',
-			viewConfig: {
-				getRowClass: function (rec, idx) {
-					if (rec.isCompleted()) return 'wt-text-striked wt-theme-text-lighter2';
-					if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-text-error';
-					return '';
-				}
-			},
-			columns: [
-				{
-					xtype: 'soiconcolumn',
-					dataIndex: 'reminder',
-					getIconCls: function(v, rec) {
-						return v !== null ? 'far fa-bell' : '';
-					},
-					getTip: function(v, rec) {
-						return v !== null ? me.res('store.taskReminder.'+v) : null;
-					},
-					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fas fa-bell'),
-					sortable: nest ? false : true,
-					width: 35
-				}, {
-					xtype: 'soiconcolumn',
-					itemId: 'importance',
-					dataIndex: 'importance',
-					getIconCls: function(v, rec) {
-						return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(v);
-					},
-					getTip: function(v, rec) {
-						return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
-					},
-					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fas fa-exclamation'),
-					sortable: nest ? false : true,
-					width: 30
-				}, {
-					xtype: 'soiconcolumn',
-					itemId: 'status',
-					dataIndex: 'status',
-					getIconCls: function(v, rec) {
-						return Sonicle.webtop.tasks.store.TaskStatus.buildIcon(v);
-					},
-					getTip: function(v, rec) {
-						return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+v);
-					},
-					iconSize: 16,
-					header: WTF.headerWithGlyphIcon('fas fa-tachometer-alt'),
-					sortable: nest ? false : true,
-					width: 35
-				}, {
-					xtype: nest ? 'so-nestcolumn' : 'soiconcolumn',
-					dataIndex: 'subject',
-					hideText: false,
-					getText: function(v) {
-						return Ext.String.htmlEncode(v);
-					},
-					getIconCls: function(v, rec) {
-						var type = 'default';
-						//if (rec.isParent()) type = 'parent';
-						if (rec.isSeriesMaster()) type = 'seriesMaster';
-						else if (rec.isSeriesBroken()) type = 'seriesBroken';
-						else if (rec.isSeriesItem()) type = 'seriesItem';
-						return Ext.isEmpty(type) ? '' : 'wttasks-icon-taskType-'+type;
-					},
-					getTip: function(v, rec) {
-						var type = 'default';
-						//if (rec.isParent()) type = 'parent';
-						if (rec.isSeriesMaster()) type = 'seriesMaster';
-						else if (rec.isSeriesBroken()) type = 'seriesBroken';
-						else if (rec.isSeriesItem()) type = 'seriesItem';
-						return me.res('gptasks.type.'+type+'.tip');
-					},
-					collapseDisabled: true,
-					collapsedIconCls: 'fas fa-angle-down',
-					expandedIconCls: 'fas fa-angle-down',
-					hierarchySymbolExtraCls: 'wt-theme-text-lighter1',
-					isParentField: 'isParent',
-					isChildField: 'isChild',
-					collapsedField: '_collapsed',
-					depthField: '_depth',
-					indentationSize: 20,
-					header: me.res('gptasks.subject.lbl'),
-					flex: 2
-				}/*, {
-					xtype: 'soiconcolumn',
-					itemId: 'status',
-					getIconCls: function(v, rec) {
-						//var type = 'default';
-						var type = '';
-						//if (rec.isParent()) type = 'parent';
-						if (rec.isSeriesMaster()) type = 'series';
-						else if (rec.isSeriesBroken()) type = 'broken';
-						else if (rec.isSeriesItem()) type = 'series';
-						return Ext.isEmpty(type) ? '' : 'wttasks-icon-taskType-'+type;
-						//return 'wttasks-icon-taskType-'+type;
-					},
-					getTip: function(v, rec) {
-						var type = 'default';
-						//if (rec.isParent()) type = 'parent';
-						if (rec.isSeriesMaster()) type = 'seriesMaster';
-						else if (rec.isSeriesBroken()) type = 'seriesBroken';
-						else if (rec.isSeriesItem()) type = 'seriesItem';
-						return me.res('gptasks.type.'+type+'.tip');
-					},
-					header: WTF.headerWithGlyphIcon('far fa-file'),
-					sortable: nest ? false : true,
-					width: 30
-				}, {
-					xtype: nest ? 'so-nestcolumn' : 'soiconcolumn',
-					dataIndex: 'subject',
-					hideText: false,
-					getText: function(v) {
-						return v;
-					},
-					getIconCls: function(v, rec) {
-						return Sonicle.webtop.tasks.store.TaskStatus.buildIcon(rec.get('status'));
-					},
-					getTip: function(v, rec) {
-						return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+rec.get('status'));
-					},
-					collapseDisabled: true,
-					collapsedIconCls: 'fas fa-angle-down',
-					expandedIconCls: 'fas fa-angle-down',
-					hierarchySymbolExtraCls: 'wt-theme-text-lighter1',
-					isParentField: 'isParent',
-					isChildField: 'isChild',
-					collapsedField: '_collapsed',
-					depthField: '_depth',
-					indentationSize: 20,
-					header: me.res('gptasks.subject.lbl'),
-					flex: 2
-				}*/, {
-					xtype: 'datecolumn',
-					dataIndex: 'start',
-					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
-					header: me.res('gptasks.start.lbl'),
-					usingDefaultRenderer: true, // Necessary for renderer usage below
-					renderer : function(v, meta, rec) {
-						if (rec.isSeriesMaster()) {
-							meta.tdCls = 'wt-theme-text-lighter2';
-							return me.res('task.repeated.info');
-						} else {
-							return this.defaultRenderer.apply(this, arguments);
-						}
-					},
-					width: 140
-				}, {
-					dataIndex: 'due',
-					xtype: 'sodatecolumn',
-					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
-					header: me.res('gptasks.due.lbl'),
-					getTip: function(v, rec) {
-						if (Ext.isDate(v) && !rec.isCompleted()) {
-							var SoD = Sonicle.Date,
-									diff = SoD.diffDays(v, new Date()),
-									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
-							return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), hrd);
-						}
-						return '';
-					},
-					usingDefaultRenderer: true, // Necessary for renderer usage below
-					renderer : function(v, meta, rec) {
-						if (rec.isSeriesMaster()) {
-							meta.tdCls = 'wt-theme-text-lighter2';
-							return me.res('task.repeated.info');
-						} else {
-							return this.defaultRenderer.apply(this, arguments);
-						}
-					},
-					width: 140
-				}, {
-					dataIndex: 'start',
-					header: me.res('gptasks.duration.lbl'),
-					renderer : function(v, meta, rec) {
-						if (rec.isSeriesMaster()) {
-							meta.tdCls = 'wt-theme-text-lighter2';
-							return me.res('task.repeated.info');
-						} else {
-							var SoD = Sonicle.Date,
-									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
-							return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
-						}
-					},
-					sortable: false,
-					hidden: true,
-					width: 80
-				}, {
-					xtype: 'sodatecolumn',
-					dataIndex: 'completedOn',
-					format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
-					getTip: function(v, rec) {
-						if (Ext.isDate(v)) {
-							var due = rec.get('due'), key;
-							if (Ext.isDate(due)) {
-								var SoD = Sonicle.Date,
-										diff = SoD.diffDays(due, v),
-										hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
-								return Ext.String.format(me.res((diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip'), hrd);
-							}
-						}
-						return '';
-					},
-					header: me.res('gptasks.completedOn.lbl'),
-					sortable: nest ? false : true,
-					hidden: true,
-					width: 140
-				}, {
-					dataIndex: 'status',
-					header: me.res('gptasks.status.lbl'),
-					renderer: WTF.resColRenderer({
-						id: me.ID,
-						key: 'store.taskStatus',
-						keepcase: true
-					}),
-					sortable: false,
-					hidden: true,
-					width: 120
-				}, {
-					xtype: 'widgetcolumn',
-					itemId: 'progress',
-					dataIndex: 'progressPerc',
-					header: me.res('gptasks.progress.lbl'),
-					widget: {
-						xtype: 'progressbarwidget',
-						textTpl: ['{percent:number("0")}%']
-					},
-					sortable: nest ? false : true,
-					hidden: true,
-					width: 100
-				}, {
-					xtype: 'sotagcolumn',
-					dataIndex: 'tags',
-					header: me.res('gptasks.tags.lbl'),
-					tagsStore: tagsStore,
-					sortable: false,
-					width: 90
-				}, {
-					dataIndex: 'docRef',
-					header: me.res('gptasks.docRef.lbl'),
-					sortable: false,
-					hidden: true,
-					width: 100
-				}, {
-					xtype: 'socolorcolumn',
-					dataIndex: 'categoryName',
-					colorField: 'categoryColor',
-					displayField: 'categoryName',
-					header: me.res('gptasks.category.lbl'),
-					sortable: nest ? false : true,
-					width: 150
-				}, {
-					xtype: 'soactioncolumn',
-					items: [
-						{
-							iconCls: 'fas fa-check',
-							tooltip: me.res('act-setTaskCompleted.lbl'),
-							handler: function(g, ridx) {
-								var rec = g.getStore().getAt(ridx);
-								me.completeTasksUI(rec);
-							},
-							isActionDisabled: function(s, ridx, cidx, itm, rec) {
-								return rec.isCompleted();
-							}
-						}, {
-							iconCls: 'far fa-trash-alt',
-							tooltip: WT.res('act-delete.lbl'),
-							handler: function(g, ridx) {
-								var rec = g.getStore().getAt(ridx);
-								me.deleteTasksUI([rec]);
-							}
-						}
-					],
-					draggable: true,
-					hideable: true
-				}
-			]
-		}, cfg);
 	},
 	
 	fldSearch: function() {
@@ -983,12 +753,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		return this.getMainComponent().lookupReference('gptaskslist');
 	},
 	
+	sbtnTasksList: function() {
+		return this.getMainComponent().lookupReference('sbtntaskslist');
+	},
+	
 	gpTasksResults: function() {
 		return this.getMainComponent().lookupReference('gptasksresults');
 	},
 	
 	gpTasks: function() {
-		return this.pnlCard().getLayout().getActiveItem();
+		// Returns the active component: gptaskslist or gptasksresults
+		return this.pnlCard().getLayout().getActiveItem().getComponent('gp');
 	},
 	
 	pnlPreview: function() {
@@ -997,35 +772,48 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	getActiveView: function() {
 		var me = this,
-				active = me.pnlCard().getLayout().getActiveItem();
-		if (active === me.gpTasksList()) return 'list';
-		if (active === me.gpTasksResults()) return 'search';
+			active = me.pnlCard().getLayout().getActiveItem();
+		if (active) return active.getItemId();
 		return null;
 	},
 		
 	activateView: function(view) {
 		var me = this, cmp;
 		if (Sonicle.String.isIn(view, ['list', 'search'])) {
+			cmp = me.pnlCard().getComponent(view);
 			if ('search' === view) {
-				cmp = me.gpTasksResults();
 				cmp.setTitle(WT.res('word.search') + ': ' + Sonicle.String.deflt(arguments[1], ''));
 				me.pnlCard().setActiveItem(cmp);
 			} else if ('list' === view) {
-				me.pnlCard().setActiveItem(me.gpTasksList());
+				me.pnlCard().setActiveItem(cmp);
+				me.activateGridView(me.activeGridView);
 				me.lastMainView = view;
 			}
 			delete me.pendingView;
 		}
 	},
 	
+	activateGridView: function(gridView) {
+		var seg = this.sbtnTasksList(),
+			active = seg.getComponent(gridView);
+		if (active) active.toggle(true, true);
+	},
+	
 	initActions: function() {
-		var me = this,
-				hdscale = WT.getHeaderScale();
+		var me = this;
 		
+		me.addAct('toolbox', 'printTaskView', {
+			text: null,
+			tooltip: WT.res('act-print.lbl'),
+			iconCls: 'wt-icon-print',
+			handler: function() {
+				me.printTasks('list');
+			}
+		});
 		me.addAct('toolbox', 'manageTags', {
 			text: WT.res('act-manageTags.lbl'),
 			tooltip: WT.res('act-manageTags.tip'),
-			iconCls: 'wt-icon-tag',
+			iconCls: 'wt-icon-tags',
 			handler: function() {
 				me.showManageTagsUI();
 			}
@@ -1098,6 +886,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('deleteCategory', {
 			ignoreSize: true,
 			tooltip: null,
+			userCls: 'wt-dangerzone',
 			handler: function(s, e) {
 				var node = e.menuData.node;
 				if (node) me.deleteCategoryUI(node);
@@ -1112,6 +901,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('applyTags', {
 			tooltip: null,
+			iconCls: 'wt-icon-tags',
 			handler: function(s, e) {
 				var node = e.menuData.node;
 				if (node) me.applyCategoryTagsUI(node);
@@ -1120,6 +910,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addAct('tags', {
 			text: me.res('mni-tags.lbl'),
 			tooltip: null,
+			iconCls: 'wt-icon-tags',
 			menu: {
 				xtype: 'wttagmenu',
 				bottomStaticItems: [
@@ -1149,9 +940,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('setTaskCompleted', {
 			tooltip: null,
-			//iconCls: 'fas fa-check wt-theme-text-off',
 			handler: function(s, e) {
-				//var sel = e.getContextMenuData('task') || me.getSelectedTasks();
 				me.completeTasksUI(me.getSelectedTasks());
 			}
 		});
@@ -1220,7 +1009,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		});
-		me.addAct('sendTaskByEmail', {
+		me.addAct('sendByEmail', {
 			tooltip: null,
 			handler: function() {
 				var sel = me.getSelectedTasks();
@@ -1256,7 +1045,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						listeners: {
 							select: function(s, color) {
 								var node = s.menuData.node;
-								me.getRef('cxmFolder').hide();
+								me.getRef('cxmTreeFolder').hide();
 								if (node) me.updateCategoryColorUI(node, Sonicle.String.prepend(color, '#', true));
 							}
 						}
@@ -1344,7 +1133,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			});
 		}
-		me.addAct('showTask', {
+		me.addAct('openTask', {
 			text: WT.res('act-open.lbl'),
 			tooltip: null,
 			handler: function() {
@@ -1354,7 +1143,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		});
-		me.addAct('showTaskSeries', {
+		me.addAct('openTaskSeries', {
 			text: me.res('act-openSeries.lbl'),
 			tooltip: null,
 			handler: function() {
@@ -1377,6 +1166,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			text: WT.res('act-delete.lbl'),
 			tooltip: null,
 			iconCls: 'wt-icon-delete',
+			userCls: 'wt-dangerzone',
 			handler: function() {
 				var sel = me.getSelectedTasks();
 				if (sel.length > 0) me.deleteTasksUI(sel);
@@ -1405,31 +1195,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		
 		me.addAct('refresh', {
-			scale: hdscale,
 			text: '',
 			tooltip: WT.res('act-refresh.lbl'),
 			iconCls: 'wt-icon-refresh',
 			handler: function() {
 				me.reloadTasks();
-			}
-		});
-		me.addAct('printTaskView', {
-			scale: hdscale,
-			text: null,
-			tooltip: WT.res('act-print.lbl'),
-			iconCls: 'wt-icon-print',
-			handler: function() {
-				me.printTasks('list');
-			}
-		});
-		me.addAct('addTask2', {
-			scale: hdscale,
-			ignoreSize: true,
-			text: null,
-			tooltip: me.res('act-addTask.lbl'),
-			iconCls: me.cssIconCls('addTask'),
-			handler: function() {
-				me.getAct('addTask').execute();
 			}
 		});
 		if (me.hasAuditUI()) {
@@ -1448,7 +1218,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	initCxm: function() {
 		var me = this;
 		
-		me.addRef('cxmFolderRoot', Ext.create({
+		me.addRef('cxmTreeOrigin', Ext.create({
 			xtype: 'menu',
 			items: [
 				me.getAct('addCategory'),
@@ -1478,12 +1248,33 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}
 			}
 		}));
-		
-		me.addRef('cxmFolder', Ext.create({
+		me.addRef('cxmTreeGrouper', Ext.create({
+			xtype: 'menu',
+			items: [
+				{
+					text: me.res('mni-viewFolders.lbl'),
+					menu: {
+						items: [
+							me.getAct('viewAllFolders'),
+							me.getAct('viewNoneFolders')
+						]
+					}
+				}
+			],
+			listeners: {
+				beforeshow: function(s) {
+					var node = s.menuData.node,
+						grouper = node.isGrouper();
+					
+					me.getAct('viewAllFolders').setDisabled(!grouper);
+					me.getAct('viewNoneFolders').setDisabled(!grouper);
+				}
+			}
+		}));
+		me.addRef('cxmTreeFolder', Ext.create({
 			xtype: 'menu',
 			items: [
 				me.getAct('editCategory'),
-				me.getAct('deleteCategory'),
 				'-',
 				{
 					text: me.res('mni-viewFolder.lbl'),
@@ -1499,6 +1290,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				me.getAct('editSharing'),
 				{
 					text: me.res('mni-customizeFolder.lbl'),
+					iconCls: 'wt-icon-customize',
 					menu: {
 						items: [
 							me.getAct('hideCategory'),
@@ -1519,13 +1311,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						]
 					}
 				},
-				'-',
 				me.getAct('applyTags'),
+				'-',
+				me.getAct('importTasks'),
 				me.hasAuditUI() ? me.getAct('categoryAuditLog'): null,
 				'-',
-				me.getAct('addTask'),
-				me.getAct('importTasks')
-				//TODO: azioni altri servizi?
+				me.getAct('deleteCategory'),
+				'-',
+				//TODO: maybe add support to external actions coming from other services
+				me.getAct('addTask')
 			],
 			listeners: {
 				beforeshow: function(s) {
@@ -1558,30 +1352,24 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		me.addRef('cxmGrid', Ext.create({
 			xtype: 'menu',
 			items: [
-				me.getAct('showTask'),
-				me.getAct('showTaskSeries'),
+				me.getAct('openTask'),
+				me.getAct('openTaskSeries'),
 				me.getAct('addSubTask'),
-				{
-					text: me.res('mni-copyormove.lbl'),
-					menu: {
-						items: [
-							me.getAct('moveTask'),
-							me.getAct('copyTask')
-						]
-					}
-				},
-				me.getAct('printTask'),
-				'-',
-				me.getAct('deleteTask'),
-				'-',
+				me.getAct('moveTask'),
+				me.getAct('copyTask'),
 				me.getAct('tags'),
+				'-',
+				me.getAct('printTask'),	
 				me.hasAuditUI() ? me.getAct('taskAuditLog') : null,
+				'-',
+				me.getAct('sendByEmail'),
 				'-',
 				me.getAct('setTaskImportance'),
 				me.getAct('setTaskProgress'),
 				me.getAct('setTaskCompleted'),
 				'-',
-				me.getAct('sendTaskByEmail')
+				//TODO: maybe add support to external actions coming from other services
+				me.getAct('deleteTask')
 			],
 			listeners: {
 				beforeshow: function(s) {
@@ -1607,27 +1395,42 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 					SoU.checkMenuItem(s.down('menu#progress'), progMni, progChk);
 					SoU.checkMenuItem(s.down('menu#importance'), impoMni, impoChk);
+					
+					me.updateDisabled('openTask');
+					me.updateDisabled('openTaskSeries');
+					me.updateDisabled('addSubTask');
+					me.updateDisabled('moveTask');
+					me.updateDisabled('copyTask');
+					me.updateDisabled('tags');
+					me.updateDisabled('printTask');
+					if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
+					me.updateDisabled('sendByEmail');
+					me.updateDisabled('setTaskImportance');
+					me.updateDisabled('setTaskProgress');
+					me.updateDisabled('setTaskCompleted');
+					me.updateDisabled('deleteTask');
 				}
 			}
 		}));
 	},
 	
 	onActivate: function() {
-		var me = this,
-			gp = me.gpTasks();
+		var me = this;
 		
 		if (me.pendingReload === true) {
 			delete me.pendingReload;
 			me.reloadTasks();
 		}
 		
-		me.updateDisabled('showTask');
-		me.updateDisabled('showTaskSeries');
+		/*
+		me.updateDisabled('openTask');
+		me.updateDisabled('openTaskSeries');
 		me.updateDisabled('printTask');
 		me.updateDisabled('copyTask');
 		me.updateDisabled('moveTask');
 		me.updateDisabled('deleteTask');
 		if (me.hasAuditUI()) me.updateDisabled('taskAuditLog');
+		*/
 	},
 	
 	loadOriginNode: function(originPid, reloadItemsIf) {
@@ -1757,8 +1560,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	deleteCategoryUI: function(node) {
-		WT.confirm(this.res('category.confirm.delete', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
-			if(bid === 'yes') node.drop();
+		WT.confirmDelete(this.res('category.confirm.delete', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
+			if (bid === 'ok') node.drop();
 		}, this);
 	},
 	
@@ -1778,8 +1581,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	hideCategoryUI: function(node) {
 		var me = this;
-		WT.confirm(this.res('category.confirm.hide', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
-			if (bid === 'yes') {
+		WT.confirmOk(me.res('category.confirm.hide', Ext.String.ellipsis(node.get('text'), 40)), function(bid) {
+			if (bid === 'ok') {
 				me.updateCategoryVisibility(node.getFolderId(), true, {
 					callback: function(success) {
 						if (success) {
@@ -1789,7 +1592,10 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 				});
 			}
-		}, this);
+		}, this, {
+			title: me.res('category.confirm.hide.tit'),
+			okText: me.res('category.confirm.hide.ok')
+		});
 	},
 	
 	updateCategoryColorUI: function(node, color) {
@@ -1834,15 +1640,18 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		WT.confirmSelectTags(function(bid, value) {
 			if (bid === 'yes' || bid === 'no') {
 				op = (bid === 'yes') ? 'set' : ((bid === 'no') ? 'unset' : ''); 
-				WT.confirm(me.res('category.confirm.tags.' + op, Ext.String.ellipsis(node.get('text'), 40)), function(bid2) {
-					if (bid2 === 'yes') {
+				WT.confirmOk(me.res('category.confirm.tags.' + op, Ext.String.ellipsis(node.get('text'), 40)), function(bid2) {
+					if (bid2 === 'ok') {
 						me.updateCategoryTags(node.getFolderId(), op, value, {
 							callback: function(success) {
 								if (success) me.reloadTasks();
 							}
 						});
 					}
-				}, this);
+				}, this, {
+					title: me.res('category.confirm.tags.tit'),
+					okText: me.res('category.confirm.tags.' + op + '.ok')
+				});
 			}
 		}, me);
 	},
@@ -1926,8 +1735,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				rec = recs[0],
 				s = Ext.String.ellipsis(rec.get('subject'), 40);
 			
-			WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.complete.series', s) : (me.res('task.confirm.complete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.complete.warn.parent')) : '')), function(bid) {
-				if (bid === 'yes') {
+			WT.confirmOk(rec.isSeriesMaster() ? me.res('task.confirm.complete.series', s) : (me.res('task.confirm.complete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.complete.warn.parent')) : '')), function(bid) {
+				if (bid === 'ok') {
 					if (rec.isSeriesItem() && selModel.isSelected(rec)) {
 						// Restore selection on next item of the same series of the item just completed!
 						doFn(function(recs, op, success) {
@@ -1945,11 +1754,11 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						doFn();
 					}	
 				}
-			}, me);
+			}, me, {title: me.res('task.confirm.complete.tit'), okText: me.res('task.confirm.complete.ok')});
 		} else {
-			WT.confirm(me.res('task.confirm.complete.selection'), function(bid) {
-				if (bid === 'yes') doFn();
-			}, me);
+			WT.confirmOk(me.res('task.confirm.complete.selection'), function(bid) {
+				if (bid === 'ok') doFn();
+			}, me, {title: me.res('task.confirm.complete.tit'), okText: me.res('task.confirm.complete.ok')});
 		}	
 	},
 	
@@ -1966,17 +1775,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			rec = recs[0];
 			s = Ext.String.ellipsis(rec.get('subject'), 40);
 			if (rec.isSeriesItem()) {
-				me.confirmOnRecurring(me.res('task.confirm.delete.recurring', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : ''), function(bid, value) {
+				WT.confirmDelete(me.res('task.confirm.delete.recurring', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : ''), function(bid, value) {
 					if (bid === 'ok') {
 						me.deleteTasks(ids, {
 							callback: cb,
 							target: value
 						});
 					}
-				});
+				}, me, me.configureRecurringConfirm());
 			} else {
-				WT.confirm(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
-					if (bid === 'yes') {
+				WT.confirmDelete(rec.isSeriesMaster() ? me.res('task.confirm.delete.series', s) : (me.res('task.confirm.delete', s) + (rec.isParent() ? ('\n' + me.res('task.confirm.delete.warn.parent')) : '')), function(bid) {
+					if (bid === 'ok') {
 						me.deleteTasks(ids, {
 							callback: cb
 						});
@@ -1984,8 +1793,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}, me);
 			}
 		} else {
-			WT.confirm(me.res('task.confirm.delete.selection'), function(bid) {
-				if (bid === 'yes') {
+			WT.confirmDelete(me.res('task.confirm.delete.selection'), function(bid) {
+				if (bid === 'ok') {
 					me.deleteTasks(ids, {
 						callback: cb
 					});
@@ -2013,23 +1822,23 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	
 	confirmMoveTask: function(copy, id, opts) {
 		var me = this,
-				vct = me.createCategoryChooser(copy);
+			vw = me.createCategoryChooser(copy);
 		
-		vct.on('viewok', function(s, data) {
+		vw.on('viewok', function(s, data) {
 			me.moveTask(copy ? (data.deepCopy ? 'tree' : 'root') : 'none', id, data.categoryId, opts);
 		});
-		vct.showView();
+		vw.showView();
 	},
 	
 	importTasks: function(categoryId, opts) {
 		opts = opts || {};
 		var me = this,
-				vw = WT.createView(me.ID, 'view.ImportTasks', {
-					swapReturn: true,
-					viewCfg: {
-						categoryId: categoryId
-					}
-				});
+			vw = WT.createView(me.ID, 'view.ImportTasks', {
+				swapReturn: true,
+				viewCfg: {
+					categoryId: categoryId
+				}
+			});
 		
 		vw.on('dosuccess', function() {
 			Ext.callback(opts.callback, opts.scope || me, [true]);
@@ -2044,7 +1853,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			apnl, fname, epars, url;
 		
 		if (!Ext.isArray(ids) || Ext.isEmpty(ids)) {
-			apnl = me.pnlCard().getLayout().getActiveItem();
+			apnl = me.gpTasks();
 			epars = Sonicle.Data.getParams(apnl.getStore());
 			SoO.copyProp(obj, true, epars, 'sort');
 			SoO.copyProp(obj, true, epars, 'view');
@@ -2389,7 +2198,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	 */
 	updateDisabled: function(action) {
 		var me = this,
-				dis = me.isDisabled(action);
+			dis = me.isDisabled(action);
 		
 		me.setActDisabled(action, dis);
 	},
@@ -2400,7 +2209,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	isDisabled: function(action) {
 		var me = this, sel;
 		switch(action) {
-			case 'showTask':
+			case 'openTask':
 			case 'copyTask':
 			case 'taskAuditLog':
 				sel = me.getSelectedTasks();
@@ -2409,7 +2218,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				} else {
 					return true;
 				}
-			case 'showTaskSeries':
+			case 'openTaskSeries':
 				sel = me.getSelectedTasks();
 				if (sel.length === 1) {
 					return !sel[0].isSeriesItem() && !sel[0].isSeriesBroken();
@@ -2459,6 +2268,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}
 					break;
 			case 'printTask':
+			case 'sendByEmail':
 				sel = me.getSelectedTasks();
 				if (sel.length > 0) {
 					return false;
@@ -2530,6 +2340,251 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			}
 		},
 		
+		createGridCfg: function(tagsStore, nest, cfg) {
+			var me = this,
+				durRes = function(sym) { return WT.res('word.dur.'+sym); },
+				durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+
+			return Ext.merge({
+				xtype: 'grid',
+				componentCls: 'wttasks-main-grid',
+				viewConfig: {
+					getRowClass: function (rec, idx) {
+						if (rec.isCompleted()) return 'wt-theme-text-off wt-text-striked';
+						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-color-error';
+						return '';
+					}
+				},
+				columns: [
+					{
+						xtype: 'socolorcolumn',
+						dataIndex: 'categoryColor',
+						labelField: 'categoryName',
+						swatchGeometry: 'circle',
+						hideLabel: true,
+						getTooltip: function(v, rec) {
+							return Sonicle.webtop.tasks.Service.calcCategoryLabel(rec.get('categoryName'), rec.get('_orDN'));
+						},
+						text: WTF.headerWithGlyphIcon('fas fa-folder'),
+						menuText: me.res('gptasks.category.lbl'),
+						sortable: nest ? false : true,
+						hidden: true,
+						width: 35
+					}, {
+						xtype: 'soiconcolumn',
+						dataIndex: 'reminder',
+						getIconCls: function(v, rec) {
+							return v !== null ? 'far fa-bell' : '';
+						},
+						getTip: function(v, rec) {
+							return v !== null ? me.res('store.taskReminder.'+v) : null;
+						},
+						iconSize: 16,
+						text: WTF.headerWithGlyphIcon('fas fa-bell'),
+						menuText: me.res('gptasks.reminder.lbl'),
+						sortable: nest ? false : true,
+						width: 35
+					}, {
+						xtype: 'soiconcolumn',
+						itemId: 'importance',
+						dataIndex: 'importance',
+						getIconCls: function(v, rec) {
+							return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(v);
+						},
+						getTip: function(v, rec) {
+							return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
+						},
+						iconSize: 16,
+						text: WTF.headerWithGlyphIcon('fas fa-triangle-exclamation'),
+						menuText: me.res('gptasks.importance.lbl'),
+						sortable: nest ? false : true,
+						width: 35
+					}, {
+						xtype: 'soiconcolumn',
+						itemId: 'status',
+						dataIndex: 'status',
+						getIconCls: function(v, rec) {
+							return Sonicle.webtop.tasks.store.TaskStatus.buildIcon(v);
+						},
+						getTip: function(v, rec) {
+							return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+v);
+						},
+						iconSize: 16,
+						text: WTF.headerWithGlyphIcon('fas fa-tachometer-alt'),
+						menuText: me.res('gptasks.status.i.lbl'),
+						sortable: nest ? false : true,
+						width: 35
+					}, {
+						dataIndex: 'status',
+						renderer: WTF.resColRenderer({
+							id: me.ID,
+							key: 'store.taskStatus',
+							keepcase: true
+						}),
+						text: me.res('gptasks.status.lbl'),
+						sortable: false,
+						hidden: true,
+						maxWidth: 120,
+						flex: 1
+					}, {
+						xtype: nest ? 'so-nestcolumn' : 'soiconcolumn',
+						dataIndex: 'subject',
+						hideText: false,
+						getText: function(v) {
+							return Ext.String.htmlEncode(v);
+						},
+						getIconCls: function(v, rec) {
+							var type = 'default';
+							//if (rec.isParent()) type = 'parent';
+							if (rec.isSeriesMaster()) type = 'seriesMaster';
+							else if (rec.isSeriesBroken()) type = 'seriesBroken';
+							else if (rec.isSeriesItem()) type = 'seriesItem';
+							return Ext.isEmpty(type) ? '' : 'wttasks-icon-taskType-'+type;
+						},
+						getTip: function(v, rec) {
+							var type = 'default';
+							//if (rec.isParent()) type = 'parent';
+							if (rec.isSeriesMaster()) type = 'seriesMaster';
+							else if (rec.isSeriesBroken()) type = 'seriesBroken';
+							else if (rec.isSeriesItem()) type = 'seriesItem';
+							return me.res('gptasks.type.'+type+'.tip');
+						},
+						collapseDisabled: true,
+						collapsedIconCls: 'fas fa-angle-down',
+						expandedIconCls: 'fas fa-angle-down',
+						hierarchySymbolExtraCls: 'wttasks-grid-hierarchysymbol',
+						isParentField: 'isParent',
+						isChildField: 'isChild',
+						collapsedField: '_collapsed',
+						depthField: '_depth',
+						text: me.res('gptasks.subject.lbl'),
+						flex: 3
+					}, {
+						xtype: 'datecolumn',
+						dataIndex: 'start',
+						format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
+						usingDefaultRenderer: true, // Necessary for renderer usage below
+						renderer : function(v, meta, rec) {
+							if (rec.isSeriesMaster()) {
+								meta.tdCls = 'wt-theme-text-off';
+								return me.res('task.repeated.info');
+							} else {
+								return this.defaultRenderer.apply(this, arguments);
+							}
+						},
+						text: me.res('gptasks.start.lbl'),
+						maxWidth: 140,
+						flex: 1.5
+					}, {
+						dataIndex: 'due',
+						xtype: 'sodatecolumn',
+						format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
+						getTip: function(v, rec) {
+							if (Ext.isDate(v) && !rec.isCompleted()) {
+								var SoD = Sonicle.Date,
+									diff = SoD.diffDays(v, new Date()),
+									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+								return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), hrd);
+							}
+							return '';
+						},
+						usingDefaultRenderer: true, // Necessary for renderer usage below
+						renderer : function(v, meta, rec) {
+							if (rec.isSeriesMaster()) {
+								meta.tdCls = 'wt-theme-text-off';
+								return me.res('task.repeated.info');
+							} else {
+								return this.defaultRenderer.apply(this, arguments);
+							}
+						},
+						text: me.res('gptasks.due.lbl'),
+						maxWidth: 140,
+						flex: 1.5
+					}, {
+						dataIndex: 'start',
+						renderer : function(v, meta, rec) {
+							if (rec.isSeriesMaster()) {
+								meta.tdCls = 'wt-theme-text-off';
+								return me.res('task.repeated.info');
+							} else {
+								var SoD = Sonicle.Date,
+									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
+								return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
+							}
+						},
+						sortable: false,
+						hidden: true,
+						text: me.res('gptasks.duration.lbl'),
+						maxWidth: 80,
+						flex: 1
+					}, {
+						xtype: 'sodatecolumn',
+						dataIndex: 'completedOn',
+						format: WT.getShortDateFmt() + ' ' + WT.getShortTimeFmt(),
+						getTip: function(v, rec) {
+							if (Ext.isDate(v)) {
+								var due = rec.get('due'), key;
+								if (Ext.isDate(due)) {
+									var SoD = Sonicle.Date,
+											diff = SoD.diffDays(due, v),
+											hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+									return Ext.String.format(me.res((diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip'), hrd);
+								}
+							}
+							return '';
+						},
+						text: me.res('gptasks.completedOn.lbl'),
+						sortable: nest ? false : true,
+						hidden: true,
+						maxWidth: 140,
+						flex: 1.5
+					}, {
+						xtype: 'widgetcolumn',
+						itemId: 'progress',
+						dataIndex: 'progressPerc',
+						widget: {
+							xtype: 'progressbarwidget',
+							textTpl: ['{percent:number("0")}%']
+						},
+						text: me.res('gptasks.progress.lbl'),
+						sortable: nest ? false : true,
+						hidden: true,
+						maxWidth: 80,
+						flex: 1
+					}, {
+						xtype: 'sotagcolumn',
+						dataIndex: 'tags',
+						tagsStore: tagsStore,
+						text: me.res('gptasks.tags.lbl'),
+						sortable: false,
+						maxWidth: 90,
+						flex: 1
+					}, {
+						dataIndex: 'docRef',
+						text: me.res('gptasks.docRef.lbl'),
+						sortable: false,
+						hidden: true,
+						maxWidth: 100,
+						flex: 1
+					}, {
+						xtype: 'soactioncolumn',
+						menuText: WT.res('grid.actions.lbl'),
+						items: [
+							{
+								iconCls: 'fas fa-ellipsis-vertical',
+								handler: function(view, ridx, cidx, itm, e, rec) {
+									view.setSelection(rec);
+									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'));
+								}
+							}
+						],
+						draggable: true,
+						hideable: true
+					}
+				]
+			}, cfg);
+		},
+		
 		prepareTaskData: function(data) {
 			data = data || {};
 			var me = this,
@@ -2571,14 +2626,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			return {data: o, cfdata: cfo};
 		},
 		
-		confirmOnRecurring: function(msg, cb, scope) {
-			var me = this;
-			WT.confirm(msg, cb, scope, {
-				buttons: Ext.Msg.OKCANCEL,
+		configureRecurringConfirm: function(opts) {
+			return Ext.merge(opts || {}, {
 				instClass: 'Sonicle.webtop.tasks.ux.RecurringConfirmBox',
 				instConfig: {
-					thisText: me.res('recurringConfirmBox.this'),
-					allText: me.res('recurringConfirmBox.all')
+					thisText: this.res('recurringConfirmBox.this'),
+					allText: this.res('recurringConfirmBox.all')
 				},
 				config: {
 					value: 'this'
@@ -2652,6 +2705,24 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		 */
 		taskInstanceIdToSeriesId: function(iid) {
 			return Sonicle.String.substrBefore(iid, '.') + '.00000000';
+		},
+		
+		/**
+		 * Computes a label for displaying category info.
+		 * @param {String} name Category name.
+		 * @param {String} [ownerDN] Category's owner display-name.
+		 * @param {Object} [opts] An object containing configuration.
+		 * 
+		 * This object may contain any of the following properties:
+		 * 
+		 * @param {Boolean} opts.htmlEncode Set to `true` to apply HTML encoding to resulting output.
+		 * @returns {String} The computed label
+		 */
+		calcCategoryLabel: function(name, ownerDN, opts) {
+			opts = opts || {};
+			var pattern = '{1}';
+			if (!Ext.isEmpty(ownerDN)) pattern = '[{0}] ' + pattern;
+			return Ext.String.format(pattern, ownerDN, name);
 		}
 	}
 });

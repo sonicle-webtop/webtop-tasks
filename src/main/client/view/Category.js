@@ -34,6 +34,7 @@
 Ext.define('Sonicle.webtop.tasks.view.Category', {
 	extend: 'WTA.sdk.ModelView',
 	requires: [
+		'Sonicle.VMUtils',
 		'Sonicle.form.field.Palette',
 		'Sonicle.form.RadioGroup',
 		'Sonicle.webtop.tasks.store.Sync',
@@ -54,7 +55,7 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 		me.visibilityName = Ext.id(null, 'visibility-');
 		me.callParent([cfg]);
 		
-		WTU.applyFormulas(me.getVM(), {
+		Sonicle.VMUtils.applyFormulas(me.getVM(), {
 			visibility: WTF.radioGroupBind('record', 'isPrivate', me.visibilityName)
 		});
 	},
@@ -77,40 +78,40 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 		
 		me.add({
 			region: 'center',
-			xtype: 'wtform',
+			xtype: 'wtfieldspanel',
+			paddingTop: true,
+			paddingSides: true,
+			scrollable: true,
 			modelValidation: true,
 			defaults: {
-				labelWidth: 110
+				labelAlign: 'top',
+				labelSeparator: ''
 			},
 			items: [
 				{
-					xtype: 'fieldcontainer',
-					layout: {
-						type: 'hbox',
-						padding: '0 0 1 0' // fixes classic-theme bottom border issue
-					},
+					xtype: 'sofieldhgroup',
 					items: [
 						{
 							xtype: 'textfield',
 							reference: 'fldname',
 							bind: '{record.name}',
-							margin: '0 5 0 0',
+							fieldLabel: me.res('category.fld-name.lbl'),
 							flex: 1
+						}, {
+							xtype: 'sohspacer'
 						}, {
 							xtype: 'sopalettefield',
 							bind: '{record.color}',
-							hideTrigger: true,
 							colors: WT.getColorPalette('default'),
+							fieldLabel: me.res('category.fld-color.lbl'),
 							tilesPerRow: 11,
-							width: 24
+							width: 64
 						}
-					],
-					fieldLabel: me.mys.res('category.fld-name.lbl'),
-					anchor: '100%'
+					]
 				}, {
 					xtype: 'textareafield',
 					bind: '{record.description}',
-					fieldLabel: me.mys.res('category.fld-description.lbl'),
+					fieldLabel: me.res('category.fld-description.lbl'),
 					anchor: '100%'
 				},
 				WTF.lookupCombo('id', 'desc', {
@@ -119,12 +120,12 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 						xclass: 'Sonicle.webtop.tasks.store.Sync',
 						autoLoad: true
 					},
-					fieldLabel: me.mys.res('category.fld-sync.lbl'),
+					fieldLabel: me.res('category.fld-sync.lbl'),
 					width: 250
 				}),
 				{
 					xtype: 'soformseparator',
-					title: me.mys.res('category.defaults.tit')
+					title: me.res('category.defaults.tit')
 				},
 				{
 					xtype: 'radiogroup',
@@ -137,13 +138,13 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 					items: [
 						{
 							inputValue: false,
-							boxLabel: me.mys.res('category.fld-visibility.default')
+							boxLabel: me.res('category.fld-visibility.default')
 						}, {
 							inputValue: true,
-							boxLabel: me.mys.res('category.fld-visibility.private')
+							boxLabel: me.res('category.fld-visibility.private')
 						}
 					],
-					fieldLabel: me.mys.res('category.fld-visibility.lbl')
+					fieldLabel: me.res('category.fld-visibility.lbl')
 				},
 				WTF.lookupCombo('id', 'desc', {
 					bind: '{record.reminder}',
@@ -155,8 +156,8 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 						clear: WTF.clearTrigger()
 					},
 					emptyText: WT.res('word.none.male'),
-					fieldLabel: me.mys.res('category.fld-reminder.lbl'),
-					width: 110+140
+					fieldLabel: me.res('category.fld-reminder.lbl'),
+					width: 250
 				})
 			]
 		});
@@ -164,7 +165,7 @@ Ext.define('Sonicle.webtop.tasks.view.Category', {
 	},
 	
 	onViewLoad: function(s, success) {
-		if(!success) return;
+		if (!success) return;
 		var me = this;
 		me.lref('fldname').focus(true);
 	}

@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author malbinola
  */
 public class CategoryNodeId extends CId {
+	public static final String GROUPER_OTHERS_ORIGIN = "others";
 	
 	// Node IDs are designed to be self-explanatory; obtained an ID you can 
 	// extract information about the item referring to. This tree will only 
@@ -82,6 +83,10 @@ public class CategoryNodeId extends CId {
 	public Integer getFolderId() {
 		final String folderId = getTokenOrNull(2);
 		return !StringUtils.isBlank(folderId) ? Integer.valueOf(folderId) : null;
+	}
+	
+	public boolean isGrouperOther() {
+		return Type.GROUPER.equals(getType()) && GROUPER_OTHERS_ORIGIN.equals(getOrigin());
 	}
 	
 	public static CategoryNodeId build(final Type type, final String origin) {
