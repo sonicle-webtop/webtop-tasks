@@ -451,9 +451,9 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 								title: me.mys.res('taskPreview.single.task.tit'),
 								scrollable: true,
 								cls: me.cls + '-main',
-								layout: 'anchor',
+								layout: 'vbox',
 								defaults: {
-									anchor: '100%'
+									width: '100%'
 								},
 								items: [
 									{
@@ -521,20 +521,15 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 										},
 										iconCls: 'wttasks-icon-taskDocRef',
 										labelWidth: 25 // Reduce label in order to display icon only
-									}, {
-										xtype: 'textarea',
-										bind: {
-											value: '{record.description}',
-											hidden: '{!foHasDescription}'
-										},
-										cls: 'wttasks-preview-description',
-										fieldLabel: me.mys.res('taskPreview.single.task.description.lbl'),
-										labelAlign: 'top',
-										readOnly: true,
-										grow: true,
-										growMin: 60,
-										growMax: 200
-									}
+									},
+									me.createDescriptionFieldCfg({
+										minHeight: 100,
+										flex: 1
+										
+										//grow: true,
+										//growMin: 60,
+										//growMax: 200
+									})
 								]
 							}, {
 								xtype: 'wtcfieldspreviewpanel',
@@ -571,6 +566,21 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						flex: 1
 					}
 				]
+			}, cfg);
+		},
+		
+		createDescriptionFieldCfg: function(cfg) {
+			return Ext.apply({
+				xtype: 'textarea',
+				bind: {
+					value: '{record.description}',
+					hidden: '{!foHasDescription}'
+				},
+				hidden: true,
+				cls: this.cls + '-description',
+				fieldLabel: this.mys.res('taskPreview.single.task.description.lbl'),
+				labelAlign: 'top',
+				readOnly: true
 			}, cfg);
 		},
 		

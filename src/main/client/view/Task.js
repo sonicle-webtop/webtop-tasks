@@ -68,7 +68,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		title: '{task.tit}',
 		iconCls: 'wttasks-icon-task',
 		width: 700,
-		height: 500
+		height: 540
 	},
 	confirm: 'yn',
 	fieldTitle: 'subject',
@@ -688,14 +688,10 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						{
 							xtype: 'sofieldhgroup',
 							items: [
-								{
-									xtype: 'textareafield',
-									bind: '{record.description}',
-									fieldLabel: me.res('task.fld-description.lbl'),
-									resizable: true,
-									smartResize: true,
+								me.createDescriptionFieldCfg({
+									minHeight: 100,
 									flex: 1
-								}
+								})
 							]
 						}
 					]
@@ -1021,6 +1017,16 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				dummyIcon: 'loading',
 				hidden: true,
 				hideLabel: true
+			}, cfg);
+		},
+		
+		createDescriptionFieldCfg: function(cfg) {
+			return Ext.apply({
+				xtype: 'textareafield',
+				bind: '{record.description}',
+				fieldLabel: this.res('task.fld-description.lbl'),
+				resizable: true,
+				smartResize: true
 			}, cfg);
 		},
 		
