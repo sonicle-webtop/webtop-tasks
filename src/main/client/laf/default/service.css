@@ -69,16 +69,13 @@
 .wttasks-icon-viewNotStarted-grayed { background-image: url('viewnotstarted-grayed_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewToday { background-image: url('viewtoday_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewToday-grayed { background-image: url('viewtoday-grayed_16.svg') !important; background-size: contain; }
-/* ---------- Grid */
+/* ---------- ToolPanel */
+.wttasks-tool-searchpanel-body {
+    padding: 5px 5px 10px 5px;
+}
+/* ---------- Grid (tasks) */
 .wttasks-row-completed { text-decoration: line-through; color: #808080; }
 .wttasks-row-expired { color: #E60D35; }
-/* ---------- Portlet */
-.wttasks-portlet-grid .x-grid-row.x-grid-row-with-rowbody .x-grid-cell-inner {
-    padding-bottom: 2px;
-}
-.wttasks-portlet-task-body .x-grid-rowbody {
-    padding-top: 0px;
-}
 /* ---------- Sonicle.webtop.tasks.ux.panel.TaskPreview */
 .wttasks-preview-header > * > .x-panel-body {
 	padding-left: 10px;
@@ -102,4 +99,11 @@
 .wttasks-preview-pane-subtitle {
     font-size: 0.9em;
     color: #888888;
+}
+/* ---------- Portlet */
+.wttasks-portlet-grid .x-grid-row.x-grid-row-with-rowbody .x-grid-cell-inner {
+    padding-bottom: 2px;
+}
+.wttasks-portlet-task-body .x-grid-rowbody {
+    padding-top: 0px;
 }

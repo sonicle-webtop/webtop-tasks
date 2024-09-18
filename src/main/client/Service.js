@@ -383,7 +383,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 											xtype: 'segmentedbutton',
 											reference: 'sbtntaskslist',
 											defaults: {
-												ui: '{segmented}',
+												ui: '{segmented|toolbar}',
 												toggleGroup: viewGroup,
 												toggleHandler: function(s, pressed) {
 													if (pressed) me.reloadTasks({view: 'list', gridView: s.getItemId()});
