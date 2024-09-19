@@ -241,11 +241,11 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 					{
 						xtype: 'label',
 						text: me.mys.res('taskPreview.empty.tit'),
-						cls: 'wt-theme-text-title'
+						cls: 'wt-pane-body-title wt-theme-text-color-title'
 					}, {
 						xtype: 'label',
 						text: me.mys.res('taskPreview.empty.txt'),
-						cls: 'wt-theme-text-subtitle'
+						cls: 'wt-pane-body-subtitle wt-theme-text-color-subtitle'
 					}
 				]
 			}, cfg);
@@ -266,7 +266,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						bind: {
 							text: '{foMultiSelTitle}'
 						},
-						cls: 'wt-theme-text-title'
+						cls: 'wt-pane-body-title wt-theme-text-color-title'
 					}, {
 						xtype: 'toolbar',
 						vertical: true,

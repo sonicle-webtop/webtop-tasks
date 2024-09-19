@@ -2350,7 +2350,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				componentCls: 'wttasks-main-grid',
 				viewConfig: {
 					getRowClass: function (rec, idx) {
-						if (rec.isCompleted()) return 'wt-theme-text-off wt-text-striked';
+						if (rec.isCompleted()) return 'wt-text-striked wt-text-off wt-theme-text-color-off';
 						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-color-error';
 						return '';
 					}
@@ -2466,7 +2466,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-theme-text-off';
+								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2491,7 +2491,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-theme-text-off';
+								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2504,7 +2504,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						dataIndex: 'start',
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-theme-text-off';
+								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								var SoD = Sonicle.Date,
