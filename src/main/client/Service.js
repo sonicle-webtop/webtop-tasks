@@ -803,7 +803,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		var me = this;
 		
 		me.addAct('toolbox', 'printTaskView', {
-			text: null,
+			text: WT.res('act-print.lbl'),
 			tooltip: WT.res('act-print.lbl'),
 			iconCls: 'wt-icon-print',
 			handler: function() {
