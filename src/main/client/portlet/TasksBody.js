@@ -52,6 +52,8 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 			region: 'center',
 			xtype: 'gridpanel',
 			reference: 'gp',
+			cls: 'wttasks-portlet-grid',
+			border: false,
 			store: {
 				autoLoad: true,
 				model: 'Sonicle.webtop.tasks.model.PletTasks',
@@ -70,18 +72,18 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 				deferEmptyText: false,
 				emptyText: me.mys.res('portlet.tasks.gp.emp'),
 				getRowClass: function (rec, indx) {
-					if (rec.isOverdue()) return 'wt-theme-text-error';
+					if (rec.isOverdue()) return 'wt-theme-color-error';
 					return '';
 				}
 			},
 			columns: [
 				{
 					xtype: 'socolorcolumn',
-					dataIndex: 'categoryName',
-					colorField: 'categoryColor',
-					width: 30
-				}, {
-					dataIndex: 'subject',
+					dataIndex: 'categoryColor',
+					swatchGeometry: 'circle',
+					labelField: 'subject',
+					hideText: true,
+					labelCls: 'wt-text-sm-medium wttasks-portlet-task-title',
 					flex: 1
 				}
 			],
@@ -89,12 +91,16 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 				{
 					ftype: 'rowbody',
 					getAdditionalData: function(data, idx, rec, orig) {
-						var body = Ext.String.ellipsis(rec.get('body'), 100),
-							date = Ext.Date.format(rec.get('due'), WT.getShortDateFmt()),
-							html = Ext.String.format(me.mys.res('portlet.tasks.gp.dueon'), date);
-							if (!Ext.isEmpty(body)) html += (' <span style="color:grey;">' + Ext.String.htmlEncode(body) + '</span>');
+						var SoS = Sonicle.String,
+							SoD = Sonicle.Date,
+							dueDate = SoD.format(rec.get('due'), WT.getShortDateFmt()),
+							dueOnText = Ext.String.format(me.mys.res('portlet.tasks.gp.dueon'), dueDate),
+							html = '';
+						
+						html += '<span class="wt-text-xs-regular wttasks-portlet-task-body-dueon">' + SoS.htmlEncode(dueOnText) + '</span>';
 						return {
-							rowBody: html
+							rowBody: html,
+							rowBodyCls: 'wttasks-portlet-task-body'
 						};
 					}
 				}

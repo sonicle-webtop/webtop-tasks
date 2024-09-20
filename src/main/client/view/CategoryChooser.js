@@ -60,10 +60,7 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 			}
 		}
 	},
-	
-	/**
-	 * @cfg {Ext.data.Model} defaultFolder
-	*/
+	defaultButton: 'btnok',
 	
 	/**
 	 * @cfg {Object} initialData
@@ -72,15 +69,15 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 	 * @cfg {String} initialData.categoryId
 	*/
 	
-	defaultButton: 'btnok',
-	
 	constructor: function(cfg) {
-		var me = this, vm;
+		var me = this,
+			SoVMU = Sonicle.VMUtils,
+			vm;
 		me.callParent([cfg]);
 		
 		vm = me.getVM();
-		Sonicle.VMUtils.setInitialData(vm, cfg.initialData);
-		WTU.applyFormulas(vm, {
+		SoVMU.setInitialData(vm, cfg.initialData);
+		SoVMU.applyFormulas(vm, {
 			isValid: WTF.foGetFn('data', 'categoryId', function(v) {
 				return v !== null;
 			})
@@ -126,10 +123,12 @@ Ext.define('Sonicle.webtop.tasks.view.CategoryChooser', {
 			rootVisible: false,
 			store: {
 				autoLoad: true,
+				hierarchyBulkLoad: true,
 				model: 'Sonicle.webtop.tasks.model.FolderNode',
 				proxy: WTF.apiProxy(me.mys.ID, 'ManageFoldersTree', 'children', {
 					extraParams: {
 						crud: 'read',
+						bulk: true,
 						chooser: true,
 						writableOnly: me.writableOnly
 					}

@@ -38,7 +38,7 @@ Ext.define('Sonicle.webtop.tasks.view.ImportTasks', {
 	
 	dockableConfig: {
 		title: '{importTasks.tit}',
-		iconCls: 'wttasks-icon-importTask',
+		iconCls: 'wttasks-icon-importTasks',
 		width: 480,
 		height: 380
 	},

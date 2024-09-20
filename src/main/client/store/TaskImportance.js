@@ -1,6 +1,6 @@
 /*
  * webtop-tasks is a WebTop Service developed by Sonicle S.r.l.
- * Copyright (C) 2014 Sonicle S.r.l.
+ * Copyright (C) 2024 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -39,16 +39,16 @@ Ext.define('Sonicle.webtop.tasks.store.TaskImportance', {
 	
 	model: 'WTA.ux.data.SimpleIconModel',
 	data: [
-		[9, '', 'fas fa-exclamation wt-theme-text-off'],
+		[9, '', ''],
 		[5, '', ''],
-		[1, '', 'fas fa-exclamation wt-theme-text-error']
+		[1, '', '']
 	],
 	
 	constructor: function(cfg) {
 		var me = this;
 		Ext.each(me.config.data, function(row) {
-			//FIXME: update labels according to new values
 			row[1] = Sonicle.webtop.tasks.store.TaskImportance.buildLabel(row[0]);
+			row[2] = Sonicle.webtop.tasks.store.TaskImportance.buildIcon(row[0]);
 		});
 		me.callParent([cfg]);
 	},
@@ -65,25 +65,13 @@ Ext.define('Sonicle.webtop.tasks.store.TaskImportance', {
 		},
 		
 		buildLabel: function(impo) {
-			var v;
-			if (impo >= 1 && impo < 5) {
-				v = '2'; // High
-			} else if (impo > 5 && impo <= 9) {
-				v = '0'; // Low
-			} else {
-				v = '1'; // Normal
-			}
-			return WT.res('com.sonicle.webtop.tasks', 'store.taskImportance.'+v);
+			var homo = Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(impo);
+			return WT.res('com.sonicle.webtop.tasks', 'store.taskImportance.'+homo);
 		},
 		
 		buildIcon: function(impo) {
-			if (impo >= 1 && impo < 5) {
-				return 'fas fa-exclamation wt-theme-text-error'; // High
-			} else if (impo > 5 && impo <= 9) {
-				return 'fas fa-exclamation wt-theme-text-ok'; // Low
-			} else {
-				return ''; // Normal
-			}
+			var homo = Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(impo);
+			return 'wttasks-icon-taskImportance-'+homo;
 		}
 	}
 });

@@ -66,7 +66,7 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.field('progress', 'int', true, {defaultValue: 0}),
 		WTF.field('status', 'string', true, {defaultValue: 'NA'}),
 		WTF.field('importance', 'string', false, {defaultValue: 5}),
-		WTF.field('isPrivate', 'boolean', false),
+		WTF.field('isPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.field('docRef', 'string', true),
 		WTF.field('reminder', 'int', true),
 		WTF.field('contact', 'string', true),
@@ -84,7 +84,11 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 				}
 			]
 		}),
-		WTF.field('rstart', 'date', true, {dateFormat: 'Y-m-d'}),
+		//WTF.field('rstart', 'date', true, {dateFormat: 'Y-m-d'}),
+		WTF.calcField('rruleString', 'string', ['rrule', 'start'], function(v, rec, rrule, start) {
+			var date = !Ext.isEmpty(rrule) ? Sonicle.Date.idate(start, true) : null;
+			return Sonicle.form.field.rr.Recurrence.joinRRuleString(rrule, date);
+		}),
 		WTF.field('tags', 'string', true),
 		WTF.roField('_childTotalCount', 'int'),
 		WTF.roField('_childComplCount', 'int'),
@@ -112,58 +116,59 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		return this.get('_childTotalCount') > 0;
 	},
 	
-	setStartDate: function(date) {
+	setStartDate: function(date, options) {
 		var me = this,
-				due = me.get('due'), v;
+			due = me.get('due'), v;
 		
 		if (!Ext.isEmpty(me.get('rrule')) && !Ext.isDate(date)) return;
-		v = me.setDatePart('start', date, 15, 'up');
+		v = me.setDatePart('start', date, 15, 'up', options);
 		if (Ext.isDate(v) && Ext.isDate(due) && v > due) me.set('due', v);
 	},
 	
-	setStartTime: function(date) {
+	setStartTime: function(date, options) {
 		var me = this,
-				due = me.get('due'), v;
+			due = me.get('due'), v;
 		
 		if (!Ext.isEmpty(me.get('rrule')) && !Ext.isDate(date)) return;
-		v = me.setTimePart('start', date);
+		v = me.setTimePart('start', date, options);
 		if (Ext.isDate(v) && Ext.isDate(due) && v > due) me.set('due', v);
 	},
 	
-	setDueDate: function(date) {
+	setDueDate: function(date, options) {
 		var me = this,
-				start = me.get('start'), v;
+			start = me.get('start'), v;
 		
-		v = me.setDatePart('due', date, 15, 'up');
+		v = me.setDatePart('due', date, 15, 'up', options);
 		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
 	},
 	
-	setDueTime: function(date) {
+	setDueTime: function(date, options) {
 		var me = this,
-				start = me.get('start'), v;
+			start = me.get('start'), v;
 				
-		v = me.setTimePart('due', date);
+		v = me.setTimePart('due', date, options);
 		if (Ext.isDate(v) && Ext.isDate(start) && v < start) me.set('due', start);
 	},
 	
-	/**
-	 * !!! Copied here from new ModelUtil mixin, not yet merged. !!!
-	 * 
-	 * Sets the date part only into the specified field.
-	 * If null, the field will be initialized using the current date value, properly rounded if necessary.
-	 * Passed field name must refer to a date field.
-	 * @param {String} field The name of the field to update.
-	 * @param {Date} date The value from which copy the date part.
-	 * @param {Integer} [roundMinutes] Minutes interval to round to.
-	 * @param {String} [roundMethod=nearest] Round method.
-	 * @returns {Date} The value set
-	 */
-	setDatePart: function(field, date, roundMinutes, roundMethod) {
-		var me = this,
-				SoD = Sonicle.Date,
-				v = me.get(field) || SoD.roundTime(new Date(), roundMinutes, roundMethod), dt;
-		dt = !Ext.isDate(date) ? null : SoD.copyDate(date, v);
-		me.set(field, dt);
-		return dt;
+	setProgressOnStatus: function(status) {
+		var newProgress;
+		if (status === 'NA') {
+			newProgress = 0;
+		} else if (status === 'CO') {
+			newProgress = 100;
+		}
+		if (newProgress) this.set('progress', newProgress);
+	},
+	
+	setStatusOnProgress: function(progress) {
+		var status = this.get('status'), newStatus;
+		if (progress === 100) {
+			newStatus = 'CO';
+		} else if (progress === 0) {
+			newStatus = 'NA';
+		} else if ('NA' === status) {
+			newStatus = 'IP';
+		}
+		if (newStatus) this.set('status', newStatus);
 	}
 });

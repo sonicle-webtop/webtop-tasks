@@ -44,8 +44,8 @@ Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
 		WTF.roField('_default', 'boolean', {defaultValue: false}),
 		WTF.roField('_profileId', 'string'),
 		WTF.roField('_profileDescription', 'string'),
-		WTF.calcField('_label', 'string', ['name', '_profileDescription'], function(v, rec) {
-			return Ext.String.format('[{0}] {1}', rec.get('_profileDescription'), rec.get('name'));
+		WTF.calcField('_label', 'string', ['name', '_profileDescription'], function(v, rec, catName, pidDN) {
+			return Sonicle.webtop.tasks.Service.calcCategoryLabel(catName, pidDN);
 		}),
 		WTF.roField('_writable', 'boolean'),
 		WTF.roField('_order', 'int'),
