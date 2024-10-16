@@ -119,16 +119,19 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			foSubjectIconCls: WTF.foGetFn('record', 'isPrivate', function(val) {
 				return val === true ? 'wttasks-icon-taskPrivate' : '';
 			}),
-			foStatus: WTF.foGetFn('record', 'status', function(val) {
-				var complOn = this.get('record.completedOn'),
+			foStatus: WTF.foMultiGetFn('record', ['status', 'progress'], function(v) {
+				var status = v['status'],
+					progress = v['progress'],
+					complOn = this.get('record.completedOn'),
 					infoCls = me.cls + '-taskstatus-info',
 					s = '';
-				if ('CO' === val && Ext.isDate(complOn)) {
+				
+				if ('CO' === status && Ext.isDate(complOn)) {
 					s += '<span class="' + infoCls + '">('+Ext.Date.format(complOn, WT.getShortDateTimeFmt())+')</span>';
-				} else if (Sonicle.String.isIn(val, ['IP','CA','WA'])) {
-					s += '<span class="' + infoCls + '">('+this.get('record.progress')+'%)</span>';
+				} else if (Sonicle.String.isIn(status, ['IP','CA','WA'])) {
+					s += '<span class="' + infoCls + '">('+progress+'%)</span>';
 				}
-				return me.mys.res('store.taskStatus.'+val) + s;
+				return me.mys.res('store.taskStatus.'+status) + s;
 			}),
 			foStatusIconCls: WTF.foGetFn('record', 'status', function(val) {
 				return 'wttasks-icon-taskStatus-' + val;
