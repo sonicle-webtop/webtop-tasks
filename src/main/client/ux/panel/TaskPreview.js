@@ -104,20 +104,20 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
 		
 		Sonicle.VMUtils.applyFormulas(me.getVM(), {
-			foIsEditable: WTF.foGetFn('record', '_itPerms', function(val) {
-				return WTA.util.FoldersTree2.toRightsObj(val).UPDATE;
+			foIsEditable: WTF.foGetFn('record', '_itPerms', function(v) {
+				return WTA.util.FoldersTree2.toRightsObj(v).UPDATE;
 			}),
 			foCategory: WTF.foMultiGetFn('record', ['categoryName', '_orDN'], function(v) {
 				return Sonicle.webtop.tasks.Service.calcCategoryLabel(v['categoryName'], v['_orDN']);
 			}),
-			foSubject: WTF.foGetFn('record', 'subject', function(val) {
+			foSubject: WTF.foGetFn('record', 'subject', function(v) {
 				var tipAttrs = Sonicle.Utils.generateTooltipAttrs,
 					s = '';
 				if (this.get('record.isPrivate') === true) s += '<i class="fas fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
-				return s + Ext.String.htmlEncode(Ext.String.ellipsis(val, 50));
+				return s + Ext.String.htmlEncode(Ext.String.ellipsis(v, 50));
 			}),
-			foSubjectIconCls: WTF.foGetFn('record', 'isPrivate', function(val) {
-				return val === true ? 'wttasks-icon-taskPrivate' : '';
+			foSubjectIconCls: WTF.foGetFn('record', 'isPrivate', function(v) {
+				return v === true ? 'wttasks-icon-taskPrivate' : '';
 			}),
 			foStatus: WTF.foMultiGetFn('record', ['status', 'progress'], function(v) {
 				var status = v['status'],
@@ -133,25 +133,25 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				}
 				return me.mys.res('store.taskStatus.'+status) + s;
 			}),
-			foStatusIconCls: WTF.foGetFn('record', 'status', function(val) {
-				return 'wttasks-icon-taskStatus-' + val;
+			foStatusIconCls: WTF.foGetFn('record', 'status', function(v) {
+				return 'wttasks-icon-taskStatus-' + v;
 			}),
-			foImportance: WTF.foGetFn('record', 'importance', function(val) {
-				return Sonicle.webtop.tasks.store.TaskImportance.buildLabel(val);
+			foImportance: WTF.foGetFn('record', 'importance', function(v) {
+				return Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 			}),
-			foImportanceIconCls: WTF.foGetFn('record', 'importance', function(val) {
-				return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(val);
+			foImportanceIconCls: WTF.foGetFn('record', 'importance', function(v) {
+				return Sonicle.webtop.tasks.store.TaskImportance.buildIcon(v);
 			}),
-			foStart: WTF.foGetFn('record', 'start', function(val) {
-				return Ext.isDate(val) ? Ext.Date.format(val, 'D ' + WT.getLongDateFmt() + ' ' + WT.getShortTimeFmt()) : null;
+			foStart: WTF.foGetFn('record', 'start', function(v) {
+				return Ext.isDate(v) ? Ext.Date.format(v, 'D ' + WT.getLongDateFmt() + ' ' + WT.getShortTimeFmt()) : null;
 			}),
-			foDue: WTF.foGetFn('record', 'due', function(val) {
+			foDue: WTF.foGetFn('record', 'due', function(v) {
 				var infoCls = me.cls + '-taskdue-info',
 					s = '', ret;
-				if (Ext.isDate(val)) {
+				if (Ext.isDate(v)) {
 					if ('CO' !== this.get('record.status')) {
 						var SoD = Sonicle.Date,
-							diff = SoD.diffDays(val, new Date()),
+							diff = SoD.diffDays(v, new Date()),
 							hrd;
 						if (diff > 0) {
 							hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
@@ -160,7 +160,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							}
 						}
 					}
-					ret = Ext.Date.format(val, 'D ' + WT.getLongDateFmt() + ' ' + WT.getShortTimeFmt()) + s;
+					ret = Ext.Date.format(v, 'D ' + WT.getLongDateFmt() + ' ' + WT.getShortTimeFmt()) + s;
 				}
 				return ret;
 			}),
@@ -172,8 +172,8 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			foHasReminder: WTF.foIsEmpty('record', 'reminder', true),
 			foHasTags: WTF.foIsEmpty('record', 'tags', true),
 			foHasDescription: WTF.foIsEmpty('record', 'description', true),
-			foMultiSelTitle: WTF.foGetFn(null, 'records', function(val) {
-				return val ? me.mys.res('taskPreview.multi.tit', val.length) : null;
+			foMultiSelTitle: WTF.foGetFn(null, 'records', function(v) {
+				return v ? me.mys.res('taskPreview.multi.tit', v.length) : null;
 			}),
 			foHasEmail: WTF.foIsEmpty('record', 'contactEmail', true),
 			foIsCompleted: WTF.foIsEqual('record', 'status', 'CO'),
