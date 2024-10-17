@@ -1266,8 +1266,11 @@ public class Service extends BaseService {
 	private ArrayList<Integer> getActiveFolderIds() {
 		ArrayList<Integer> ids = new ArrayList<>();
 		for (CategoryFSOrigin origin : getActiveOrigins()) {
+			boolean isOthersChildren = !(origin instanceof MyCategoryFSOrigin);
 			for (CategoryFSFolder folder: foldersTreeCache.getFoldersByOrigin(origin)) {
-				if (inactiveFolders.contains(folder.getFolderId())) continue;
+				if ((isOthersChildren && inactiveOrigins.contains(CategoryNodeId.GROUPER_OTHERS_ORIGIN))
+					|| (inactiveFolders.contains(folder.getFolderId()))
+				) continue;
 				ids.add(folder.getFolderId());
 			}
 		}
