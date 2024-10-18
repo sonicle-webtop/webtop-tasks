@@ -98,6 +98,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 	
 	constructor: function(cfg) {
 		var me = this;
+		me.config.viewModel = Ext.create('Ext.app.ViewModel');
 		me.callParent([cfg]);
 		
 		var durRes = function(sym) { return WT.res('word.dur.'+sym); },

@@ -1,0 +1,1164 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "WebTop Tasks",
+    "contact": {
+      "email": "dev-team@sonicle.com"
+    },
+    "version": "v2",
+    "description": "This is Task service API enpoint."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "auth-basic": []
+    },
+    {
+      "auth-bearer": []
+    }
+  ],
+  "paths": {
+    "/eas/folders": {
+      "get": {
+        "tags": [
+          "eas-folders"
+        ],
+        "summary": "List all folders",
+        "description": "Returns a list of available Categories with enabled synchronization.",
+        "operationId": "getFolders",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncFolder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eas/folders/{folderId}/messages": {
+      "post": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Adds a message",
+        "description": "Creates new Task into specified Category.",
+        "operationId": "addMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncTaskUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncTaskStat"
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "parameters": [
+        {
+          "name": "folderId",
+          "in": "path",
+          "description": "Folder ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "1234"
+        }
+      ]
+    },
+    "/eas/folders/{folderId}/messages-stats": {
+      "get": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Gets sync messages data for a folder",
+        "description": "Returns sync informations for the specified Category.",
+        "operationId": "getMessagesStats",
+        "parameters": [
+          {
+            "name": "cutoffDate",
+            "in": "query",
+            "description": "Cut-off date (ISO date/time YYYYMMDD'T'HHMMSS'Z')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20150912T000000Z"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncTaskStat"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {}
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "folderId",
+          "in": "path",
+          "description": "Folder ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "1234"
+        }
+      ]
+    },
+    "/eas/folders/{folderId}/messages/{id}": {
+      "get": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Get a single message",
+        "description": "Gets the specified Task.",
+        "operationId": "getMessage",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {}
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {}
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Updates a message",
+        "description": "Updates the specified Task.",
+        "operationId": "updateMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncTaskUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncTaskStat"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {}
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {}
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "delete": {
+        "tags": [
+          "eas-messages"
+        ],
+        "summary": "Deletes a message",
+        "description": "Deletes the specified Task.",
+        "operationId": "deleteMessage",
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {}
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {}
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {}
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "folderId",
+          "in": "path",
+          "description": "Folder ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "1234"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "description": "Message ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "1234"
+        }
+      ]
+    },
+    "/dav/folders": {
+      "get": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "List task folders",
+        "description": "Returns available Categories.",
+        "operationId": "getDavFolders",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DavFolder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Adds new task-folder",
+        "description": "Creates new Category.",
+        "operationId": "addDavFolder",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/DavFolderNew"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DavFolder"
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/dav/folders/{folderUid}": {
+      "get": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Get task folder",
+        "description": "Gets the specified Category.",
+        "operationId": "getDavFolder",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DavFolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Update task-folder",
+        "description": "Updates the specified Category.",
+        "operationId": "updateDavFolder",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/DavFolderUpdate"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Folder updated",
+            "content": {}
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "delete": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Delete task-folder",
+        "description": "Deletes the specified Category.",
+        "operationId": "deleteDavFolder",
+        "responses": {
+          "200": {
+            "description": "Folder deleted",
+            "content": {}
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Delete operation not allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "folderUid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/dav/folders/{folderUid}/objects": {
+      "get": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "List task objects",
+        "description": "List all Tasks of specified Category.",
+        "operationId": "getDavObjects",
+        "parameters": [
+          {
+            "name": "hrefs",
+            "in": "query",
+            "description": "A collection of hrefs to get",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Desired format of object data payload (defaults to icalendar)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DavObject"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Add new task object",
+        "description": "Creates new Task into specified Category.",
+        "operationId": "addDavObject",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/DavObjectPayload"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {}
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "parameters": [
+        {
+          "name": "folderUid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/dav/folders/{folderUid}/objects/{href}": {
+      "get": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Get task object",
+        "description": "Gets the specified Task.",
+        "operationId": "getDavObject",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Desired format of object data payload (defaults to icalendar)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DavObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Update task object",
+        "description": "Updates the specified Task.",
+        "operationId": "updateDavObject",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/DavObjectPayload"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {}
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "delete": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Deletes task object",
+        "description": "Deletes the specified Task.",
+        "operationId": "deleteDavObject",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {}
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "folderUid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "href",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/dav/folders/{folderUid}/objects/changes": {
+      "get": {
+        "tags": [
+          "dav"
+        ],
+        "summary": "Gets task object changes",
+        "description": "Returns changed task objects (added/modified/deleted) since the specified sync-token. If sync-token is not provided, the full set (initial) will be returned.",
+        "operationId": "getDavObjectsChanges",
+        "parameters": [
+          {
+            "name": "syncToken",
+            "in": "query",
+            "description": "Defines changes starting point",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Limits the number of returned results",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DavObjectsChanges"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameter",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "folderUid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "required": [
+          "code"
+        ],
+        "x-stoplight": {
+          "id": "9a47d8da47d74"
+        },
+        "type": "object",
+        "properties": {
+          "code": {
+            "maximum": 599,
+            "minimum": 400,
+            "type": "integer"
+          },
+          "description": {
+            "type": "string",
+            "example": "Bad query parameter [$size]: Invalid integer value [abc]"
+          }
+        },
+        "description": "This general detailed error structure is used throughout this API."
+      },
+      "SyncFolder": {
+        "type": "object",
+        "description": "Carry task category’s fields.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Category ID (internal)"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Revision tag"
+          },
+          "deflt": {
+            "type": "boolean",
+            "description": "Specifies if marked as predefined folder"
+          },
+          "foAcl": {
+            "type": "string",
+            "description": "ACL info for folder itself"
+          },
+          "elAcl": {
+            "type": "string",
+            "description": "ACL info for folder elements"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "The owner profile ID"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "etag",
+          "deflt",
+          "foAcl",
+          "elAcl",
+          "ownerId"
+        ]
+      },
+      "SyncTaskStat": {
+        "required": [
+          "etag",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID (internal)"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Revision tag"
+          }
+        },
+        "description": "Transport sync informations of a single task."
+      },
+      "SyncTask": {
+        "required": [
+          "etag",
+          "id",
+          "impo",
+          "prvt",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID (internal)"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Revision tag"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Subject"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+          },
+          "due": {
+            "type": "string",
+            "description": "Due date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Completion status"
+          },
+          "complOn": {
+            "type": "string",
+            "description": "Completed date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)"
+          },
+          "impo": {
+            "type": "integer",
+            "description": "Priority flag (0=low, 1=normal, 2=high)"
+          },
+          "prvt": {
+            "type": "boolean",
+            "description": "Private flag"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Description"
+          }
+        },
+        "description": "Represent a single task."
+      },
+      "SyncTaskUpdate": {
+        "title": "",
+        "required": [
+          "impo",
+          "prvt"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "Subject"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+          },
+          "due": {
+            "type": "string",
+            "description": "Due date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+          },
+          "complOn": {
+            "type": "string",
+            "description": "Completed date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')"
+          },
+          "impo": {
+            "type": "integer",
+            "description": "Priority flag (0=low, 1=normal, 2=high)"
+          },
+          "prvt": {
+            "type": "boolean",
+            "description": "Private flag"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Description"
+          }
+        },
+        "description": "Represent task's updateable fields"
+      },
+      "DavFolder": {
+        "title": "DavFolder",
+        "type": "object",
+        "description": "Represent a single folder that contains tasks.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Category ID (internal)"
+          },
+          "uid": {
+            "type": "string",
+            "description": "Category UID (public)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Category's name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category's description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Associated color in HEX format (like #FFFFFF)"
+          },
+          "syncToken": {
+            "type": "string",
+            "description": "Current sync-token"
+          },
+          "aclFol": {
+            "type": "string",
+            "description": "ACL info for folder itself"
+          },
+          "aclEle": {
+            "type": "string",
+            "description": "ACL info for folder elements"
+          },
+          "ownerUsername": {
+            "type": "string",
+            "description": "The owner profile's username"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Suitable display name"
+          }
+        },
+        "required": [
+          "id",
+          "uid",
+          "name",
+          "syncToken",
+          "aclFol",
+          "aclEle",
+          "ownerUsername",
+          "displayName"
+        ]
+      },
+      "DavFolderNew": {
+        "title": "DavFolderNew",
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category's name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category's description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Associated color in HEX format (like #FFFFFF)"
+          }
+        },
+        "description": "Carry task folder data during add operation."
+      },
+      "DavFolderUpdate": {
+        "title": "DavFolderUpdate",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category's name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category's description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Associated color in HEX format (like #FFFFFF)"
+          },
+          "updatedFields": {
+            "type": "array",
+            "description": "List of field names (above) updated by the operation",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Carry task folder data during update operation."
+      },
+      "DavObject": {
+        "title": "DavObject",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task instance ID (internal)"
+          },
+          "uid": {
+            "type": "string",
+            "description": "Task object ID (public)"
+          },
+          "href": {
+            "type": "string",
+            "description": "The URI where this object is filed"
+          },
+          "lastModified": {
+            "type": "integer",
+            "description": "Last modification time (unix timestamp)",
+            "format": "int64"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Revision tag of the object"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size (in bytes) of data payload"
+          },
+          "data": {
+            "type": "string",
+            "description": "Task data payload"
+          },
+          "format": {
+            "type": "string",
+            "description": "Specifies the format of data payload",
+            "enum": [
+              "icalendar",
+              "json"
+            ]
+          }
+        },
+        "description": "Represent a single task object."
+      },
+      "DavObjectPayload": {
+        "title": "DavObjectPayload",
+        "required": [
+          "format",
+          "href"
+        ],
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "The URI where this object is filed (for updates is the same as path param)"
+          },
+          "data": {
+            "type": "string",
+            "description": "Task data payload"
+          },
+          "format": {
+            "type": "string",
+            "description": "Specifies the format of data payload",
+            "enum": [
+              "icalendar",
+              "json"
+            ]
+          }
+        },
+        "description": "Transports task object data."
+      },
+      "DavObjectChanged": {
+        "title": "DavObjectChanged",
+        "required": [
+          "etag",
+          "href",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task instance ID"
+          },
+          "href": {
+            "type": "string",
+            "description": "Reference URI where this object is filed"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Revision tag of the object"
+          }
+        },
+        "description": "Defines useful data of a changed task object."
+      },
+      "DavObjectsChanges": {
+        "title": "DavObjectsChanges",
+        "required": [
+          "deleted",
+          "inserted",
+          "syncToken",
+          "updated"
+        ],
+        "type": "object",
+        "properties": {
+          "syncToken": {
+            "type": "string"
+          },
+          "inserted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DavObjectChanged"
+            }
+          },
+          "updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DavObjectChanged"
+            }
+          },
+          "deleted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DavObjectChanged"
+            }
+          }
+        },
+        "description": "Represent a collection of changes made since an instant defined by the sync-token."
+      }
+    },
+    "securitySchemes": {
+      "auth-basic": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "auth-bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "x-original-swagger-version": "2.0",
+  "tags": [
+    {
+      "name": "eas-folders"
+    },
+    {
+      "name": "eas-messages"
+    },
+    {
+      "name": "dav"
+    }
+  ]
+}

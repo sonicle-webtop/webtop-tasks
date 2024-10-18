@@ -396,7 +396,10 @@
             "type": "array",
             "in": "query",
             "name": "hrefs",
-            "description": "A collection of hrefs to get"
+            "description": "A collection of hrefs to get",
+            "items": {
+              "type": "string"
+            }
           },
           {
             "type": "string",
