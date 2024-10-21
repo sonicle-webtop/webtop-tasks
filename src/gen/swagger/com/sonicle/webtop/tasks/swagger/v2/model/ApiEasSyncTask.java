@@ -17,9 +17,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  * Represent a single task.
  **/
 @ApiModel(description = "Represent a single task.")
-@JsonTypeName("SyncTask")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T11:09:25.760+02:00[Europe/Berlin]")
-public class ApiSyncTask   {
+@JsonTypeName("EasSyncTask")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
+public class ApiEasSyncTask   {
   private @Valid String id;
   private @Valid String etag;
   private @Valid String subject;
@@ -34,7 +34,7 @@ public class ApiSyncTask   {
   /**
    * Task ID (internal)
    **/
-  public ApiSyncTask id(String id) {
+  public ApiEasSyncTask id(String id) {
     this.id = id;
     return this;
   }
@@ -55,7 +55,7 @@ public class ApiSyncTask   {
   /**
    * Revision tag
    **/
-  public ApiSyncTask etag(String etag) {
+  public ApiEasSyncTask etag(String etag) {
     this.etag = etag;
     return this;
   }
@@ -76,7 +76,7 @@ public class ApiSyncTask   {
   /**
    * Subject
    **/
-  public ApiSyncTask subject(String subject) {
+  public ApiEasSyncTask subject(String subject) {
     this.subject = subject;
     return this;
   }
@@ -96,7 +96,7 @@ public class ApiSyncTask   {
   /**
    * Start date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
    **/
-  public ApiSyncTask start(String start) {
+  public ApiEasSyncTask start(String start) {
     this.start = start;
     return this;
   }
@@ -116,7 +116,7 @@ public class ApiSyncTask   {
   /**
    * Due date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
    **/
-  public ApiSyncTask due(String due) {
+  public ApiEasSyncTask due(String due) {
     this.due = due;
     return this;
   }
@@ -136,7 +136,7 @@ public class ApiSyncTask   {
   /**
    * Completion status
    **/
-  public ApiSyncTask status(String status) {
+  public ApiEasSyncTask status(String status) {
     this.status = status;
     return this;
   }
@@ -157,7 +157,7 @@ public class ApiSyncTask   {
   /**
    * Completed date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
    **/
-  public ApiSyncTask complOn(String complOn) {
+  public ApiEasSyncTask complOn(String complOn) {
     this.complOn = complOn;
     return this;
   }
@@ -177,7 +177,7 @@ public class ApiSyncTask   {
   /**
    * Priority flag (0&#x3D;low, 1&#x3D;normal, 2&#x3D;high)
    **/
-  public ApiSyncTask impo(Integer impo) {
+  public ApiEasSyncTask impo(Integer impo) {
     this.impo = impo;
     return this;
   }
@@ -198,7 +198,7 @@ public class ApiSyncTask   {
   /**
    * Private flag
    **/
-  public ApiSyncTask prvt(Boolean prvt) {
+  public ApiEasSyncTask prvt(Boolean prvt) {
     this.prvt = prvt;
     return this;
   }
@@ -219,7 +219,7 @@ public class ApiSyncTask   {
   /**
    * Description
    **/
-  public ApiSyncTask notes(String notes) {
+  public ApiEasSyncTask notes(String notes) {
     this.notes = notes;
     return this;
   }
@@ -245,17 +245,17 @@ public class ApiSyncTask   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ApiSyncTask syncTask = (ApiSyncTask) o;
-    return Objects.equals(this.id, syncTask.id) &&
-        Objects.equals(this.etag, syncTask.etag) &&
-        Objects.equals(this.subject, syncTask.subject) &&
-        Objects.equals(this.start, syncTask.start) &&
-        Objects.equals(this.due, syncTask.due) &&
-        Objects.equals(this.status, syncTask.status) &&
-        Objects.equals(this.complOn, syncTask.complOn) &&
-        Objects.equals(this.impo, syncTask.impo) &&
-        Objects.equals(this.prvt, syncTask.prvt) &&
-        Objects.equals(this.notes, syncTask.notes);
+    ApiEasSyncTask easSyncTask = (ApiEasSyncTask) o;
+    return Objects.equals(this.id, easSyncTask.id) &&
+        Objects.equals(this.etag, easSyncTask.etag) &&
+        Objects.equals(this.subject, easSyncTask.subject) &&
+        Objects.equals(this.start, easSyncTask.start) &&
+        Objects.equals(this.due, easSyncTask.due) &&
+        Objects.equals(this.status, easSyncTask.status) &&
+        Objects.equals(this.complOn, easSyncTask.complOn) &&
+        Objects.equals(this.impo, easSyncTask.impo) &&
+        Objects.equals(this.prvt, easSyncTask.prvt) &&
+        Objects.equals(this.notes, easSyncTask.notes);
   }
 
   @Override
@@ -266,7 +266,7 @@ public class ApiSyncTask   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ApiSyncTask {\n");
+    sb.append("class ApiEasSyncTask {\n");
     
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    etag: ").append(toIndentedString(etag)).append("\n");

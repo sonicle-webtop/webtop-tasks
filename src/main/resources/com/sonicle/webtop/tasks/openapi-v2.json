@@ -25,7 +25,7 @@
     "/eas/folders": {
       "get": {
         "tags": [
-          "eas-folders"
+          "eas"
         ],
         "summary": "List all folders",
         "description": "Returns a list of available Categories with enabled synchronization.",
@@ -38,7 +38,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SyncFolder"
+                    "$ref": "#/components/schemas/EasSyncFolder"
                   }
                 }
               }
@@ -50,7 +50,7 @@
     "/eas/folders/{folderId}/messages": {
       "post": {
         "tags": [
-          "eas-messages"
+          "eas"
         ],
         "summary": "Adds a message",
         "description": "Creates new Task into specified Category.",
@@ -59,7 +59,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SyncTaskUpdate"
+                "$ref": "#/components/schemas/EasSyncTaskUpdate"
               }
             }
           },
@@ -71,7 +71,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncTaskStat"
+                  "$ref": "#/components/schemas/EasSyncTaskStat"
                 }
               }
             }
@@ -95,7 +95,7 @@
     "/eas/folders/{folderId}/messages-stats": {
       "get": {
         "tags": [
-          "eas-messages"
+          "eas"
         ],
         "summary": "Gets sync messages data for a folder",
         "description": "Returns sync informations for the specified Category.",
@@ -119,7 +119,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SyncTaskStat"
+                    "$ref": "#/components/schemas/EasSyncTaskStat"
                   }
                 }
               }
@@ -147,7 +147,7 @@
     "/eas/folders/{folderId}/messages/{id}": {
       "get": {
         "tags": [
-          "eas-messages"
+          "eas"
         ],
         "summary": "Get a single message",
         "description": "Gets the specified Task.",
@@ -158,7 +158,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncTask"
+                  "$ref": "#/components/schemas/EasSyncTask"
                 }
               }
             }
@@ -175,7 +175,7 @@
       },
       "put": {
         "tags": [
-          "eas-messages"
+          "eas"
         ],
         "summary": "Updates a message",
         "description": "Updates the specified Task.",
@@ -184,7 +184,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SyncTaskUpdate"
+                "$ref": "#/components/schemas/EasSyncTaskUpdate"
               }
             }
           },
@@ -196,7 +196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncTaskStat"
+                  "$ref": "#/components/schemas/EasSyncTaskStat"
                 }
               }
             }
@@ -214,7 +214,7 @@
       },
       "delete": {
         "tags": [
-          "eas-messages"
+          "eas"
         ],
         "summary": "Deletes a message",
         "description": "Deletes the specified Task.",
@@ -750,7 +750,7 @@
         },
         "description": "This general detailed error structure is used throughout this API."
       },
-      "SyncFolder": {
+      "EasSyncFolder": {
         "type": "object",
         "description": "Carry task category’s fields.",
         "properties": {
@@ -793,7 +793,7 @@
           "ownerId"
         ]
       },
-      "SyncTaskStat": {
+      "EasSyncTaskStat": {
         "required": [
           "etag",
           "id"
@@ -811,7 +811,7 @@
         },
         "description": "Transport sync informations of a single task."
       },
-      "SyncTask": {
+      "EasSyncTask": {
         "required": [
           "etag",
           "id",
@@ -864,7 +864,7 @@
         },
         "description": "Represent a single task."
       },
-      "SyncTaskUpdate": {
+      "EasSyncTaskUpdate": {
         "title": "",
         "required": [
           "impo",
@@ -1152,10 +1152,7 @@
   "x-original-swagger-version": "2.0",
   "tags": [
     {
-      "name": "eas-folders"
-    },
-    {
-      "name": "eas-messages"
+      "name": "eas"
     },
     {
       "name": "dav"

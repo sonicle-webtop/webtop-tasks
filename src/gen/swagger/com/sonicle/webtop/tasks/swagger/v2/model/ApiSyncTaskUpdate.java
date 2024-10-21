@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  **/
 @ApiModel(description = "Represent task's updateable fields")
 @JsonTypeName("SyncTaskUpdate")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-14T18:05:51.753+02:00[Europe/Berlin]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T11:09:25.760+02:00[Europe/Berlin]")
 public class ApiSyncTaskUpdate   {
   private @Valid String subject;
   private @Valid String start;

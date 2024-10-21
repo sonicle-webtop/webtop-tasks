@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  **/
 @ApiModel(description = "Represent a collection of changes made since an instant defined by the sync-token.")
 @JsonTypeName("DavObjectsChanges")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-14T18:05:51.753+02:00[Europe/Berlin]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
 public class ApiDavObjectsChanges   {
   private @Valid String syncToken;
   private @Valid List<ApiDavObjectChanged> inserted = new ArrayList<>();

@@ -17,16 +17,16 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  * Transport sync informations of a single task.
  **/
 @ApiModel(description = "Transport sync informations of a single task.")
-@JsonTypeName("SyncTaskStat")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T11:09:25.760+02:00[Europe/Berlin]")
-public class ApiSyncTaskStat   {
+@JsonTypeName("EasSyncTaskStat")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
+public class ApiEasSyncTaskStat   {
   private @Valid String id;
   private @Valid String etag;
 
   /**
    * Task ID (internal)
    **/
-  public ApiSyncTaskStat id(String id) {
+  public ApiEasSyncTaskStat id(String id) {
     this.id = id;
     return this;
   }
@@ -47,7 +47,7 @@ public class ApiSyncTaskStat   {
   /**
    * Revision tag
    **/
-  public ApiSyncTaskStat etag(String etag) {
+  public ApiEasSyncTaskStat etag(String etag) {
     this.etag = etag;
     return this;
   }
@@ -74,9 +74,9 @@ public class ApiSyncTaskStat   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ApiSyncTaskStat syncTaskStat = (ApiSyncTaskStat) o;
-    return Objects.equals(this.id, syncTaskStat.id) &&
-        Objects.equals(this.etag, syncTaskStat.etag);
+    ApiEasSyncTaskStat easSyncTaskStat = (ApiEasSyncTaskStat) o;
+    return Objects.equals(this.id, easSyncTaskStat.id) &&
+        Objects.equals(this.etag, easSyncTaskStat.etag);
   }
 
   @Override
@@ -87,7 +87,7 @@ public class ApiSyncTaskStat   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ApiSyncTaskStat {\n");
+    sb.append("class ApiEasSyncTaskStat {\n");
     
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    etag: ").append(toIndentedString(etag)).append("\n");

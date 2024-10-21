@@ -55,11 +55,11 @@ import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import com.sonicle.webtop.tasks.model.TaskObject;
 import com.sonicle.webtop.tasks.model.TaskObjectWithBean;
 import com.sonicle.webtop.tasks.swagger.v2.api.EasApi;
+import com.sonicle.webtop.tasks.swagger.v2.model.ApiEasSyncFolder;
+import com.sonicle.webtop.tasks.swagger.v2.model.ApiEasSyncTask;
+import com.sonicle.webtop.tasks.swagger.v2.model.ApiEasSyncTaskStat;
+import com.sonicle.webtop.tasks.swagger.v2.model.ApiEasSyncTaskUpdate;
 import com.sonicle.webtop.tasks.swagger.v2.model.ApiError;
-import com.sonicle.webtop.tasks.swagger.v2.model.ApiSyncFolder;
-import com.sonicle.webtop.tasks.swagger.v2.model.ApiSyncTask;
-import com.sonicle.webtop.tasks.swagger.v2.model.ApiSyncTaskStat;
-import com.sonicle.webtop.tasks.swagger.v2.model.ApiSyncTaskUpdate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -87,7 +87,7 @@ public class Eas extends EasApi {
 	public Response getFolders() {
 		UserProfileId currentProfileId = RunContext.getRunProfileId();
 		TasksManager manager = getManager();
-		List<ApiSyncFolder> items = new ArrayList<>();
+		List<ApiEasSyncFolder> items = new ArrayList<>();
 		
 		if (logger.isDebugEnabled()) {
 			logger.debug("[{}] getFolders()", currentProfileId);
@@ -144,7 +144,7 @@ public class Eas extends EasApi {
 			//DateTime since = DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, cutoffDate);
 			//if (since == null) DateTimeUtils.now().minusDays(30).withTimeAtStartOfDay();
 			
-			List<ApiSyncTaskStat> items = new ArrayList<>();
+			List<ApiEasSyncTaskStat> items = new ArrayList<>();
 			List<TaskObject> objs = manager.listTaskObjects(Integer.valueOf(folderId), TaskObjectOutputType.STAT);
 			for (TaskObject obj : objs) {
 				items.add(createSyncTaskStat(obj));
@@ -185,7 +185,7 @@ public class Eas extends EasApi {
 	}
 
 	@Override
-	public Response addMessage(String folderId, ApiSyncTaskUpdate body) {
+	public Response addMessage(String folderId, ApiEasSyncTaskUpdate body) {
 		TasksManager manager = getManager();
 		
 		if (logger.isDebugEnabled()) {
@@ -212,7 +212,7 @@ public class Eas extends EasApi {
 	}
 
 	@Override
-	public Response updateMessage(String folderId, String id, ApiSyncTaskUpdate body) {
+	public Response updateMessage(String folderId, String id, ApiEasSyncTaskUpdate body) {
 		TasksManager manager = getManager();
 		
 		if (logger.isDebugEnabled()) {
@@ -263,7 +263,7 @@ public class Eas extends EasApi {
 		}
 	}
 	
-	private ApiSyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, FolderShare.Permissions permissions, boolean isDefault) {
+	private ApiEasSyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, FolderShare.Permissions permissions, boolean isDefault) {
 		String displayName = cat.getName();
 		if (!currentProfileId.equals(cat.getProfileId())) {
 			UserProfile.Data owud = WT.getUserData(cat.getProfileId());
@@ -272,7 +272,7 @@ public class Eas extends EasApi {
 		}
 		//String ownerUsername = owud.getProfileEmailAddress();
 		
-		return new ApiSyncFolder()
+		return new ApiEasSyncFolder()
 				.id(String.valueOf(cat.getCategoryId()))
 				.displayName(displayName)
 				.etag(buildEtag(lastRevisionTimestamp))
@@ -282,22 +282,22 @@ public class Eas extends EasApi {
 				.ownerId(cat.getProfileId().toString());
 	}
 	
-	private List<ApiSyncTaskStat> createSyncTaskStats(Collection<TaskObject> objs) {
-		ArrayList<ApiSyncTaskStat> stats = new ArrayList<>(objs.size());
+	private List<ApiEasSyncTaskStat> createSyncTaskStats(Collection<TaskObject> objs) {
+		ArrayList<ApiEasSyncTaskStat> stats = new ArrayList<>(objs.size());
 		objs.forEach(evtobj -> stats.add(createSyncTaskStat(evtobj)));
 		return stats;
 	}
 	
-	private ApiSyncTaskStat createSyncTaskStat(TaskObject obj) {
-		return new ApiSyncTaskStat()
+	private ApiEasSyncTaskStat createSyncTaskStat(TaskObject obj) {
+		return new ApiEasSyncTaskStat()
 				.id(obj.getTaskId())
 				.etag(buildEtag(obj.getRevisionTimestamp()));
 	}
 	
-	private ApiSyncTask createSyncTask(TaskObjectWithBean obj) {
+	private ApiEasSyncTask createSyncTask(TaskObjectWithBean obj) {
 		TaskEx task = obj.getTask();
 		
-		return new ApiSyncTask()
+		return new ApiEasSyncTask()
 			.id(obj.getTaskId())
 			.etag(buildEtag(obj.getRevisionTimestamp()))
 			.subject(task.getSubject())
@@ -311,7 +311,7 @@ public class Eas extends EasApi {
 			.notes(task.getDescription());
 	}
 	
-	private <T extends TaskEx> T mergeTask(boolean isNew, T tgt, ApiSyncTaskUpdate src) {
+	private <T extends TaskEx> T mergeTask(boolean isNew, T tgt, ApiEasSyncTaskUpdate src) {
 		tgt.setSubject(src.getSubject());
 		tgt.setStart(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getStart()));
 		tgt.setDue(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getDue()));

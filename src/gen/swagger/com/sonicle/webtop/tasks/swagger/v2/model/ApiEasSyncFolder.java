@@ -17,9 +17,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  * Carry task category’s fields.
  **/
 @ApiModel(description = "Carry task category’s fields.")
-@JsonTypeName("SyncFolder")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T11:09:25.760+02:00[Europe/Berlin]")
-public class ApiSyncFolder   {
+@JsonTypeName("EasSyncFolder")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
+public class ApiEasSyncFolder   {
   private @Valid String id;
   private @Valid String displayName;
   private @Valid String etag;
@@ -31,7 +31,7 @@ public class ApiSyncFolder   {
   /**
    * Category ID (internal)
    **/
-  public ApiSyncFolder id(String id) {
+  public ApiEasSyncFolder id(String id) {
     this.id = id;
     return this;
   }
@@ -52,7 +52,7 @@ public class ApiSyncFolder   {
   /**
    * Display name
    **/
-  public ApiSyncFolder displayName(String displayName) {
+  public ApiEasSyncFolder displayName(String displayName) {
     this.displayName = displayName;
     return this;
   }
@@ -73,7 +73,7 @@ public class ApiSyncFolder   {
   /**
    * Revision tag
    **/
-  public ApiSyncFolder etag(String etag) {
+  public ApiEasSyncFolder etag(String etag) {
     this.etag = etag;
     return this;
   }
@@ -94,7 +94,7 @@ public class ApiSyncFolder   {
   /**
    * Specifies if marked as predefined folder
    **/
-  public ApiSyncFolder deflt(Boolean deflt) {
+  public ApiEasSyncFolder deflt(Boolean deflt) {
     this.deflt = deflt;
     return this;
   }
@@ -115,7 +115,7 @@ public class ApiSyncFolder   {
   /**
    * ACL info for folder itself
    **/
-  public ApiSyncFolder foAcl(String foAcl) {
+  public ApiEasSyncFolder foAcl(String foAcl) {
     this.foAcl = foAcl;
     return this;
   }
@@ -136,7 +136,7 @@ public class ApiSyncFolder   {
   /**
    * ACL info for folder elements
    **/
-  public ApiSyncFolder elAcl(String elAcl) {
+  public ApiEasSyncFolder elAcl(String elAcl) {
     this.elAcl = elAcl;
     return this;
   }
@@ -157,7 +157,7 @@ public class ApiSyncFolder   {
   /**
    * The owner profile ID
    **/
-  public ApiSyncFolder ownerId(String ownerId) {
+  public ApiEasSyncFolder ownerId(String ownerId) {
     this.ownerId = ownerId;
     return this;
   }
@@ -184,14 +184,14 @@ public class ApiSyncFolder   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ApiSyncFolder syncFolder = (ApiSyncFolder) o;
-    return Objects.equals(this.id, syncFolder.id) &&
-        Objects.equals(this.displayName, syncFolder.displayName) &&
-        Objects.equals(this.etag, syncFolder.etag) &&
-        Objects.equals(this.deflt, syncFolder.deflt) &&
-        Objects.equals(this.foAcl, syncFolder.foAcl) &&
-        Objects.equals(this.elAcl, syncFolder.elAcl) &&
-        Objects.equals(this.ownerId, syncFolder.ownerId);
+    ApiEasSyncFolder easSyncFolder = (ApiEasSyncFolder) o;
+    return Objects.equals(this.id, easSyncFolder.id) &&
+        Objects.equals(this.displayName, easSyncFolder.displayName) &&
+        Objects.equals(this.etag, easSyncFolder.etag) &&
+        Objects.equals(this.deflt, easSyncFolder.deflt) &&
+        Objects.equals(this.foAcl, easSyncFolder.foAcl) &&
+        Objects.equals(this.elAcl, easSyncFolder.elAcl) &&
+        Objects.equals(this.ownerId, easSyncFolder.ownerId);
   }
 
   @Override
@@ -202,7 +202,7 @@ public class ApiSyncFolder   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ApiSyncFolder {\n");
+    sb.append("class ApiEasSyncFolder {\n");
     
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    displayName: ").append(toIndentedString(displayName)).append("\n");

@@ -14,69 +14,24 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
- * Represent a single task.
+ * Represent task&#39;s updateable fields
  **/
-@ApiModel(description = "Represent a single task.")
-@JsonTypeName("SyncTask")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T11:09:25.760+02:00[Europe/Berlin]")
-public class ApiSyncTask   {
-  private @Valid String id;
-  private @Valid String etag;
+@ApiModel(description = "Represent task's updateable fields")
+@JsonTypeName("EasSyncTaskUpdate")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
+public class ApiEasSyncTaskUpdate   {
   private @Valid String subject;
   private @Valid String start;
   private @Valid String due;
-  private @Valid String status;
   private @Valid String complOn;
   private @Valid Integer impo;
   private @Valid Boolean prvt;
   private @Valid String notes;
 
   /**
-   * Task ID (internal)
-   **/
-  public ApiSyncTask id(String id) {
-    this.id = id;
-    return this;
-  }
-
-  
-  @ApiModelProperty(required = true, value = "Task ID (internal)")
-  @JsonProperty("id")
-  @NotNull
-  public String getId() {
-    return id;
-  }
-
-  @JsonProperty("id")
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  /**
-   * Revision tag
-   **/
-  public ApiSyncTask etag(String etag) {
-    this.etag = etag;
-    return this;
-  }
-
-  
-  @ApiModelProperty(required = true, value = "Revision tag")
-  @JsonProperty("etag")
-  @NotNull
-  public String getEtag() {
-    return etag;
-  }
-
-  @JsonProperty("etag")
-  public void setEtag(String etag) {
-    this.etag = etag;
-  }
-
-  /**
    * Subject
    **/
-  public ApiSyncTask subject(String subject) {
+  public ApiEasSyncTaskUpdate subject(String subject) {
     this.subject = subject;
     return this;
   }
@@ -94,15 +49,15 @@ public class ApiSyncTask   {
   }
 
   /**
-   * Start date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
+   * Start date/time (ISO date/time YYYYMMDD&#39;T&#39;HHMMSS&#39;Z&#39;)
    **/
-  public ApiSyncTask start(String start) {
+  public ApiEasSyncTaskUpdate start(String start) {
     this.start = start;
     return this;
   }
 
   
-  @ApiModelProperty(value = "Start date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)")
+  @ApiModelProperty(value = "Start date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')")
   @JsonProperty("start")
   public String getStart() {
     return start;
@@ -114,15 +69,15 @@ public class ApiSyncTask   {
   }
 
   /**
-   * Due date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
+   * Due date/time (ISO date/time YYYYMMDD&#39;T&#39;HHMMSS&#39;Z&#39;)
    **/
-  public ApiSyncTask due(String due) {
+  public ApiEasSyncTaskUpdate due(String due) {
     this.due = due;
     return this;
   }
 
   
-  @ApiModelProperty(value = "Due date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)")
+  @ApiModelProperty(value = "Due date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')")
   @JsonProperty("due")
   public String getDue() {
     return due;
@@ -134,36 +89,15 @@ public class ApiSyncTask   {
   }
 
   /**
-   * Completion status
+   * Completed date/time (ISO date/time YYYYMMDD&#39;T&#39;HHMMSS&#39;Z&#39;)
    **/
-  public ApiSyncTask status(String status) {
-    this.status = status;
-    return this;
-  }
-
-  
-  @ApiModelProperty(required = true, value = "Completion status")
-  @JsonProperty("status")
-  @NotNull
-  public String getStatus() {
-    return status;
-  }
-
-  @JsonProperty("status")
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
-  /**
-   * Completed date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)
-   **/
-  public ApiSyncTask complOn(String complOn) {
+  public ApiEasSyncTaskUpdate complOn(String complOn) {
     this.complOn = complOn;
     return this;
   }
 
   
-  @ApiModelProperty(value = "Completed date/time (ISO date/time YYYYMMDD’T’HHMMSS’Z’)")
+  @ApiModelProperty(value = "Completed date/time (ISO date/time YYYYMMDD'T'HHMMSS'Z')")
   @JsonProperty("complOn")
   public String getComplOn() {
     return complOn;
@@ -177,7 +111,7 @@ public class ApiSyncTask   {
   /**
    * Priority flag (0&#x3D;low, 1&#x3D;normal, 2&#x3D;high)
    **/
-  public ApiSyncTask impo(Integer impo) {
+  public ApiEasSyncTaskUpdate impo(Integer impo) {
     this.impo = impo;
     return this;
   }
@@ -198,7 +132,7 @@ public class ApiSyncTask   {
   /**
    * Private flag
    **/
-  public ApiSyncTask prvt(Boolean prvt) {
+  public ApiEasSyncTaskUpdate prvt(Boolean prvt) {
     this.prvt = prvt;
     return this;
   }
@@ -219,7 +153,7 @@ public class ApiSyncTask   {
   /**
    * Description
    **/
-  public ApiSyncTask notes(String notes) {
+  public ApiEasSyncTaskUpdate notes(String notes) {
     this.notes = notes;
     return this;
   }
@@ -245,35 +179,29 @@ public class ApiSyncTask   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ApiSyncTask syncTask = (ApiSyncTask) o;
-    return Objects.equals(this.id, syncTask.id) &&
-        Objects.equals(this.etag, syncTask.etag) &&
-        Objects.equals(this.subject, syncTask.subject) &&
-        Objects.equals(this.start, syncTask.start) &&
-        Objects.equals(this.due, syncTask.due) &&
-        Objects.equals(this.status, syncTask.status) &&
-        Objects.equals(this.complOn, syncTask.complOn) &&
-        Objects.equals(this.impo, syncTask.impo) &&
-        Objects.equals(this.prvt, syncTask.prvt) &&
-        Objects.equals(this.notes, syncTask.notes);
+    ApiEasSyncTaskUpdate easSyncTaskUpdate = (ApiEasSyncTaskUpdate) o;
+    return Objects.equals(this.subject, easSyncTaskUpdate.subject) &&
+        Objects.equals(this.start, easSyncTaskUpdate.start) &&
+        Objects.equals(this.due, easSyncTaskUpdate.due) &&
+        Objects.equals(this.complOn, easSyncTaskUpdate.complOn) &&
+        Objects.equals(this.impo, easSyncTaskUpdate.impo) &&
+        Objects.equals(this.prvt, easSyncTaskUpdate.prvt) &&
+        Objects.equals(this.notes, easSyncTaskUpdate.notes);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, etag, subject, start, due, status, complOn, impo, prvt, notes);
+    return Objects.hash(subject, start, due, complOn, impo, prvt, notes);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ApiSyncTask {\n");
+    sb.append("class ApiEasSyncTaskUpdate {\n");
     
-    sb.append("    id: ").append(toIndentedString(id)).append("\n");
-    sb.append("    etag: ").append(toIndentedString(etag)).append("\n");
     sb.append("    subject: ").append(toIndentedString(subject)).append("\n");
     sb.append("    start: ").append(toIndentedString(start)).append("\n");
     sb.append("    due: ").append(toIndentedString(due)).append("\n");
-    sb.append("    status: ").append(toIndentedString(status)).append("\n");
     sb.append("    complOn: ").append(toIndentedString(complOn)).append("\n");
     sb.append("    impo: ").append(toIndentedString(impo)).append("\n");
     sb.append("    prvt: ").append(toIndentedString(prvt)).append("\n");
