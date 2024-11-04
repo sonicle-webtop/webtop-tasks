@@ -20,7 +20,7 @@ import javax.validation.Valid;
 
 @Path("/dav/folders")
 @Api(description = "the dav API")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-10-21T12:01:13.376+02:00[Europe/Berlin]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2024-11-04T12:40:25.131+01:00[Europe/Berlin]")
 public abstract class DavApi extends com.sonicle.webtop.core.sdk.BaseRestApiResource {
 
     @POST
