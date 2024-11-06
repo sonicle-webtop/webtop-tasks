@@ -85,6 +85,7 @@
 		
 		<restApis>
 			<restApi oasFile="openapi-v1.json" />
+			<restApi oasFile="openapi-v2.json" />
 		</restApis>
 		
 		<permissions>
