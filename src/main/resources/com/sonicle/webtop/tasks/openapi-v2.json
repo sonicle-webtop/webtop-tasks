@@ -468,7 +468,7 @@
             "in": "query",
             "description": "A collection of hrefs to get",
             "style": "form",
-            "explode": false,
+            "explode": true,
             "schema": {
               "type": "array",
               "items": {
