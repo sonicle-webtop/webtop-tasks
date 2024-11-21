@@ -201,7 +201,7 @@ public class Dav extends DavApi {
 			if (body.getUpdatedFields().contains("color")) {
 				category.setColor(body.getColor());
 			}
-			manager.updateCategory(category);
+			manager.updateCategory(categoryId, category);
 			return respOk();
 			
 		} catch (WTNotFoundException ex) {

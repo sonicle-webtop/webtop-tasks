@@ -65,7 +65,7 @@ public class JsCategoryLkp {
 	}
 	
 	public JsCategoryLkp(CategoryFSOrigin origin, CategoryFSFolder folder, CategoryPropSet folderProps, boolean isDefault, int order) {
-		this(folder.getCategory().applyPropSet(folderProps), isDefault);
+		this(Category.cloneAndSetProps(folder.getCategory(), folderProps), isDefault);
 		this._profileDescription = origin.getDisplayName();
 		this._writable = folder.getPermissions().getItemsPermissions().has(FolderShare.ItemsRight.CREATE);
 		this._order = order;

@@ -43,6 +43,7 @@ import com.sonicle.commons.cache.AbstractPassiveExpiringBulkMap;
 import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.beans.SortInfo;
 import com.sonicle.commons.concurrent.KeyedReentrantLocks;
+import com.sonicle.commons.flags.BitFlags;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.StringArray;
@@ -520,14 +521,14 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				item = manager.addCategory(JsCategory.createCategory(pl.data));
+				item = manager.addCategory(pl.data.createCategoryForInsert());
 				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				manager.updateCategory(JsCategory.createCategory(pl.data));
+				manager.updateCategory(pl.data.categoryId, pl.data.createCategoryForUpdate());
 				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
@@ -864,7 +865,7 @@ public class Service extends BaseService {
 					.collect(Collectors.toList());
 
 				for (TaskInstanceId iid : iids) {
-					TaskInstance instance = manager.getTaskInstance(iid, BitFlag.none());
+					TaskInstance instance = manager.getTaskInstance(iid, BitFlags.noneOf(ITasksManager.TaskGetOption.class));
 					if (instance == null) continue;
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
@@ -898,7 +899,7 @@ public class Service extends BaseService {
 				
 				UserProfile up = getEnv().getProfile();
 				TaskInstanceId instanceId = TaskInstanceId.parse(id);
-				BitFlag<ITasksManager.TaskGetOptions> options = BitFlag.of(ITasksManager.TaskGetOptions.TAGS, ITasksManager.TaskGetOptions.CUSTOM_VALUES);
+				BitFlags<ITasksManager.TaskGetOption> options = BitFlags.with(ITasksManager.TaskGetOption.TAGS, ITasksManager.TaskGetOption.CUSTOM_VALUES);
 				TaskInstance task = manager.getTaskInstance(instanceId, options);
 				if (task == null) throw new WTException("Task not found [{}]", instanceId);
 				
@@ -990,7 +991,7 @@ public class Service extends BaseService {
 				if (task.getParentInstanceId() != null) {
 					//TaskInstanceId piid = TaskInstanceId.build(task.getParentTaskId(), TaskInstanceId.MASTER_INSTANCE_ID);
 					//TaskInstance ptask = manager.getTaskInstance(piid, BitFlag.none());
-					TaskInstance ptask = manager.getTaskInstance(task.getParentInstanceId(), BitFlag.none());
+					TaskInstance ptask = manager.getTaskInstance(task.getParentInstanceId(), BitFlags.noneOf(ITasksManager.TaskGetOption.class));
 					if (ptask != null) {
 						parentTaskSubject = ptask.getSubject();
 					} else {
@@ -1371,7 +1372,7 @@ public class Service extends BaseService {
 		if (origin instanceof MyCategoryFSOrigin) {
 			Category category = manager.getCategory(categoryId);
 			category.setColor(color);
-			manager.updateCategory(category);
+			manager.updateCategory(category.getCategoryId(), category);
 			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 			
 		} else if (origin instanceof CategoryFSOrigin) {
@@ -1387,7 +1388,7 @@ public class Service extends BaseService {
 		if (origin instanceof MyCategoryFSOrigin) {
 			Category category = manager.getCategory(categoryId);
 			category.setSync(sync);
-			manager.updateCategory(category);
+			manager.updateCategory(category.getCategoryId(), category);
 			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 			
 		} else if (origin instanceof CategoryFSOrigin) {

@@ -124,6 +124,7 @@ import org.slf4j.Logger;
 import com.sonicle.commons.BitFlagEnum;
 import com.sonicle.commons.beans.SortInfo;
 import com.sonicle.commons.concurrent.KeyedReentrantLocks;
+import com.sonicle.commons.flags.BitFlags;
 import com.sonicle.commons.flags.BitFlagsEnum;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.time.InstantRange;
@@ -146,6 +147,7 @@ import com.sonicle.webtop.tasks.io.ICalendarInput;
 import com.sonicle.webtop.tasks.io.ICalendarOutput;
 import com.sonicle.webtop.tasks.io.TaskInput;
 import com.sonicle.webtop.tasks.io.TasksStreamReader;
+import com.sonicle.webtop.tasks.model.CategoryBase;
 import com.sonicle.webtop.tasks.model.CategoryFSFolder;
 import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.TaskAlertLookup;
@@ -490,7 +492,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public Category addCategory(final Category category) throws WTException {
+	public Category addCategory(final CategoryBase category) throws WTException {
 		Connection con = null;
 		
 		try {
@@ -558,15 +560,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	@Override
-	public void updateCategory(final Category category) throws WTNotFoundException, WTException {
+	public void updateCategory(final int categoryId, final CategoryBase category) throws WTNotFoundException, WTException {
 		Connection con = null;
 		
 		try {
-			int categoryId = category.getCategoryId();
 			checkRightsOnCategory(categoryId, FolderShare.FolderRight.UPDATE);
 			
 			con = WT.getConnection(SERVICE_ID, false);
-			boolean ret = doCategoryUpdate(con, category);
+			boolean ret = doCategoryUpdate(con, categoryId, category);
 			if (!ret) throw new WTNotFoundException("Category not found [{}]", categoryId);
 			
 			DbUtils.commitQuietly(con);
@@ -1163,11 +1164,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public TaskInstance getTaskInstance(final TaskInstanceId instanceId) throws WTException {
-		return getTaskInstance(instanceId, BitFlag.of(TaskGetOptions.ATTACHMENTS, TaskGetOptions.TAGS, TaskGetOptions.CUSTOM_VALUES));
+		return getTaskInstance(instanceId, BitFlags.with(TaskGetOption.ATTACHMENTS, TaskGetOption.TAGS, TaskGetOption.CUSTOM_VALUES));
 	}
 	
 	@Override
-	public TaskInstance getTaskInstance(final TaskInstanceId instanceId, final BitFlag<TaskGetOptions> options) throws WTException {
+	public TaskInstance getTaskInstance(final TaskInstanceId instanceId, final BitFlags<TaskGetOption> options) throws WTException {
 		Connection con = null;
 		
 		try {
@@ -2048,7 +2049,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return ManagerUtils.createCategory(catDao.selectById(con, categoryId));
 	}
 	
-	private Category doCategoryInsert(Connection con, Category cat) throws DAOException {
+	private Category doCategoryInsert(Connection con, CategoryBase cat) throws DAOException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		
 		OCategory ocat = ManagerUtils.createOCategory(cat);
@@ -2060,10 +2061,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return ManagerUtils.createCategory(ocat);
 	}
 	
-	private boolean doCategoryUpdate(Connection con, Category cat) throws DAOException {
+	private boolean doCategoryUpdate(Connection con, int categoryId, CategoryBase cat) throws DAOException {
 		CategoryDAO catDao = CategoryDAO.getInstance();
 		
 		OCategory ocat = ManagerUtils.createOCategory(cat);
+		ocat.setCategoryId(categoryId);
 		ManagerUtils.fillOCategoryWithDefaults(ocat, getTargetProfileId(), getServiceSettings());
 		if (ocat.getIsDefault()) catDao.resetIsDefaultByProfile(con, ocat.getDomainId(), ocat.getUserId());
 		
@@ -2277,12 +2279,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		@Override
 		public int value() { return this.value; }
 		
-		public static BitFlag<TaskProcessOpts> parseTaskGetOptions(BitFlag<TaskGetOptions> flags) {
+		public static BitFlag<TaskProcessOpts> parseTaskGetOptions(BitFlags<TaskGetOption> flags) {
 			BitFlag<TaskProcessOpts> ret = new BitFlag<>();
 			
-			if (flags.has(TaskGetOptions.ATTACHMENTS)) ret.set(TaskProcessOpts.ATTACHMENTS);
-			if (flags.has(TaskGetOptions.TAGS)) ret.set(TaskProcessOpts.TAGS);
-			if (flags.has(TaskGetOptions.CUSTOM_VALUES)) ret.set(TaskProcessOpts.CUSTOM_VALUES);
+			if (flags.has(TaskGetOption.ATTACHMENTS)) ret.set(TaskProcessOpts.ATTACHMENTS);
+			if (flags.has(TaskGetOption.TAGS)) ret.set(TaskProcessOpts.TAGS);
+			if (flags.has(TaskGetOption.CUSTOM_VALUES)) ret.set(TaskProcessOpts.CUSTOM_VALUES);
 			return ret;
 		}
 		
