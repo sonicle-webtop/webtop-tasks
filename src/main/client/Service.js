@@ -310,7 +310,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							showOnOver: true,
 							items: [
 								{
-									iconCls: 'fas fa-ellipsis-v',
+									iconCls: 'wt-glyph-menu-kebab',
 									handler: function(v, ridx, cidx, itm, e, node, row) {
 										if (node.isOrigin()) {
 											Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeOrigin'), {node: node});
@@ -2571,7 +2571,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						menuText: WT.res('grid.actions.lbl'),
 						items: [
 							{
-								iconCls: 'fas fa-ellipsis-vertical',
+								iconCls: 'wt-glyph-menu-kebab',
 								handler: function(view, ridx, cidx, itm, e, rec) {
 									view.setSelection(rec);
 									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'));

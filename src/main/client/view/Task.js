@@ -817,6 +817,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							},
 							hidden: true,
 							enableClickEvents: true,
+							tooltip: me.res('task.btn-editRecurrence.tip'),
 							handler: function(s) {
 								me.editRecurrence();
 							}
@@ -1059,7 +1060,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						xtype: 'soactioncolumn',
 						items: [
 							{
-								iconCls: 'fas fa-ellipsis-v',
+								iconCls: 'wt-glyph-menu-kebab',
 								handler: function(g, ridx, cidx, itm, e, node, row) {
 									var rec = g.getStore().getAt(ridx);
 									Sonicle.Utils.showContextMenu(e, me.getRef('cxmAssignee'), {rec: rec});
