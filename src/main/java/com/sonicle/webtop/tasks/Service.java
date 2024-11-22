@@ -35,7 +35,6 @@ package com.sonicle.webtop.tasks;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.PathUtils;
@@ -196,7 +195,7 @@ public class Service extends BaseService {
 		
 		try {
 			ObjCustomFieldDefs.FieldsList scfields = new ObjCustomFieldDefs.FieldsList();
-			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.SEARCHABLE)).values()) {
+			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.SEARCHABLE)).values()) {
 				scfields.add(new ObjCustomFieldDefs.Field(cfield, up.getLanguageTag()));
 			}
 			return scfields;
@@ -909,7 +908,7 @@ public class Service extends BaseService {
 				if (folder == null) throw new WTException("Folder not found [{}]", task.getCategoryId());
 				final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 				
-				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.PREVIEWABLE));
+				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.PREVIEWABLE));
 				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
 				Map<String, CustomField> cfields = new HashMap<>();
 				for (CustomPanel cpanel : cpanels.values()) {
@@ -1409,7 +1408,7 @@ public class Service extends BaseService {
 		protected Map<String, CustomField.Type> internalGetMap() {
 			try {
 				CoreManager coreMgr = WT.getCoreManager();
-				return coreMgr.listCustomFieldTypesById(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.SEARCHABLE));
+				return coreMgr.listCustomFieldTypesById(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.SEARCHABLE));
 				
 			} catch(Throwable t) {
 				logger.error("[SearchableCustomFieldTypeCache] Unable to build cache", t);

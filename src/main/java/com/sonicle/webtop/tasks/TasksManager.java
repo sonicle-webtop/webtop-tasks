@@ -2270,7 +2270,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private enum TaskProcessOpt implements BitFlagsEnum<TaskProcessOpt> {
-		RECUR(1 << 0), RECUR_EX(1 << 1), ASSIGNEES(1 << 2), ATTACHMENTS(1 << 3), TAGS(1 << 4), CUSTOM_VALUES(1 << 5), CONTACT_REF(1 << 6), DOCUMENT_REF(1 << 7), RAW_ICAL(1 << 8);
+		RECUR(1<<0), RECUR_EX(1<<1), ASSIGNEES(1<<2), ATTACHMENTS(1<<3), TAGS(1<<4), CUSTOM_VALUES(1<<5), CONTACT_REF(1<<6), DOCUMENT_REF(1<<7), RAW_ICAL(1<<8);
 		
 		private int mask = 0;
 		private TaskProcessOpt(int mask) { this.mask = mask; }
@@ -2298,7 +2298,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private enum TaskReminderOpt implements BitFlagsEnum<TaskReminderOpt> {
-		IGNORE(1 << 0), DISARM_PAST(1 << 1);
+		IGNORE(1<<0), DISARM_PAST(1<<1);
 		
 		private int mask = 0;
 		private TaskReminderOpt(int mask) { this.mask = mask; }
