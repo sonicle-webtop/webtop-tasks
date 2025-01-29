@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks.rpt;
 
+import com.sonicle.commons.ClassUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.webtop.core.io.output.AbstractReport;
 import com.sonicle.webtop.core.io.output.ReportConfig;
@@ -53,8 +54,8 @@ public class RptTaskList extends AbstractReport {
 	protected void fillBuiltInParams() {
 		super.fillBuiltInParams();
 		
-		String pkgName = LangUtils.getClassPackageName(this.getClass());
-		String basepath = LangUtils.packageToPath(pkgName);
+		String pkgName = ClassUtils.getClassPackageName(this.getClass());
+		String basepath = ClassUtils.classPackageAsPath(pkgName);
 		ClassLoader cl = LangUtils.findClassLoader(this.getClass());
 		
 		addSvgStreamAsParam("SVG_TASKTYPE_DEFAULT", cl, basepath + "/tasktype-default_16.svg", StandardCharsets.UTF_8);
