@@ -366,7 +366,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						text: me.mys.res('taskPreview.single.tb.setCompleted.lbl'),
 						iconCls: 'wttasks-icon-setTaskCompleted',
 						handler: function() {
-							me.fireEvent('setcompleted', me, me.getVM().get('record.id'));
+							me.fireEvent('setcompleted', me, [me.getVM().get('record.id')]);
 						}
 					}, {
 						xtype: 'button',
@@ -374,7 +374,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						tooltip: me.mys.res('taskPreview.single.tb.sendByEmail.tip'),
 						iconCls: 'wttasks-icon-sendByEmail',
 						handler: function() {
-							me.fireEvent('sendbyemail', me, me.getVM().get('record.id'));
+							me.fireEvent('sendbyemail', me, [me.getVM().get('record.id')]);
 						}
 					}, {
 						xtype: 'button',

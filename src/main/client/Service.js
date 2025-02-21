@@ -706,15 +706,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							me.openTaskUI(edit, id);
 						},
 						setcompleted: function(s, ids) {
-							WT.confirmOk(me.res('task.confirm.complete.selection'), function(bid) {
-								if (bid === 'ok') {
-									me.setTaskItemsCompleted(ids, {
-										callback: function(success) {
-											if (success) me.reloadTasks();
-										}
-									});
-								}
-							}, me, {title: me.res('task.confirm.complete.tit'), okText: me.res('task.confirm.complete.ok')});
+							me.completeTasksUI(Sonicle.Data.getByIds(me.gpTasks().getStore(), ids));
 						},
 						sendbyemail: function(s, ids) {
 							me.sendTaskItemsByEmail(ids, {
@@ -2117,13 +2109,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	setTaskItemsCompleted: function(iids, opts) {
+	setTaskItemsCompleted: function(ids, opts) {
 		opts = opts || {};
 		var me = this;
 		WT.ajaxReq(me.ID, 'ManageGridTasks', {
 			params: {
 				crud: 'complete',
-				ids: Sonicle.Utils.toJSONArray(iids)
+				ids: Sonicle.Utils.toJSONArray(ids)
 			},
 			callback: function(success, json) {
 				Ext.callback(opts.callback, opts.scope, [success, json.data, json]);
@@ -2131,13 +2123,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	updateTaskItemsProgress: function(iids, progress, opts) {
+	updateTaskItemsProgress: function(ids, progress, opts) {
 		opts = opts || {};
 		var me = this;
 		WT.ajaxReq(me.ID, 'ManageGridTasks', {
 			params: {
 				crud: 'setProgress',
-				ids: Sonicle.Utils.toJSONArray(iids),
+				ids: Sonicle.Utils.toJSONArray(ids),
 				progress: progress
 			},
 			callback: function(success, json) {
@@ -2146,13 +2138,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	updateTaskItemsImportance: function(iids, importance, opts) {
+	updateTaskItemsImportance: function(ids, importance, opts) {
 		opts = opts || {};
 		var me = this;
 		WT.ajaxReq(me.ID, 'ManageGridTasks', {
 			params: {
 				crud: 'setImportance',
-				ids: Sonicle.Utils.toJSONArray(iids),
+				ids: Sonicle.Utils.toJSONArray(ids),
 				importance: importance
 			},
 			callback: function(success, json) {
@@ -2161,7 +2153,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	sendTaskItemsByEmail: function(iids, opts) {
+	sendTaskItemsByEmail: function(ids, opts) {
 		opts = opts || {};
 		var me = this,
 			mapi = WT.getServiceApi('com.sonicle.webtop.mail');
@@ -2170,7 +2162,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			WT.ajaxReq(me.ID, 'PrepareSendTaskByEmail', {
 				params: {
 					uploadTag: meid,
-					ids: Sonicle.Utils.toJSONArray(iids)
+					ids: Sonicle.Utils.toJSONArray(ids)
 				},
 				callback: function(success, json) {
 					if (success) {
