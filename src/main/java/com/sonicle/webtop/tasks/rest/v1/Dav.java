@@ -32,15 +32,13 @@
  */
 package com.sonicle.webtop.tasks.rest.v1;
 
-import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.model.FolderShare;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
-import com.sonicle.webtop.core.model.SharePerms;
-import com.sonicle.webtop.core.model.SharePermsElements;
-import com.sonicle.webtop.core.model.SharePermsFolder;
+import com.sonicle.webtop.core.model.ChangedItem;
+import com.sonicle.webtop.core.model.Delta;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
@@ -53,7 +51,6 @@ import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFSFolder;
 import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.TaskObject;
-import com.sonicle.webtop.tasks.model.TaskObjectChanged;
 import com.sonicle.webtop.tasks.model.TaskObjectWithBean;
 import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
 import com.sonicle.webtop.tasks.swagger.v1.api.DavApi;
@@ -405,8 +402,8 @@ public class Dav extends DavApi {
 				if (since == null) return respErrorBadRequest();
 			}
 			
-			LangUtils.CollectionChangeSet<TaskObjectChanged> changes = manager.listTaskObjectsChanges(categoryId, since, limit);
-			return respOk(createDavObjectsChanges(revisions.get(categoryId), changes));
+			Delta<TaskObject> delta = manager.listTasksDelta(categoryId, since, TaskObjectOutputType.STAT);
+			return respOk(createDavObjectsChanges(revisions.get(categoryId), delta));
 			
 		} catch (Throwable t) {
 			LOGGER.error("[{}] getDavObjectsChanges({}, {}, {})", RunContext.getRunProfileId(), folderUid, syncToken, limit, t);
@@ -457,27 +454,26 @@ public class Dav extends DavApi {
 		}
 	}
 	
-	private DavObjectChanged createDavObjectChanged(TaskObjectChanged obj) {
+	private DavObjectChanged createDavObjectChanged(TaskObject taskObject) {
 		return new DavObjectChanged()
-			.id(obj.getTaskId())
-			.href(obj.getHref())
-			.etag(buildEtag(obj.getRevisionTimestamp()));
+			.id(taskObject.getTaskId())
+			.href(taskObject.getHref())
+			.etag(buildEtag(taskObject.getRevisionTimestamp()));
 	}
 	
-	private DavObjectsChanges createDavObjectsChanges(DateTime lastRevisionTimestamp, LangUtils.CollectionChangeSet<TaskObjectChanged> changes) {
+	private DavObjectsChanges createDavObjectsChanges(DateTime lastRevisionTimestamp, Delta<TaskObject> delta) {
 		ArrayList<DavObjectChanged> inserted = new ArrayList<>();
-		for (TaskObjectChanged calObj : changes.inserted) {
-			inserted.add(createDavObjectChanged(calObj));
-		}
-		
 		ArrayList<DavObjectChanged> updated = new ArrayList<>();
-		for (TaskObjectChanged calObj : changes.updated) {
-			updated.add(createDavObjectChanged(calObj));
-		}
-		
 		ArrayList<DavObjectChanged> deleted = new ArrayList<>();
-		for (TaskObjectChanged calObj : changes.deleted) {
-			deleted.add(createDavObjectChanged(calObj));
+		
+		for (ChangedItem<TaskObject> item : delta.getItems()) {
+			if (ChangedItem.ChangeType.ADDED.equals(item.getChangeType())) {
+				inserted.add(createDavObjectChanged(item.getObject()));
+			} else if (ChangedItem.ChangeType.DELETED.equals(item.getChangeType())) {
+				deleted.add(createDavObjectChanged(item.getObject()));
+			} else {
+				updated.add(createDavObjectChanged(item.getObject()));
+			}
 		}
 		
 		return new DavObjectsChanges()

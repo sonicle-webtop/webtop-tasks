@@ -43,6 +43,7 @@ import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -216,19 +217,21 @@ public class CategoryDAO extends BaseDAO {
 	public List<OCategory> selectNoBuiltInByProfile(Connection con, String domainId, String userId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
-				.select()
-				.from(CATEGORIES)
-				.where(
-					CATEGORIES.DOMAIN_ID.equal(domainId)
-					.and(CATEGORIES.USER_ID.equal(userId))
-					.and(CATEGORIES.BUILT_IN.equal(false))
-				)
-				.orderBy(CATEGORIES.NAME)
-				.fetchInto(OCategory.class);
+			.select()
+			.from(CATEGORIES)
+			.where(
+				CATEGORIES.DOMAIN_ID.equal(domainId)
+				.and(CATEGORIES.USER_ID.equal(userId))
+				.and(CATEGORIES.BUILT_IN.equal(false))
+			)
+			.orderBy(CATEGORIES.NAME)
+			.fetchInto(OCategory.class);
 	}
 	
-	public int insert(Connection con, OCategory item) throws DAOException {
+	public int insert(Connection con, OCategory item, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
+		item.setCreationTimestamp(revisionTimestamp);
+		item.setRevisionTimestamp(revisionTimestamp);
 		CategoriesRecord record = dsl.newRecord(CATEGORIES, item);
 		return dsl
 			.insertInto(CATEGORIES)
@@ -236,10 +239,12 @@ public class CategoryDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int update(Connection con, OCategory item) throws DAOException {
+	public int update(Connection con, OCategory item, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
+		item.setRevisionTimestamp(revisionTimestamp);
 		return dsl
 			.update(CATEGORIES)
+			.set(CATEGORIES.REVISION_TIMESTAMP, item.getRevisionTimestamp())
 			.set(CATEGORIES.NAME, item.getName())
 			.set(CATEGORIES.DESCRIPTION, item.getDescription())
 			.set(CATEGORIES.COLOR, item.getColor())
@@ -253,11 +258,12 @@ public class CategoryDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int update(Connection con, Integer categoryId, FieldsMap fieldValues) throws DAOException {
+	public int update(Connection con, Integer categoryId, FieldsMap fieldValues, DateTime revisionTimestamp) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(CATEGORIES)
 			.set(fieldValues)
+			.set(CATEGORIES.REVISION_TIMESTAMP, revisionTimestamp)
 			.where(
 				CATEGORIES.CATEGORY_ID.equal(categoryId)
 			)

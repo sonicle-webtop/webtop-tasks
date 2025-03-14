@@ -1023,7 +1023,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		
 		createDescriptionFieldCfg: function(cfg) {
 			return Ext.apply({
-				xtype: 'textareafield',
+				xtype: 'sotextareafield',
 				bind: '{record.description}',
 				fieldLabel: this.res('task.fld-description.lbl'),
 				resizable: true,

@@ -32,56 +32,47 @@
  */
 package com.sonicle.webtop.tasks.bol;
 
+import com.sonicle.webtop.core.sdk.WTException;
+import java.sql.Connection;
 import org.joda.time.DateTime;
 
 /**
  *
  * @author malbinola
  */
-public class VTaskObjectChanged {
-	protected String taskId;
-	protected String revisionStatus;
-	protected DateTime revisionTimestamp;
-	protected DateTime creationTimestamp;
-	protected String href;
+public class VTaskObjectChanged extends VTaskObject {
+	protected DateTime changeTimestamp;
+	protected String changeType;
 
-	public String getTaskId() {
-		return taskId;
+	public DateTime getChangeTimestamp() {
+		return changeTimestamp;
 	}
 
-	public void setTaskId(String taskId) {
-		this.taskId = taskId;
+	public void setChangeTimestamp(DateTime changeTimestamp) {
+		this.changeTimestamp = changeTimestamp;
 	}
 
-	public String getRevisionStatus() {
-		return revisionStatus;
+	public String getChangeType() {
+		return changeType;
 	}
 
-	public void setRevisionStatus(String revisionStatus) {
-		this.revisionStatus = revisionStatus;
-	}
-
-	public DateTime getRevisionTimestamp() {
-		return revisionTimestamp;
-	}
-
-	public void setRevisionTimestamp(DateTime revisionTimestamp) {
-		this.revisionTimestamp = revisionTimestamp;
+	public void setChangeType(String changeType) {
+		this.changeType = changeType;
 	}
 	
-	public DateTime getCreationTimestamp() {
-		return creationTimestamp;
+	public boolean isChangeInsertion() {
+		return "C".equals(getChangeType());
 	}
-
-	public void setCreationTimestamp(DateTime creationTimestamp) {
-		this.creationTimestamp = creationTimestamp;
+	
+	public boolean isChangeUpdate() {
+		return "U".equals(getChangeType());
 	}
-
-	public String getHref() {
-		return href;
+	
+	public boolean isChangeDeletion() {
+		return "D".equals(getChangeType());
 	}
-
-	public void setHref(String href) {
-		this.href = href;
+	
+	public interface Consumer {
+		public void consume(final VTaskObjectChanged vcoc, final Connection con) throws WTException;
 	}
 }

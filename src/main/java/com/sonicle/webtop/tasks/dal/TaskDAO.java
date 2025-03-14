@@ -35,6 +35,7 @@ package com.sonicle.webtop.tasks.dal;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
+import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.tasks.ITasksManager;
 import com.sonicle.webtop.tasks.bol.OChildrenCount;
 import com.sonicle.webtop.tasks.bol.OTask;
@@ -43,7 +44,10 @@ import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.bol.VTaskObjectChanged;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import static com.sonicle.webtop.tasks.jooq.Tables.CATEGORIES;
+import static com.sonicle.webtop.tasks.jooq.Tables.HISTORY_TASKS;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ATTACHMENTS;
+import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_CUSTOM_VALUES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ICALENDARS;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_RECURRENCES;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_TAGS;
@@ -61,9 +65,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
+import org.jooq.Cursor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Param;
+import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.UpdateSetMoreStep;
 import org.jooq.impl.DSL;
@@ -318,8 +324,12 @@ public class TaskDAO extends BaseDAO {
 			.fetchInto(VTaskLookup.class);
 	}
 	
-	public VTaskObject viewTaskObjectById(Connection con, String taskId) throws DAOException {
+	public VTaskObject viewTaskObjectById(Connection con, Collection<Integer> categoryIds, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
+		Condition catCndt = DSL.trueCondition();
+		if (categoryIds != null && categoryIds.size() > 0) {
+			catCndt = TASKS_.CATEGORY_ID.in(categoryIds);
+		}
 		
 		// New field: tags list
 		Field<String> tags = DSL
@@ -350,59 +360,13 @@ public class TaskDAO extends BaseDAO {
 			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS_.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
 			.where(
 				TASKS_.TASK_ID.equal(taskId)
+				.and(catCndt)
 				.and(
 					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
 					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
 				)
 			)
 			.fetchOneInto(VTaskObject.class);
-	}
-	
-	
-	
-	private Field[] getVTaskObjectFields(boolean stat) {
-		if (stat) {
-			return new Field[]{
-				TASKS_.TASK_ID,
-				TASKS_.CATEGORY_ID,
-				TASKS_.SERIES_TASK_ID,
-				TASKS_.SERIES_INSTANCE_ID,
-				TASKS_.PARENT_TASK_ID,
-				TASKS_.REVISION_STATUS,
-				TASKS_.REVISION_TIMESTAMP,
-				TASKS_.CREATION_TIMESTAMP,
-				TASKS_.PUBLIC_UID,
-				TASKS_.HREF
-			};
-		} else {
-			return new Field[]{
-				TASKS_.TASK_ID,
-				TASKS_.CATEGORY_ID,
-				TASKS_.SERIES_TASK_ID,
-				TASKS_.SERIES_INSTANCE_ID,
-				TASKS_.PARENT_TASK_ID,
-				TASKS_.REVISION_STATUS,
-				TASKS_.REVISION_TIMESTAMP,
-				TASKS_.REVISION_SEQUENCE,
-				TASKS_.CREATION_TIMESTAMP,
-				TASKS_.ORGANIZER,
-				TASKS_.ORGANIZER_ID,
-				TASKS_.PUBLIC_UID,
-				TASKS_.SUBJECT,
-				TASKS_.DESCRIPTION,
-				TASKS_.DESCRIPTION_TYPE,
-				TASKS_.TIMEZONE,
-				TASKS_.START,
-				TASKS_.DUE,
-				TASKS_.PROGRESS,
-				TASKS_.COMPLETED_ON,
-				TASKS_.STATUS,
-				TASKS_.IMPORTANCE,
-				TASKS_.IS_PRIVATE,
-				TASKS_.REMINDER,
-				TASKS_.HREF
-			};
-		}
 	}
 	
 	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategory(Connection con, boolean stat, int categoryId) throws DAOException {
@@ -465,58 +429,86 @@ public class TaskDAO extends BaseDAO {
 			.fetchGroups(TASKS_.HREF, VTaskObject.class);
 	}
 	
-	public List<VTaskObjectChanged> viewOnlineTaskObjectsChangedByCategory(Connection con, int categoryId, int limit) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		
-		return dsl
-			.select(
-				TASKS_.TASK_ID,
-				TASKS_.REVISION_STATUS,
-				TASKS_.REVISION_TIMESTAMP,
-				TASKS_.CREATION_TIMESTAMP,
-				TASKS_.HREF
-			)
-			.from(TASKS_)
-			.where(
-				TASKS_.CATEGORY_ID.equal(categoryId)
-				.and(
-					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
-					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
-				)
-			)
-			.orderBy(
-				TASKS_.TASK_ID.asc()
-			)
-			.limit(limit)
-			.fetchInto(VTaskObjectChanged.class);
-	}
-	
-	public List<VTaskObjectChanged> viewTaskObjectsChangedByCategorySince(Connection con, int categoryId, DateTime since, int limit) throws DAOException {
-		DSLContext dsl = getDSL(con);
-		
-		return dsl
-			.select(
-				TASKS_.TASK_ID,
-				TASKS_.REVISION_STATUS,
-				TASKS_.REVISION_TIMESTAMP,
-				TASKS_.CREATION_TIMESTAMP,
-				TASKS_.HREF
-			)
-			.from(TASKS_)
-			.where(
-				TASKS_.CATEGORY_ID.equal(categoryId)
-				.and(TASKS_.REVISION_TIMESTAMP.greaterThan(since))
-			)
-			.orderBy(
-				TASKS_.CREATION_TIMESTAMP.asc()
-			)
-			.limit(limit)
-			.fetchInto(VTaskObjectChanged.class);
-	}
-	
-	public int countByCategoryPattern(Connection con, Collection<Integer> categoryIds, Condition condition) throws DAOException {
+	public void lazy_viewChangedTaskObjects(Connection con, Collection<Integer> categoryIds, Condition condition, boolean statFields, int limit, int offset, VTaskObjectChanged.Consumer consumer) throws DAOException, WTException {
 		DSLContext dsl = getDSL(con);
 		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
+		
+		// New field: has recurrence reference
+		Field<Boolean> hasRecurrence = DSL.nvl2(TASKS_RECURRENCES.TASK_ID, true, false).as("has_recurrence");
+		
+		// New field: tags list
+		Field<String> tags = DSL
+			.select(DSL.groupConcat(TASKS_TAGS.TAG_ID, "|"))
+			.from(TASKS_TAGS)
+			.where(
+				TASKS_TAGS.TASK_ID.equal(TASKS_.CONTACT_ID)
+			).asField("tags");
+		
+		// New field: has attachments
+		Field<Boolean> hasAttachments = DSL.field(DSL.exists(
+			DSL.selectOne()
+				.from(TASKS_ATTACHMENTS)
+				.where(TASKS_ATTACHMENTS.TASK_ID.equal(TASKS_.TASK_ID))
+			)).as("has_attachments");
+		
+		// New field: has custom values
+		Field<Boolean> hasCustomValues = DSL.field(DSL.exists(
+			DSL.selectOne()
+				.from(TASKS_CUSTOM_VALUES)
+				.where(TASKS_CUSTOM_VALUES.TASK_ID.equal(TASKS_.TASK_ID))
+			)).as("has_custom_values");
+		
+		// New field: has vcard
+		Field<Boolean> hasICalendar = DSL.nvl2(TASKS_ICALENDARS.TASK_ID, true, false).as("has_icalendar");
+		
+		Cursor<Record> cursor = dsl
+			.select(
+				HISTORY_TASKS.CHANGE_TIMESTAMP,
+				HISTORY_TASKS.CHANGE_TYPE
+			)
+			.select(
+				getVTaskObjectFields(statFields)
+			)
+			.select(
+				tags,
+				hasRecurrence,
+				hasAttachments,
+				hasCustomValues,
+				hasICalendar
+			)
+			.distinctOn(HISTORY_TASKS.TASK_ID)
+			.from(HISTORY_TASKS)
+			.leftOuterJoin(TASKS_).on(HISTORY_TASKS.TASK_ID.equal(TASKS_.TASK_ID))
+			.leftOuterJoin(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.leftOuterJoin(TASKS_RECURRENCES).on(TASKS_.TASK_ID.equal(TASKS_RECURRENCES.TASK_ID))
+			.leftOuterJoin(TASKS_ICALENDARS).on(TASKS_.TASK_ID.equal(TASKS_ICALENDARS.TASK_ID))
+			.where(
+				HISTORY_TASKS.CATEGORY_ID.in(categoryIds)
+				.and(filterCndt)
+			)
+			.orderBy(
+				HISTORY_TASKS.TASK_ID.asc(),
+				HISTORY_TASKS.ID.desc()
+			)
+			.limit(limit)
+			.offset(offset)
+			.fetchLazy();
+		
+		try {
+			for(;;) {
+				VTaskObjectChanged vtoc = cursor.fetchNextInto(VTaskObjectChanged.class);
+				if (vtoc == null) break;
+				consumer.consume(vtoc, con);
+			}
+		} finally {
+			cursor.close();
+		}
+	}
+	
+	public int countByCategoryCondition(Connection con, Collection<Integer> categoryIds, Condition condition) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
+		
 		return dsl
 			.selectCount()
 			.from(TASKS_)
@@ -534,49 +526,25 @@ public class TaskDAO extends BaseDAO {
 			.fetchOne(0, Integer.class);
 	}
 	
-	public Condition toCondition(ITasksManager.TaskListView view, DateTime today) {
-		if (ITasksManager.TaskListView.ALL.equals(view)) {
-			return TASKS_.SERIES_TASK_ID.isNull()
-				.and(TASKS_.SERIES_INSTANCE_ID.isNull());
-			
-		} else if (ITasksManager.TaskListView.TODAY.equals(view)) {
-			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
-			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-				.or(
-					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
-					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
-				);
-			
-		} else if (ITasksManager.TaskListView.NEXT_7.equals(view)) {
-			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
-			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-				.or(
-					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
-					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
-					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
-				);
-			
-		} else if (ITasksManager.TaskListView.NOT_STARTED.equals(view)) {
-			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION));
-			
-		} else if (ITasksManager.TaskListView.LATE.equals(view)) {
-			return TASKS_.COMPLETED_ON.isNull()
-				.and(TASKS_.DUE.lessThan(DateTime.now()));
-			
-		} else if (ITasksManager.TaskListView.COMPLETED.equals(view)) {
-			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
-			
-		} else if (ITasksManager.TaskListView.NOT_COMPLETED.equals(view)) {
-			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
-			
-		} else if (ITasksManager.TaskListView.UPCOMING.equals(view)) {
-			return TASKS_.DUE.isNotNull()
-				.and(TASKS_.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)));
-			
-		} else {
-			return null;
-		}
+	public boolean existByCategoryCondition(Connection con, Collection<Integer> categoryIds, Condition condition) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		Condition filterCndt = (condition != null) ? condition : DSL.trueCondition();
+		
+		return dsl.fetchExists(
+			dsl.selectOne()
+			.from(TASKS_)
+			.join(CATEGORIES).on(TASKS_.CATEGORY_ID.equal(CATEGORIES.CATEGORY_ID))
+			.where(
+				TASKS_.CATEGORY_ID.in(categoryIds)
+				.and(
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
+				.and(
+					filterCndt
+				)
+			)
+		);
 	}
 	
 	public List<VTaskLookup> viewOnlineByCategoryRangeCondition(Connection con, Collection<Integer> categoryIds, DateTime rangeFrom, DateTime rangeTo, Condition condition) throws DAOException {
@@ -1425,5 +1393,105 @@ public class TaskDAO extends BaseDAO {
 					.or(TASKS_.DESCRIPTION.likeIgnoreCase(pattern));
 		}
 		return cndt;
+	}
+	
+	private Field[] getVTaskObjectFields(boolean stat) {
+		if (stat) {
+			return new Field[]{
+				TASKS_.TASK_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.PUBLIC_UID,
+				TASKS_.HREF
+			};
+		} else {
+			return new Field[]{
+				TASKS_.TASK_ID,
+				TASKS_.CATEGORY_ID,
+				TASKS_.SERIES_TASK_ID,
+				TASKS_.SERIES_INSTANCE_ID,
+				TASKS_.PARENT_TASK_ID,
+				TASKS_.REVISION_STATUS,
+				TASKS_.REVISION_TIMESTAMP,
+				TASKS_.REVISION_SEQUENCE,
+				TASKS_.CREATION_TIMESTAMP,
+				TASKS_.ORGANIZER,
+				TASKS_.ORGANIZER_ID,
+				TASKS_.PUBLIC_UID,
+				TASKS_.SUBJECT,
+				TASKS_.DESCRIPTION,
+				TASKS_.DESCRIPTION_TYPE,
+				TASKS_.TIMEZONE,
+				TASKS_.START,
+				TASKS_.DUE,
+				TASKS_.PROGRESS,
+				TASKS_.COMPLETED_ON,
+				TASKS_.STATUS,
+				TASKS_.IMPORTANCE,
+				TASKS_.IS_PRIVATE,
+				TASKS_.REMINDER,
+				TASKS_.HREF
+			};
+		}
+	}
+	
+	public static Condition createChangedTasksNewOrModifiedCondition() {
+		return HISTORY_TASKS.CHANGE_TYPE.equal(BaseDAO.CHANGE_TYPE_CREATION)
+			.or(HISTORY_TASKS.CHANGE_TYPE.equal(BaseDAO.CHANGE_TYPE_UPDATE));
+	}
+	
+	public static Condition createChangedTasksSinceUntilCondition(DateTime since, DateTime until) {
+		return HISTORY_TASKS.CHANGE_TIMESTAMP.greaterThan(since)
+			.and(HISTORY_TASKS.CHANGE_TIMESTAMP.lessThan(until));
+	}
+	
+	public static Condition createCondition(ITasksManager.TaskListView view, DateTime today) {
+		if (ITasksManager.TaskListView.ALL.equals(view)) {
+			return TASKS_.SERIES_TASK_ID.isNull()
+				.and(TASKS_.SERIES_INSTANCE_ID.isNull());
+			
+		} else if (ITasksManager.TaskListView.TODAY.equals(view)) {
+			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+				.or(
+					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
+					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
+				);
+			
+		} else if (ITasksManager.TaskListView.NEXT_7.equals(view)) {
+			DateTime todayAtBeginning = today.withTimeAtStartOfDay();
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+				.or(
+					TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED))
+					.and(TASKS_.COMPLETED_ON.greaterOrEqual(todayAtBeginning))
+					.and(TASKS_.COMPLETED_ON.lessThan(todayAtBeginning.plusDays(1)))
+				);
+			
+		} else if (ITasksManager.TaskListView.NOT_STARTED.equals(view)) {
+			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.NEEDS_ACTION));
+			
+		} else if (ITasksManager.TaskListView.LATE.equals(view)) {
+			return TASKS_.COMPLETED_ON.isNull()
+				.and(TASKS_.DUE.lessThan(DateTime.now()));
+			
+		} else if (ITasksManager.TaskListView.COMPLETED.equals(view)) {
+			return TASKS_.STATUS.equal(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
+			
+		} else if (ITasksManager.TaskListView.NOT_COMPLETED.equals(view)) {
+			return TASKS_.STATUS.notEqual(EnumUtils.toSerializedName(TaskBase.Status.COMPLETED));
+			
+		} else if (ITasksManager.TaskListView.UPCOMING.equals(view)) {
+			return TASKS_.DUE.isNotNull()
+				.and(TASKS_.STATUS.notIn(EnumUtils.toSerializedName(Task.Status.COMPLETED), EnumUtils.toSerializedName(Task.Status.CANCELLED)));
+			
+		} else {
+			return null;
+		}
 	}
 }

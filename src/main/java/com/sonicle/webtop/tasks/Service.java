@@ -112,6 +112,7 @@ import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
 import com.sonicle.webtop.tasks.model.TaskQuery;
+import com.sonicle.webtop.tasks.model.TaskQueryUI;
 import com.sonicle.webtop.tasks.msg.TaskImportLogSM;
 import com.sonicle.webtop.tasks.rpt.RptTaskList;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
@@ -654,9 +655,9 @@ public class Service extends BaseService {
 			String parentId = ServletUtils.getStringParameter(request, "parentId", true);
 			
 			List<JsSimple> items = new ArrayList<>();
-			Condition<TaskQuery> pred = new TaskQuery().parent().eq(parentId);
+			Condition<TaskQuery> filterQuery = new TaskQueryUI().parentId().eq(parentId);
 			Set<Integer> categoryIds = manager.listAllCategoryIds();
-			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, pred, SortInfo.asc("subject"), userTimeZone)) {
+			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, filterQuery, SortInfo.asc("subject"), userTimeZone)) {
 				items.add(new JsSimple(instance.getIdAsString(), instance.getSubject()));
 			}
 			new JsonResult(items).printTo(out);
@@ -689,7 +690,7 @@ public class Service extends BaseService {
 				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
 				SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQueryUI.build(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
 					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
@@ -830,7 +831,7 @@ public class Service extends BaseService {
 					Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 					List<Integer> visibleCategoryIds = getActiveFolderIds();
 					SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQueryUI.build(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 						final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 						if (origin == null) continue;
 						final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
@@ -1230,7 +1231,7 @@ public class Service extends BaseService {
 			} else {
 				final Set<Integer> ids = foldersTreeCache.getFolderIDs();
 				final String pattern = LangUtils.patternizeWords(query);
-				for (TaskLookupInstance instance : manager.listTaskInstances(ids, TaskQuery.createCondition(pattern), null, utz)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(ids, TaskQueryUI.build(pattern), null, utz)) {
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
 					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
