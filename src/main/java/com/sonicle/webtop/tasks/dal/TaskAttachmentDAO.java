@@ -36,6 +36,7 @@ import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
 import com.sonicle.webtop.tasks.bol.OTaskAttachmentData;
+import com.sonicle.webtop.tasks.bol.VTaskAttachmentWithBytes;
 import static com.sonicle.webtop.tasks.jooq.Tables.TASKS_ATTACHMENTS_DATA;
 import static com.sonicle.webtop.tasks.jooq.tables.TasksAttachments.TASKS_ATTACHMENTS;
 import com.sonicle.webtop.tasks.jooq.tables.records.TasksAttachmentsRecord;
@@ -79,6 +80,30 @@ public class TaskAttachmentDAO extends BaseDAO {
 				TASKS_ATTACHMENTS.FILENAME.asc()
 			)
 			.fetchInto(OTaskAttachment.class);
+	}
+	
+	public List<VTaskAttachmentWithBytes> selectByTaskWithBytes(Connection con, String taskId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.select(
+				TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID,
+				TASKS_ATTACHMENTS.TASK_ID,
+				TASKS_ATTACHMENTS.FILENAME,
+				TASKS_ATTACHMENTS.MEDIA_TYPE,
+				TASKS_ATTACHMENTS.REVISION_SEQUENCE,
+				TASKS_ATTACHMENTS.REVISION_TIMESTAMP,
+				TASKS_ATTACHMENTS.SIZE,
+				TASKS_ATTACHMENTS_DATA.BYTES
+			)
+			.from(TASKS_ATTACHMENTS)
+			.join(TASKS_ATTACHMENTS_DATA).on(TASKS_ATTACHMENTS.TASK_ATTACHMENT_ID.equal(TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID))
+			.where(
+				TASKS_ATTACHMENTS.TASK_ID.equal(taskId)
+			)
+			.orderBy(
+				TASKS_ATTACHMENTS.FILENAME.asc()
+			)
+			.fetchInto(VTaskAttachmentWithBytes.class);
 	}
 	
 	public int insert(Connection con, OTaskAttachment item, DateTime revisionTimestamp) throws DAOException {

@@ -310,7 +310,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							showOnOver: true,
 							items: [
 								{
-									iconCls: 'fas fa-ellipsis-v',
+									iconCls: 'wt-glyph-menu-kebab',
 									handler: function(v, ridx, cidx, itm, e, node, row) {
 										if (node.isOrigin()) {
 											Sonicle.Utils.showContextMenu(e, me.getRef('cxmTreeOrigin'), {node: node});
@@ -1709,16 +1709,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	completeTasksUI: function(recs) {
 		recs = Ext.Array.from(recs);
 		var me = this,
-			SoD = Sonicle.Data,
-			ids = SoD.collectValues(recs),
-			doFn = function(reloadCallback) {
-				me.setTaskItemsCompleted(ids, {
-					callback: function(success) {
-						if (success) me.reloadTasks({callback: reloadCallback});
-					}
-				});
-			},
-			rec, s;
+				SoD = Sonicle.Data,
+				ids = SoD.collectValues(recs),
+				doFn = function(reloadCallback) {
+					me.setTaskItemsCompleted(ids, {
+						callback: function(success) {
+							if (success) me.reloadTasks({callback: reloadCallback});
+						}
+					});
+				},
+				rec, s;
 		
 		if (recs.length === 1) {
 			var SoS = Sonicle.String,
@@ -1751,7 +1751,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			WT.confirmOk(me.res('task.confirm.complete.selection'), function(bid) {
 				if (bid === 'ok') doFn();
 			}, me, {title: me.res('task.confirm.complete.tit'), okText: me.res('task.confirm.complete.ok')});
-		}
+		}	
 	},
 	
 	deleteTasksUI: function(recs) {
@@ -2563,7 +2563,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						menuText: WT.res('grid.actions.lbl'),
 						items: [
 							{
-								iconCls: 'fas fa-ellipsis-vertical',
+								iconCls: 'wt-glyph-menu-kebab',
 								handler: function(view, ridx, cidx, itm, e, rec) {
 									view.setSelection(rec);
 									Sonicle.Utils.showContextMenu(e, me.getRef('cxmGrid'));

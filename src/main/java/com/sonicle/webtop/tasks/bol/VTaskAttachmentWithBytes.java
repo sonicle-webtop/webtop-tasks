@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Sonicle S.r.l.
+ * Copyright (C) 2025 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,57 +28,18 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2019 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2025 Sonicle S.r.l.".
  */
 package com.sonicle.webtop.tasks.bol;
-
-import com.sonicle.webtop.core.sdk.WTException;
-import java.sql.Connection;
 
 /**
  *
  * @author malbinola
  */
-public class VTaskObject extends VTaskBase {
-	// We extend OTask for convenience, not all fields are needed!
-	protected String tags;
-	protected Boolean hasIcalendar;
-	protected Boolean hasAttachments;
-	protected Boolean hasCustomValues;
+public class VTaskAttachmentWithBytes extends OTaskAttachment {
+	protected byte[] bytes;	
 	
-	public String getTags() {
-		return tags;
-	}
-
-	public void setTags(String tags) {
-		this.tags = tags;
-	}
-	
-	public Boolean getHasIcalendar() {
-		return hasIcalendar;
-	}
-
-	public void setHasIcalendar(Boolean hasIcalendar) {
-		this.hasIcalendar = hasIcalendar;
-	}
-	
-	public Boolean getHasAttachments() {
-		return hasAttachments;
-	}
-
-	public void setHasAttachments(Boolean hasAttachments) {
-		this.hasAttachments = hasAttachments;
-	}
-	
-	public Boolean getHasCustomValues() {
-		return hasCustomValues;
-	}
-
-	public void setHasCustomValues(Boolean hasCustomValues) {
-		this.hasCustomValues = hasCustomValues;
-	}
-	
-	public interface Consumer {
-		public void consume(VTaskObject vto, Connection con) throws WTException;
+	public byte[] getBytes() {
+		return bytes;
 	}
 }

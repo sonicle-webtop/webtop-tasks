@@ -32,8 +32,8 @@
  */
 package com.sonicle.webtop.tasks.rest.v2;
 
-import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
+import com.sonicle.commons.flags.BitFlags;
 import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
@@ -41,7 +41,7 @@ import com.sonicle.webtop.core.app.model.FolderShare;
 import com.sonicle.webtop.core.app.sdk.WTNotFoundException;
 import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
-import com.sonicle.webtop.tasks.ITasksManager.TaskUpdateOptions;
+import com.sonicle.webtop.tasks.ITasksManager.TaskUpdateOption;
 import com.sonicle.webtop.tasks.TaskObjectOutputType;
 import com.sonicle.webtop.tasks.TasksManager;
 import com.sonicle.webtop.tasks.model.Category;
@@ -227,7 +227,7 @@ public class Eas extends EasApi {
 			if (objwb == null) return respErrorNotFound();
 			
 			TaskEx task = mergeTask(false, objwb.getTask(), body);
-			BitFlag<TaskUpdateOptions> options = BitFlag.none();
+			BitFlags<TaskUpdateOption> options = BitFlags.noneOf(TaskUpdateOption.class);
 			manager.updateTaskInstance(iid, task, options);
 			
 			TaskObject obj = manager.getTaskObject(iid, TaskObjectOutputType.STAT);

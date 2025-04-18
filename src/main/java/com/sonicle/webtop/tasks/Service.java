@@ -35,7 +35,6 @@ package com.sonicle.webtop.tasks;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.sonicle.commons.BitFlag;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
 import com.sonicle.commons.PathUtils;
@@ -43,6 +42,7 @@ import com.sonicle.commons.cache.AbstractPassiveExpiringBulkMap;
 import com.sonicle.commons.qbuilders.conditions.Condition;
 import com.sonicle.commons.beans.SortInfo;
 import com.sonicle.commons.concurrent.KeyedReentrantLocks;
+import com.sonicle.commons.flags.BitFlags;
 import com.sonicle.commons.web.Crud;
 import com.sonicle.commons.web.ServletUtils;
 import com.sonicle.commons.web.ServletUtils.StringArray;
@@ -112,6 +112,7 @@ import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import com.sonicle.webtop.tasks.model.TaskLookupInstance;
 import com.sonicle.webtop.tasks.model.TaskObjectWithICalendar;
 import com.sonicle.webtop.tasks.model.TaskQuery;
+import com.sonicle.webtop.tasks.model.TaskQueryUI;
 import com.sonicle.webtop.tasks.msg.TaskImportLogSM;
 import com.sonicle.webtop.tasks.rpt.RptTaskList;
 import com.sonicle.webtop.tasks.rpt.RptTasksDetail;
@@ -195,7 +196,7 @@ public class Service extends BaseService {
 		
 		try {
 			ObjCustomFieldDefs.FieldsList scfields = new ObjCustomFieldDefs.FieldsList();
-			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.SEARCHABLE)).values()) {
+			for (CustomFieldEx cfield : coreMgr.listCustomFields(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.SEARCHABLE)).values()) {
 				scfields.add(new ObjCustomFieldDefs.Field(cfield, up.getLanguageTag()));
 			}
 			return scfields;
@@ -520,14 +521,14 @@ public class Service extends BaseService {
 			} else if (crud.equals(Crud.CREATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				item = manager.addCategory(JsCategory.createCategory(pl.data));
+				item = manager.addCategory(pl.data.createCategoryForInsert());
 				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals(Crud.UPDATE)) {
 				Payload<MapItem, JsCategory> pl = ServletUtils.getPayload(request, JsCategory.class);
 				
-				manager.updateCategory(JsCategory.createCategory(pl.data));
+				manager.updateCategory(pl.data.categoryId, pl.data.createCategoryForUpdate());
 				foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 				new JsonResult().printTo(out);
 				
@@ -654,9 +655,9 @@ public class Service extends BaseService {
 			String parentId = ServletUtils.getStringParameter(request, "parentId", true);
 			
 			List<JsSimple> items = new ArrayList<>();
-			Condition<TaskQuery> pred = new TaskQuery().parent().eq(parentId);
+			Condition<TaskQuery> filterQuery = new TaskQueryUI().parentId().eq(parentId);
 			Set<Integer> categoryIds = manager.listAllCategoryIds();
-			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, pred, SortInfo.asc("subject"), userTimeZone)) {
+			for (TaskLookupInstance instance : manager.listTaskInstances(categoryIds, filterQuery, SortInfo.asc("subject"), userTimeZone)) {
 				items.add(new JsSimple(instance.getIdAsString(), instance.getSubject()));
 			}
 			new JsonResult(items).printTo(out);
@@ -689,7 +690,7 @@ public class Service extends BaseService {
 				Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 				List<Integer> visibleCategoryIds = getActiveFolderIds();
 				SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQueryUI.build(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
 					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
@@ -830,7 +831,7 @@ public class Service extends BaseService {
 					Map<String, CustomField.Type> map = cacheSearchableCustomFieldType.shallowCopy();
 					List<Integer> visibleCategoryIds = getActiveFolderIds();
 					SortInfo sortInfo = !sortMeta.isEmpty() ? sortMeta.get(0).toSortInfo() : SortInfo.asc("start");
-					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQuery.createCondition(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
+					for (TaskLookupInstance instance : manager.listTaskInstances(visibleCategoryIds, view, null, TaskQueryUI.build(queryObj, map, userTimeZone), sortInfo, userTimeZone)) {
 						final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 						if (origin == null) continue;
 						final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
@@ -864,7 +865,7 @@ public class Service extends BaseService {
 					.collect(Collectors.toList());
 
 				for (TaskInstanceId iid : iids) {
-					TaskInstance instance = manager.getTaskInstance(iid, BitFlag.none());
+					TaskInstance instance = manager.getTaskInstance(iid, BitFlags.noneOf(ITasksManager.TaskGetOption.class));
 					if (instance == null) continue;
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
@@ -898,7 +899,7 @@ public class Service extends BaseService {
 				
 				UserProfile up = getEnv().getProfile();
 				TaskInstanceId instanceId = TaskInstanceId.parse(id);
-				BitFlag<ITasksManager.TaskGetOptions> options = BitFlag.of(ITasksManager.TaskGetOptions.TAGS, ITasksManager.TaskGetOptions.CUSTOM_VALUES);
+				BitFlags<ITasksManager.TaskGetOption> options = BitFlags.with(ITasksManager.TaskGetOption.TAGS, ITasksManager.TaskGetOption.CUSTOM_VALUES);
 				TaskInstance task = manager.getTaskInstance(instanceId, options);
 				if (task == null) throw new WTException("Task not found [{}]", instanceId);
 				
@@ -908,7 +909,7 @@ public class Service extends BaseService {
 				if (folder == null) throw new WTException("Folder not found [{}]", task.getCategoryId());
 				final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 				
-				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.PREVIEWABLE));
+				Set<String> pvwfields = coreMgr.listCustomFieldIds(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.PREVIEWABLE));
 				Map<String, CustomPanel> cpanels = coreMgr.listCustomPanelsUsedBy(SERVICE_ID, task.getTags());
 				Map<String, CustomField> cfields = new HashMap<>();
 				for (CustomPanel cpanel : cpanels.values()) {
@@ -990,7 +991,7 @@ public class Service extends BaseService {
 				if (task.getParentInstanceId() != null) {
 					//TaskInstanceId piid = TaskInstanceId.build(task.getParentTaskId(), TaskInstanceId.MASTER_INSTANCE_ID);
 					//TaskInstance ptask = manager.getTaskInstance(piid, BitFlag.none());
-					TaskInstance ptask = manager.getTaskInstance(task.getParentInstanceId(), BitFlag.none());
+					TaskInstance ptask = manager.getTaskInstance(task.getParentInstanceId(), BitFlags.noneOf(ITasksManager.TaskGetOption.class));
 					if (ptask != null) {
 						parentTaskSubject = ptask.getSubject();
 					} else {
@@ -1230,7 +1231,7 @@ public class Service extends BaseService {
 			} else {
 				final Set<Integer> ids = foldersTreeCache.getFolderIDs();
 				final String pattern = LangUtils.patternizeWords(query);
-				for (TaskLookupInstance instance : manager.listTaskInstances(ids, TaskQuery.createCondition(pattern), null, utz)) {
+				for (TaskLookupInstance instance : manager.listTaskInstances(ids, TaskQueryUI.build(pattern), null, utz)) {
 					final CategoryFSOrigin origin = foldersTreeCache.getOriginByFolder(instance.getCategoryId());
 					if (origin == null) continue;
 					final CategoryFSFolder folder = foldersTreeCache.getFolder(instance.getCategoryId());
@@ -1371,7 +1372,7 @@ public class Service extends BaseService {
 		if (origin instanceof MyCategoryFSOrigin) {
 			Category category = manager.getCategory(categoryId);
 			category.setColor(color);
-			manager.updateCategory(category);
+			manager.updateCategory(category.getCategoryId(), category);
 			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 			
 		} else if (origin instanceof CategoryFSOrigin) {
@@ -1387,7 +1388,7 @@ public class Service extends BaseService {
 		if (origin instanceof MyCategoryFSOrigin) {
 			Category category = manager.getCategory(categoryId);
 			category.setSync(sync);
-			manager.updateCategory(category);
+			manager.updateCategory(category.getCategoryId(), category);
 			foldersTreeCache.init(AbstractFolderTreeCache.Target.FOLDERS);
 			
 		} else if (origin instanceof CategoryFSOrigin) {
@@ -1408,7 +1409,7 @@ public class Service extends BaseService {
 		protected Map<String, CustomField.Type> internalGetMap() {
 			try {
 				CoreManager coreMgr = WT.getCoreManager();
-				return coreMgr.listCustomFieldTypesById(SERVICE_ID, BitFlag.of(CoreManager.CustomFieldListOptions.SEARCHABLE));
+				return coreMgr.listCustomFieldTypesById(SERVICE_ID, BitFlags.with(CoreManager.CustomFieldListOption.SEARCHABLE));
 				
 			} catch(Throwable t) {
 				logger.error("[SearchableCustomFieldTypeCache] Unable to build cache", t);

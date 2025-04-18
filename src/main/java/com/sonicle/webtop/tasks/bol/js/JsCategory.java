@@ -34,6 +34,7 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryBase;
 
 /**
  *
@@ -64,18 +65,21 @@ public class JsCategory {
 		reminder = cat.getDefaultReminder();
 	}
 	
-	public static Category createCategory(JsCategory js) {
-		Category cat = new Category();
-		cat.setCategoryId(js.categoryId);
-		cat.setDomainId(js.domainId);
-		cat.setUserId(js.userId);
-		cat.setBuiltIn(js.builtIn);
-		cat.setName(js.name);
-		cat.setDescription(js.description);
-		cat.setColor(js.color);
-		cat.setSync(EnumUtils.forSerializedName(js.sync, Category.Sync.class));
-		cat.setIsPrivate(js.isPrivate);
-		cat.setDefaultReminder(js.reminder);
-		return cat;
+	public CategoryBase createCategoryForInsert() {
+		return createCategoryForUpdate();
+	}
+	
+	public CategoryBase createCategoryForUpdate() {
+		CategoryBase item = new CategoryBase();
+		item.setDomainId(domainId);
+		item.setUserId(userId);
+		item.setBuiltIn(builtIn);
+		item.setName(name);
+		item.setDescription(description);
+		item.setColor(color);
+		item.setSync(EnumUtils.forSerializedName(sync, Category.Sync.class));
+		item.setIsPrivate(isPrivate);
+		item.setDefaultReminder(reminder);
+		return item;
 	}
 }

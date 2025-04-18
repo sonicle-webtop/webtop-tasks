@@ -120,7 +120,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			foSubjectIconCls: WTF.foGetFn('record', 'isPrivate', function(v) {
 				return v === true ? 'wttasks-icon-taskPrivate' : '';
 			}),
-			foStatus: WTF.foMultiGetFn('record', ['status', 'progress'], function(v) {
+			foStatusHTML: WTF.foMultiGetFn('record', ['status', 'progress'], function(v) {
 				var status = v['status'],
 					progress = v['progress'],
 					complOn = this.get('record.completedOn'),
@@ -132,7 +132,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				} else if (Sonicle.String.isIn(status, ['IP','CA','WA'])) {
 					s += '<span class="' + infoCls + '">('+progress+'%)</span>';
 				}
-				return me.mys.res('store.taskStatus.'+status) + s;
+				return Ext.isEmpty(status) ? '' : me.mys.res('store.taskStatus.'+status) + s;
 			}),
 			foStatusIconCls: WTF.foGetFn('record', 'status', function(v) {
 				return 'wttasks-icon-taskStatus-' + v;
@@ -330,7 +330,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 						}
 					}, {
 						xtype: 'button',
-						iconCls: 'fas fa-ellipsis-v',
+						iconCls: 'wt-glyph-menu-kebab',
 						arrowVisible: false,
 						handler: function(s, e) {
 							me.fireEvent('showmenu', me, e);
@@ -463,7 +463,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 									{
 										xtype: 'so-displayfield',
 										bind: {
-											value: me.mys.res('taskPreview.single.task.status.lbl') + ': {foStatus}',
+											value: me.mys.res('taskPreview.single.task.status.lbl') + ': {foStatusHTML}',
 											iconCls: '{foStatusIconCls}'
 										},
 										htmlEncode: false,

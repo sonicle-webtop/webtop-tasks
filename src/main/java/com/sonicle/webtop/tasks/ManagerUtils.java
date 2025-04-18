@@ -47,9 +47,11 @@ import com.sonicle.webtop.tasks.bol.OTask;
 import com.sonicle.webtop.tasks.bol.OTaskAssignee;
 import com.sonicle.webtop.tasks.bol.OTaskAttachment;
 import com.sonicle.webtop.tasks.bol.OTaskCustomValue;
+import com.sonicle.webtop.tasks.bol.VTaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.bol.VTaskLookup;
 import com.sonicle.webtop.tasks.bol.VTaskObject;
 import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.tasks.model.CategoryBase;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.Task;
 import com.sonicle.webtop.tasks.model.TaskAssignee;
@@ -58,6 +60,7 @@ import com.sonicle.webtop.tasks.model.TaskBase;
 import com.sonicle.webtop.tasks.model.TaskObject;
 import com.sonicle.webtop.tasks.model.TaskLookup;
 import com.sonicle.webtop.tasks.model.TaskAlertLookup;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
 import com.sonicle.webtop.tasks.model.TaskInstanceId;
 import jakarta.mail.internet.InternetAddress;
 import java.util.ArrayList;
@@ -100,9 +103,16 @@ public class ManagerUtils {
 		return fillCategory(new Category(), src);
 	}
 	
-	static Category fillCategory(Category tgt, OCategory src) {
+	static <T extends Category> T fillCategory(T tgt, OCategory src) {
 		if ((tgt != null) && (src != null)) {
 			tgt.setCategoryId(src.getCategoryId());
+		}
+		fillCategory((CategoryBase)tgt, src);
+		return tgt;
+	}
+	
+	static <T extends CategoryBase> T fillCategory(T tgt, OCategory src) {
+		if ((tgt != null) && (src != null)) {
 			tgt.setDomainId(src.getDomainId());
 			tgt.setUserId(src.getUserId());
 			tgt.setBuiltIn(src.getBuiltIn());
@@ -116,14 +126,13 @@ public class ManagerUtils {
 		return tgt;
 	}
 	
-	static OCategory createOCategory(Category src) {
+	static OCategory createOCategory(CategoryBase src) {
 		if (src == null) return null;
 		return fillOCategory(new OCategory(), src);
 	}
 	
-	static OCategory fillOCategory(OCategory tgt, Category src) {
+	static OCategory fillOCategory(OCategory tgt, CategoryBase src) {
 		if ((tgt != null) && (src != null)) {
-			tgt.setCategoryId(src.getCategoryId());
 			tgt.setDomainId(src.getDomainId());
 			tgt.setUserId(src.getUserId());
 			tgt.setBuiltIn(src.getBuiltIn());
@@ -400,6 +409,14 @@ public class ManagerUtils {
 		ArrayList<TaskAttachment> list = new ArrayList<>(items.size());
 		for (OTaskAttachment item : items) {
 			list.add(fillTaskAttachment(new TaskAttachment(), item));
+		}
+		return list;
+	}
+	
+	static List<TaskAttachment> createTaskAttachmentListWithBytes(List<VTaskAttachmentWithBytes> items) {
+		ArrayList<TaskAttachment> list = new ArrayList<>(items.size());
+		for (VTaskAttachmentWithBytes item : items) {
+			list.add(fillTaskAttachment(new TaskAttachmentWithBytes(item.getBytes()), item));
 		}
 		return list;
 	}
