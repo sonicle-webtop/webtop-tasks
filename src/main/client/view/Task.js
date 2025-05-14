@@ -89,6 +89,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		
 		Sonicle.VMUtils.applyFormulas(me.getVM(), {
 			foIsView: WTF.foIsEqual('_mode', null, me.MODE_VIEW),
+			foIsNew: WTF.foIsEqual('_mode', null, me.MODE_NEW),
 			startDate: {
 				bind: {bindTo: '{record.start}'},
 				get: function(val) {
@@ -1107,6 +1108,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}, 
 					me.mys.hasAuditUI() ? me.addAct('taskAuditLog', {
 						text: null,
+						bind: {
+							hidden: '{foIsNew}'
+						},
 						tooltip: WT.res('act-auditLog.lbl'),
 						iconCls: 'fas fa-history',
 						handler: function() {
