@@ -32,7 +32,7 @@
  */
 package com.sonicle.webtop.tasks.bol.js;
 
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.webtop.tasks.bol.model.MyCategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFSFolder;
@@ -68,7 +68,7 @@ public class JsPletTasks {
 		this.categoryColor = category.getColor();
 		this.subject = task.getSubject();
 		this.body = StringUtils.left(task.getDescription(), 250);
-		this.due = DateTimeUtils.printYmdHmsWithZone(task.getDue(), profileTz);
+		this.due = JodaTimeUtils.printYMDHMS(profileTz, task.getDue());
 		
 		this._orDN = (origin instanceof MyCategoryFSOrigin) ? null : origin.getDisplayName();
 		this._owPid = category.getProfileId().toString();

@@ -32,7 +32,7 @@
  */
 package com.sonicle.webtop.tasks.rest.v1;
 
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.model.FolderShare;
@@ -83,7 +83,7 @@ import org.slf4j.LoggerFactory;
 public class Dav extends DavApi {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Dav.class);
 	private static final String DEFAULT_ETAG = "19700101000000000";
-	private static final DateTimeFormatter ETAG_FORMATTER = DateTimeUtils.createFormatter("yyyyMMddHHmmssSSS", DateTimeZone.UTC);
+	private static final DateTimeFormatter ETAG_FORMATTER = JodaTimeUtils.createFormatter("yyyyMMddHHmmssSSS", DateTimeZone.UTC);
 
 	@Override
 	public Response getDavFolders() {

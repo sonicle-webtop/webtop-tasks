@@ -122,8 +122,8 @@ import com.sonicle.commons.concurrent.KeyedReentrantLocks;
 import com.sonicle.commons.flags.BitFlags;
 import com.sonicle.commons.flags.BitFlagsEnum;
 import com.sonicle.commons.qbuilders.QBuilderUtils;
-import com.sonicle.commons.time.DateTimeUtils;
 import com.sonicle.commons.time.InstantRange;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.commons.web.json.CId;
 import com.sonicle.commons.web.json.JsonResult;
 import com.sonicle.webtop.core.app.AuditLogManager;
@@ -745,7 +745,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			final boolean fullSync = (since == null);
-			final DateTime until = DateTimeUtils.now(true);
+			final DateTime until = JodaTimeUtils.now(true);
 			
 			checkRightsOnCategory(categoryId, FolderShare.FolderRight.READ);
 			
@@ -884,11 +884,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			int noOfRecurringInst = 368;
 			if (view != null) {
 				if (TaskListView.TODAY.equals(view)) {
-					queryTo = instTo = DateTimeUtils.now().withZone(targetTimezone).toLocalDate().plusDays(1).toDateTimeAtStartOfDay(targetTimezone);
+					queryTo = instTo = JodaTimeUtils.now().withZone(targetTimezone).toLocalDate().plusDays(1).toDateTimeAtStartOfDay(targetTimezone);
 				} else if (TaskListView.NEXT_7.equals(view)) {
-					queryTo = instTo = DateTimeUtils.now().withZone(targetTimezone).toLocalDate().plusDays(8).toDateTimeAtStartOfDay(targetTimezone);
+					queryTo = instTo = JodaTimeUtils.now().withZone(targetTimezone).toLocalDate().plusDays(8).toDateTimeAtStartOfDay(targetTimezone);
 				}
-				queryCondition = queryRecCondition = tasDao.toCondition(view, DateTimeUtils.now());
+				queryCondition = queryRecCondition = tasDao.toCondition(view, JodaTimeUtils.now());
 				
 			} else {
 				TaskPredicateVisitor tpv = new TaskPredicateVisitor(TaskPredicateVisitor.Target.NORMAL)
@@ -906,7 +906,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				queryTo = (range != null) ? range.to : null;
 				instFrom = tpv.hasFromRange() ? tpv.getFromRange() : queryFrom;
 				instTo = tpv.hasToRange() ? tpv.getToRange() : queryTo;
-				Days days = DateTimeUtils.daysBetween(queryFrom, queryTo);
+				Days days = JodaTimeUtils.daysBetween(queryFrom, queryTo);
 				if (days != null) noOfRecurringInst = days.getDays() + 2;
 			}
 			
@@ -984,7 +984,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			DateTime to = null;
 			int noOfRecurringInst = 2*365;
 			DateTime recurringInstFrom = null;
-			DateTime now = DateTimeUtils.now().withZone(targetTimezone);
+			DateTime now = JodaTimeUtils.now().withZone(targetTimezone);
 			if (view != null) {
 				queryCondition = TaskDAO.createCondition(view, now);
 				if (TaskListView.TODAY.equals(view) || TaskListView.NOT_STARTED.equals(view) || TaskListView.LATE.equals(view)) {
@@ -1020,9 +1020,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				from = cbv.getRangeStartOrDefault(from);
 				to = cbv.getRangeEndOrDefault(to);
 				
-				Days daysInRange = DateTimeUtils.daysBetween(from, to);
+				Days daysInRange = JodaTimeUtils.daysBetween(from, to);
 				if (daysInRange != null) noOfRecurringInst = daysInRange.getDays() + 1;
-				if (recurringInstFrom == null) recurringInstFrom = DateTimeUtils.now().withTimeAtStartOfDay();
+				if (recurringInstFrom == null) recurringInstFrom = JodaTimeUtils.now().withTimeAtStartOfDay();
 			}
 			
 			con = WT.getConnection(SERVICE_ID);
@@ -2313,7 +2313,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		
 		public DateTimeZone taskTimezoneAsObject() {
-			return DateTimeUtils.parseDateTimeZone(this.taskTimezone);
+			return JodaTimeUtils.parseTimezone(this.taskTimezone);
 		}
 	}
 	

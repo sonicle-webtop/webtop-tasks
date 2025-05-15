@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.rest.v2;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.flags.BitFlags;
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.model.FolderShare;
@@ -79,9 +79,9 @@ import org.slf4j.LoggerFactory;
 public class Eas extends EasApi {
 	private static final Logger logger = LoggerFactory.getLogger(Eas.class);
 	private static final String DEFAULT_ETAG = "19700101000000000";
-	private static final DateTimeFormatter ETAG_FMT = DateTimeUtils.createFormatter("yyyyMMddHHmmssSSS", DateTimeZone.UTC);
-	private static final DateTimeFormatter ISO_DATE_FMT = DateTimeUtils.createFormatter("yyyyMMdd", DateTimeZone.UTC);
-	private static final DateTimeFormatter ISO_DATETIME_FMT = DateTimeUtils.createFormatter("yyyyMMdd'T'HHmmss'Z'", DateTimeZone.UTC);
+	private static final DateTimeFormatter ETAG_FMT = JodaTimeUtils.createFormatter("yyyyMMddHHmmssSSS", DateTimeZone.UTC);
+	private static final DateTimeFormatter ISO_DATE_FMT = JodaTimeUtils.createFormatter("yyyyMMdd", DateTimeZone.UTC);
+	private static final DateTimeFormatter ISO_DATETIME_FMT = JodaTimeUtils.createFormatter("yyyyMMdd'T'HHmmss'Z'", DateTimeZone.UTC);
 	
 	@Override
 	public Response getFolders() {
@@ -141,8 +141,8 @@ public class Eas extends EasApi {
 			if (cat == null) return respErrorBadRequest();
 			//TODO: maybe check if passed folder is set to OFF
 			
-			//DateTime since = DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, cutoffDate);
-			//if (since == null) DateTimeUtils.now().minusDays(30).withTimeAtStartOfDay();
+			//DateTime since = JodaTimeUtils.parseDateTime(ISO_DATETIME_FMT, cutoffDate);
+			//if (since == null) JodaTimeUtils.now().minusDays(30).withTimeAtStartOfDay();
 			
 			List<ApiEasSyncTaskStat> items = new ArrayList<>();
 			List<TaskObject> objs = manager.listTaskObjects(Integer.valueOf(folderId), TaskObjectOutputType.STAT);
@@ -301,10 +301,10 @@ public class Eas extends EasApi {
 			.id(obj.getTaskId())
 			.etag(buildEtag(obj.getRevisionTimestamp()))
 			.subject(task.getSubject())
-			.start(DateTimeUtils.print(ISO_DATETIME_FMT, task.getStart()))
-			.due(DateTimeUtils.print(ISO_DATETIME_FMT, task.getDue()))
+			.start(JodaTimeUtils.print(ISO_DATETIME_FMT, task.getStart()))
+			.due(JodaTimeUtils.print(ISO_DATETIME_FMT, task.getDue()))
 			.status(EnumUtils.toSerializedName(task.getStatus()))
-			.complOn(DateTimeUtils.print(ISO_DATETIME_FMT, task.getCompletedOn()))
+			.complOn(JodaTimeUtils.print(ISO_DATETIME_FMT, task.getCompletedOn()))
 			.impo((int)task.getImportance())
 			.prvt(task.getIsPrivate())
 			//.reminder(task.getReminder())
@@ -313,9 +313,9 @@ public class Eas extends EasApi {
 	
 	private <T extends TaskEx> T mergeTask(boolean isNew, T tgt, ApiEasSyncTaskUpdate src) {
 		tgt.setSubject(src.getSubject());
-		tgt.setStart(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getStart()));
-		tgt.setDue(DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getDue()));
-		DateTime complOn = DateTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getComplOn());
+		tgt.setStart(JodaTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getStart()));
+		tgt.setDue(JodaTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getDue()));
+		DateTime complOn = JodaTimeUtils.parseDateTime(ISO_DATETIME_FMT, src.getComplOn());
 		if (complOn != null) {
 			tgt.setCompletedOn(complOn);
 			tgt.setStatus(TaskBase.Status.COMPLETED);
