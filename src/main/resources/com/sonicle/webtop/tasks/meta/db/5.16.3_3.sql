@@ -8,7 +8,7 @@ CREATE TRIGGER "history_categories_trg_prune" AFTER INSERT ON "tasks"."history_c
 FOR EACH ROW
 EXECUTE PROCEDURE "tasks"."prune_categories_history_on"();
 
-DROP TRIGGER IF EXISTS "history_tasks_trg_prune" ON "tasks"."history_contacts";
-CREATE TRIGGER "history_tasks_trg_prune" AFTER INSERT ON "tasks"."history_contacts"
+DROP TRIGGER IF EXISTS "history_tasks_trg_prune" ON "tasks"."history_tasks";
+CREATE TRIGGER "history_tasks_trg_prune" AFTER INSERT ON "tasks"."history_tasks"
 FOR EACH ROW
 EXECUTE PROCEDURE "tasks"."prune_tasks_history_on"();
