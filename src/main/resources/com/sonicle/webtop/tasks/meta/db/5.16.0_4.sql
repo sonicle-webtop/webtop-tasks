@@ -19,7 +19,7 @@ UNION
 SELECT "tasks"."category_id", "tasks"."task_id", "tasks"."revision_timestamp", 'U'
 FROM "tasks"."tasks"
 INNER JOIN "tasks"."categories" ON "tasks"."category_id" = "categories"."category_id"
-WHERE "tasks"."revision_status" IN ('N','M');
+WHERE "tasks"."revision_status" IN ('M');
 
 INSERT INTO "tasks"."history_tasks" ("category_id", "task_id", "change_timestamp", "change_type")
 SELECT "tasks"."category_id", "tasks"."task_id", "tasks"."creation_timestamp", 'D'

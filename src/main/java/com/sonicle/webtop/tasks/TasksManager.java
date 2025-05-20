@@ -142,6 +142,7 @@ import com.sonicle.webtop.tasks.bol.OChildrenCount;
 import com.sonicle.webtop.tasks.bol.OTaskAssignee;
 import com.sonicle.webtop.tasks.bol.OTaskInstanceInfo;
 import com.sonicle.webtop.tasks.bol.VTaskAttachmentWithBytes;
+import com.sonicle.webtop.tasks.dal.HistoryDAO;
 import com.sonicle.webtop.tasks.dal.TaskAssigneeDAO;
 import com.sonicle.webtop.tasks.dal.TaskUIConditionBuildingVisitor;
 import com.sonicle.webtop.tasks.io.ICalendarInput;
@@ -2774,6 +2775,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (logicDelete) {
 			return tasDao.logicDeleteByCategoryId(con, categoryId, BaseDAO.createRevisionTimestamp());
 		} else {
+			HistoryDAO hisDao = HistoryDAO.getInstance();
+			hisDao.deleteTasksHistoryByCategory(con, categoryId);
 			return tasDao.deleteByCategoryId(con, categoryId);
 		}
 	}
