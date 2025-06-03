@@ -19,6 +19,10 @@
     },
     {
       "auth-bearer": []
+    },
+    {
+      "auth-apikey-bearer": [],
+      "auth-apikey-username": []
     }
   ],
   "paths": {
@@ -1146,6 +1150,18 @@
       "auth-bearer": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "auth-apikey-bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "APIKey",
+        "description": "API-Key Authentication: specifies the secret token (bearer and username are both required)"
+      },
+      "auth-apikey-username": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Auth-Username",
+        "description": "API-Key Authentication: specifies target username (bearer and username are both required)"
       }
     }
   },
