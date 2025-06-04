@@ -451,11 +451,24 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								}
 								return false;
 							}
-						}]
+						}],
+						listeners: {
+							load: function(s, recs, succ) {
+								if (succ && (s.loadCount === 1) && me.isMode(me.MODE_NEW)) {
+									var rec = s.getById(me.lref('fldcategory').getValue());
+									if (rec) me.setCategoryDefaults(rec);
+								}
+							}
+						}
 					},
 					groupField: '_profileDescription',
 					colorField: 'color',
-					width: 300
+					width: 300,
+					listeners: {
+						select: function(s, rec) {
+							me.setCategoryDefaults(rec);
+						}
+					}
 				}),
 				me.addAct('tags', {
 					text: null,
@@ -1116,6 +1129,16 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					}) : null
 				]
 			};
+		},
+		
+		setCategoryDefaults: function(cat) {
+			var mo = this.getModel();
+			if (mo) {
+				mo.set({
+					isPrivate: cat.get('tasPrivate'),
+					reminder: cat.get('tasReminder')
+				});
+			}
 		},
 		
 		showHideField: function(vmField, hidden) {
