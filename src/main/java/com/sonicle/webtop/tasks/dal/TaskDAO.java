@@ -1005,17 +1005,17 @@ public class TaskDAO extends BaseDAO {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
-				TASKS_.CATEGORY_ID,
-				DSL.max(TASKS_.REVISION_TIMESTAMP)
+				HISTORY_TASKS.CATEGORY_ID,
+				DSL.max(HISTORY_TASKS.CHANGE_TIMESTAMP)
 			)
-			.from(TASKS_)
+			.from(HISTORY_TASKS)
 			.where(
-				TASKS_.CATEGORY_ID.in(categoryIds)
+				HISTORY_TASKS.CATEGORY_ID.in(categoryIds)
 			)
 			.groupBy(
-				TASKS_.CATEGORY_ID
+				HISTORY_TASKS.CATEGORY_ID
 			)
-			.fetchMap(TASKS_.CATEGORY_ID, DSL.max(TASKS_.REVISION_TIMESTAMP));
+			.fetchMap(HISTORY_TASKS.CATEGORY_ID, DSL.max(HISTORY_TASKS.CHANGE_TIMESTAMP));
 	}
 	
 	public int insert(Connection con, OTask item, boolean setContactRef, boolean setDocRef) throws DAOException {
