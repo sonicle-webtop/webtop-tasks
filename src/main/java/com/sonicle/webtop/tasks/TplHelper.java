@@ -33,12 +33,11 @@
 package com.sonicle.webtop.tasks;
 
 import com.sonicle.commons.EnumUtils;
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.commons.web.json.MapItem;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.util.EmailNotification;
 import com.sonicle.webtop.core.model.ProfileI18n;
-import com.sonicle.webtop.tasks.bol.VTask;
 import com.sonicle.webtop.tasks.model.TaskBase;
 import freemarker.template.TemplateException;
 import java.io.IOException;
@@ -72,7 +71,7 @@ public class TplHelper {
 		i18n.put("status", WT.lookupResource(SERVICE_ID,  profileI18n.getLocale(), TasksLocale.TPL_EMAIL_TASK_BODY_STATUS));
 		i18n.put("completion", WT.lookupResource(SERVICE_ID,  profileI18n.getLocale(), TasksLocale.TPL_EMAIL_TASK_BODY_COMPLETION));
 		
-		DateTimeFormatter dateFmt = DateTimeUtils.createFormatter(profileI18n.getDateFormat(), DateTimeZone.UTC);
+		DateTimeFormatter dateFmt = JodaTimeUtils.createFormatter(profileI18n.getDateFormat(), DateTimeZone.UTC);
 		MapItem item = new MapItem();
 		item.put("subject", StringUtils.defaultIfBlank(task.getSubject(), ""));
 		item.put("description", StringUtils.defaultIfBlank(task.getDescription(), null));

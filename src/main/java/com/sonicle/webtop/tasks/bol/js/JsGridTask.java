@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.google.gson.annotations.SerializedName;
 import com.sonicle.commons.EnumUtils;
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.webtop.tasks.model.Category;
 import com.sonicle.webtop.tasks.model.CategoryFSFolder;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
@@ -77,7 +77,7 @@ public class JsGridTask {
 	public JsGridTask() {}
 	
 	public JsGridTask(CategoryFSFolder folder, CategoryPropSet folderProps, TaskLookupInstance task, Hierarchy hierarchy, Integer depth, DateTimeZone profileTz) {
-		DateTimeFormatter fmtYmdHms = DateTimeUtils.createYmdHmsFormatter(profileTz);
+		DateTimeFormatter fmtYmdHms = JodaTimeUtils.createFormatterYMDHMS(profileTz);
 		Category category = folder.getCategory();
 		
 		this.id = task.getId().toString();
@@ -85,9 +85,9 @@ public class JsGridTask {
 		this.parentId = Hierarchy.CHILD.equals(hierarchy) ? task.getParentInstanceId().toString() : null;
         this.subject = task.getSubject();
         this.description = task.getDescription();
-		this.start = DateTimeUtils.print(fmtYmdHms, task.getStart());
-		this.due = DateTimeUtils.print(fmtYmdHms, task.getDue());
-		this.completedOn = DateTimeUtils.print(fmtYmdHms, task.getCompletedOn());
+		this.start = JodaTimeUtils.print(fmtYmdHms, task.getStart());
+		this.due = JodaTimeUtils.print(fmtYmdHms, task.getDue());
+		this.completedOn = JodaTimeUtils.print(fmtYmdHms, task.getCompletedOn());
 		this.status = EnumUtils.toSerializedName(task.getStatus());
         this.progress = task.getProgress();
         this.importance = task.getImportance();

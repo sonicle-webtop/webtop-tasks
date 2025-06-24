@@ -34,7 +34,7 @@ package com.sonicle.webtop.tasks.bol.js;
 
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.LangUtils;
-import com.sonicle.commons.time.DateTimeUtils;
+import com.sonicle.commons.time.JodaTimeUtils;
 import com.sonicle.commons.web.json.CId;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldDefs;
 import com.sonicle.webtop.core.bol.js.ObjCustomFieldValue;
@@ -98,7 +98,7 @@ public class JsTask {
 	public JsTask() {}
 	
 	public JsTask(UserProfileId ownerId, TaskInstance task, Collection<CustomPanel> customPanels, Map<String, CustomField> customFields, String parentTaskSubject, String profileLanguageTag, DateTimeZone profileTz) {
-		DateTimeFormatter fmtYmdHms = DateTimeUtils.createYmdHmsFormatter(profileTz);
+		DateTimeFormatter fmtYmdHms = JodaTimeUtils.createFormatterYMDHMS(profileTz);
 		
 		this.id = task.getId().toString();
 		this.parentId = task.getParentInstanceId() != null ? task.getParentInstanceId().toString() : null;
@@ -107,10 +107,10 @@ public class JsTask {
 		this.location = task.getLocation();
 		this.description = task.getDescription();
 		this.timezone = task.getTimezone();
-		this.start = DateTimeUtils.print(fmtYmdHms, task.getStart());
-		this.due = DateTimeUtils.print(fmtYmdHms, task.getDue());
+		this.start = JodaTimeUtils.print(fmtYmdHms, task.getStart());
+		this.due = JodaTimeUtils.print(fmtYmdHms, task.getDue());
 		this.progress = task.getProgress();
-		this.completedOn = DateTimeUtils.print(fmtYmdHms, task.getCompletedOn());
+		this.completedOn = JodaTimeUtils.print(fmtYmdHms, task.getCompletedOn());
 		this.status = EnumUtils.toSerializedName(task.getStatus());
 		this.importance = task.getImportance();
 		this.isPrivate = task.getIsPrivate();
@@ -137,7 +137,7 @@ public class JsTask {
 		for (TaskAttachment att : task.getAttachments()) {
 			Attachment js = new Attachment();
 			js.id = att.getAttachmentId();
-			//jsatt.lastModified = DateTimeUtils.printYmdHmsWithZone(att.getRevisionTimestamp(), profileTz);
+			//jsatt.lastModified = JodaTimeUtils.printYMDHMS(profileTz, att.getRevisionTimestamp());
 			js.name = att.getFilename();
 			js.size = att.getSize();
 			this.attachments.add(js);
@@ -166,8 +166,8 @@ public class JsTask {
 	}
 	
 	public TaskEx createTaskForAdd(DateTimeZone profileTz) {
-		DateTimeZone tz = LangUtils.coalesce(DateTimeUtils.parseDateTimeZone(timezone), profileTz);
-		DateTimeFormatter fmtYmdHms = DateTimeUtils.createYmdHmsFormatter(tz);
+		DateTimeZone tz = LangUtils.coalesce(JodaTimeUtils.parseTimezone(timezone), profileTz);
+		DateTimeFormatter fmtYmdHms = JodaTimeUtils.createFormatterYMDHMS(tz);
 		
 		TaskEx item = new TaskEx();
 		item.setParentInstanceId(TaskInstanceId.parse(parentId));
@@ -177,8 +177,8 @@ public class JsTask {
 		item.setDescription(description);
 		item.setDescriptionType(TaskBase.BodyType.TEXT);
 		item.setTimezone(tz.getID());
-		item.setStart(DateTimeUtils.parseDateTime(fmtYmdHms, start));
-		item.setDue(DateTimeUtils.parseDateTime(fmtYmdHms, due));
+		item.setStart(JodaTimeUtils.parseDateTime(fmtYmdHms, start));
+		item.setDue(JodaTimeUtils.parseDateTime(fmtYmdHms, due));
 		item.setProgress(progress);
 		item.setStatus(EnumUtils.forSerializedName(status, TaskBase.Status.class));
 		item.setImportance(importance);
@@ -197,7 +197,7 @@ public class JsTask {
 			if (ICal4jUtils.adjustRecurUntilDate(recur, lt, tz)) {
 				rrule = recur.toString();
 			}
-			//item.setRecurrence(new TaskRecurrence(rrule, DateTimeUtils.parseLocalDate(fmtYmd, rstart)));
+			//item.setRecurrence(new TaskRecurrence(rrule, JodaTimeUtils.parseLocalDate(fmtYmd, rstart)));
 			item.setRecurrence(new TaskRecurrence(rrule, item.getStart()));
 		}
 		
@@ -224,8 +224,8 @@ public class JsTask {
 	}
 	
 	public TaskEx createTaskForUpdate(DateTimeZone profileTz) {
-		DateTimeZone tz = LangUtils.coalesce(DateTimeUtils.parseDateTimeZone(timezone), profileTz);
-		DateTimeFormatter fmtYmdHms = DateTimeUtils.createYmdHmsFormatter(tz);
+		DateTimeZone tz = LangUtils.coalesce(JodaTimeUtils.parseTimezone(timezone), profileTz);
+		DateTimeFormatter fmtYmdHms = JodaTimeUtils.createFormatterYMDHMS(tz);
 		
 		TaskEx item = new TaskEx();
 		item.setCategoryId(categoryId);
@@ -233,8 +233,8 @@ public class JsTask {
 		item.setLocation(location);
 		item.setDescription(description);
 		item.setDescriptionType(TaskBase.BodyType.TEXT);
-		item.setStart(DateTimeUtils.parseDateTime(fmtYmdHms, start));
-		item.setDue(DateTimeUtils.parseDateTime(fmtYmdHms, due));
+		item.setStart(JodaTimeUtils.parseDateTime(fmtYmdHms, start));
+		item.setDue(JodaTimeUtils.parseDateTime(fmtYmdHms, due));
 		item.setProgress(progress);
 		item.setStatus(EnumUtils.forSerializedName(status, TaskBase.Status.class));
 		item.setImportance(importance);
@@ -253,7 +253,7 @@ public class JsTask {
 			if (ICal4jUtils.adjustRecurUntilDate(recur, lt, tz)) {
 				rrule = recur.toString();
 			}
-			//item.setRecurrence(new TaskRecurrence(rrule, DateTimeUtils.parseLocalDate(fmtYmd, rstart)));
+			//item.setRecurrence(new TaskRecurrence(rrule, JodaTimeUtils.parseLocalDate(fmtYmd, rstart)));
 			item.setRecurrence(new TaskRecurrence(rrule, item.getStart()));
 		}
 		

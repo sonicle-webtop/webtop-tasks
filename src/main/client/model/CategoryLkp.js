@@ -38,7 +38,7 @@ Ext.define('Sonicle.webtop.tasks.model.CategoryLkp', {
 	fields: [
 		WTF.field('categoryId', 'int', false),
 		WTF.field('name', 'string', false),
-		WTF.field('color', 'string', false, {defaultValue: '#FFFFFF'}),
+		WTF.field('color', 'string', false, {defaultValue: '#F3F4F6'}),
 		WTF.field('tasPrivate', 'boolean', false, {defaultValue: false}),
 		WTF.roField('tasReminder', 'int', true),
 		WTF.roField('_default', 'boolean', {defaultValue: false}),

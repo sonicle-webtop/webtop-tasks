@@ -151,7 +151,7 @@ public class ManagerUtils {
 			if (tgt.getDomainId() == null) tgt.setDomainId(targetProfile.getDomainId());
 			if (tgt.getUserId() == null) tgt.setUserId(targetProfile.getUserId());
 			if (tgt.getBuiltIn() == null) tgt.setBuiltIn(false);
-			if (StringUtils.isBlank(tgt.getColor())) tgt.setColor("#FFFFFF");
+			if (StringUtils.isBlank(tgt.getColor())) tgt.setColor("#F3F4F6");
 			if (StringUtils.isBlank(tgt.getSync())) tgt.setSync(EnumUtils.toSerializedName(ss.getDefaultCategorySync()));
 			if (tgt.getIsPrivate() == null) tgt.setIsPrivate(false);
 			if (tgt.getIsDefault() == null) tgt.setIsDefault(false); // Deprecated: remove when DB field will be deleted!
