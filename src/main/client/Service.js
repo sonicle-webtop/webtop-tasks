@@ -1166,12 +1166,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('copyTask', {
 			tooltip: null,
+			iconCls: 'wt-icon-copy',
 			handler: function() {
 				me.moveTasksUI(true, me.getSelectedTasks());
 			}
 		});
 		me.addAct('moveTask', {
 			tooltip: null,
+			iconCls: 'wt-icon-move',
 			handler: function() {
 				me.moveTasksUI(false, me.getSelectedTasks());
 			}

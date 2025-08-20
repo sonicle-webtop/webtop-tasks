@@ -15,8 +15,6 @@
 /*.wttasks-icon-addSubTask { background-image: none !important; background-size: contain; }*/
 /*.wttasks-icon-openTask { background-image: none !important; background-size: contain; }*/
 /*.wttasks-icon-openTaskSeries { background-image: none !important; background-size: contain; }*/
-/*.wttasks-icon-copyTask { background-image: none !important; background-size: contain; }*/
-/*.wttasks-icon-moveTask { background-image: none !important; background-size: contain; }*/
 /*.wttasks-icon-importTasks { background-image: url('task-import_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-exportTasks { background-image: url('task-export_16.svg') !important; background-size: contain; }*/
 .wttasks-icon-showLocation:before { content: '\f3c5'; font: var(--fa-font-solid); background-size: contain; } /* FIXME: defaults to FA for now */
