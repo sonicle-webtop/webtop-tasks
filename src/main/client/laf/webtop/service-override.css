@@ -69,3 +69,8 @@
 .wttasks-icon-viewNotStarted-grayed { background-image: url('viewnotstarted-grayed_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewToday { background-image: url('viewtoday_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewToday-grayed { background-image: url('viewtoday-grayed_16.svg') !important; background-size: contain; }
+
+/* ---------- ToolPanel */
+.wttasks-tool-searchpanel-body {
+    padding: 0px 8px 10px 8px;
+}

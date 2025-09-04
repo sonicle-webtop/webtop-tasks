@@ -637,7 +637,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								{
 									xtype: 'button',
 									ui: '{secondary}',
-									iconCls: 'fas fa-clone',
+									iconCls: 'wt-glyph-clone',
 									tooltip: me.res('task.btn-copyMeeting.tip'),
 									handler: function() {
 										var location = me.getModel().get('location');
