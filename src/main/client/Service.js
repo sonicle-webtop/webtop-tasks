@@ -353,7 +353,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			sortFieldGroup = Ext.id(null, 'tasks-sortfield-'),
 			sortDirGroup = Ext.id(null, 'tasks-sortdir-');
 		me.setMainComponent(Ext.create({
-			xtype: 'container',
+			xtype: 'wtpanelct',
+			cls: 'wttask-main',
 			layout: 'border',
 			referenceHolder: true,
 			items: [
@@ -583,7 +584,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							xtype: 'wtpanel',
 							itemId: 'search',
 							layout: 'vbox',
-							cls: 'wttasks-main-search',
+							cls: 'wttasks-main-results',
 							defaults: {
 								width: '100%'
 							},
@@ -2344,8 +2345,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				componentCls: 'wttasks-main-grid',
 				viewConfig: {
 					getRowClass: function (rec, idx) {
-						if (rec.isCompleted()) return 'wt-text-striked wt-text-off wt-theme-text-color-off';
-						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-color-error';
+						if (rec.isCompleted()) return 'wt-text-striked wt-text-off wt-color-off';
+						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-color-error';
 						return '';
 					}
 				},
@@ -2460,7 +2461,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2485,7 +2486,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2498,7 +2499,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						dataIndex: 'start',
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								var SoD = Sonicle.Date,
