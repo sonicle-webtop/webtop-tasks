@@ -37,9 +37,9 @@
 /*.wttasks-icon-taskStatus-IP { background-image: url('taskstatus-IP_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-taskStatus-CA { background-image: url('taskstatus-CA_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-taskStatus-WA { background-image: url('taskstatus-WA_16.svg') !important; background-size: contain; }*/
-.wttasks-icon-taskImportance-1 { background-image: url('taskimportance-1_16.svg') !important; background-size: contain; }*/
-.wttasks-icon-taskImportance-5 { background-image: url('taskimportance-5_16.svg') !important; background-size: contain; }*/
-.wttasks-icon-taskImportance-9 { background-image: url('taskimportance-9_16.svg') !important; background-size: contain; }*/
+/*.wttasks-icon-taskImportance-1 { background-image: url('taskimportance-1_16.svg') !important; background-size: contain; }*/
+/*.wttasks-icon-taskImportance-5 { background-image: url('taskimportance-5_16.svg') !important; background-size: contain; }*/
+/*.wttasks-icon-taskImportance-9 { background-image: url('taskimportance-9_16.svg') !important; background-size: contain; }*/
 
 .wttasks-icon-taskSubject { background-image: url('section-subject_16.svg') !important; background-size: contain; } .wttasks-icon-taskSubject:before { content: ''; }
 .wttasks-icon-taskLocation { background-image: url('section-location_16.svg') !important; background-size: contain; } .wttasks-icon-taskLocation:before { content: ''; }
@@ -73,4 +73,16 @@
 /* ---------- ToolPanel */
 .wttasks-tool-searchpanel-body {
     padding: 0px 8px 10px 8px;
+}
+
+/* ---------- Main (center) container */
+.wttask-main {
+	border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+.wttasks-main-list {
+    padding: 0px 8px 8px 8px;
+}
+.wttasks-main-results {
+    padding: 8px 8px 8px 8px;
 }
