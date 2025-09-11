@@ -848,7 +848,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 									},
 									hidden: true,
 									iconType: 'info',
-									cls: 'wt-theme-text-color-info',
+									cls: 'wt-color-info',
 									text: me.res('task.rrnoteditable.series.info')
 								}, {
 									xtype: 'sotext',
@@ -857,7 +857,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 									},
 									hidden: true,
 									iconType: 'info',
-									cls: 'wt-theme-text-color-info',
+									cls: 'wt-color-info',
 									text: me.res('task.rrnoteditable.parent.info')
 								}
 							]
