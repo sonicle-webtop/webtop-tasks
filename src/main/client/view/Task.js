@@ -199,7 +199,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				return WT.isMeetingUrl(val);
 			}),
 			foContactIconCls: WTF.foGetFn('record', 'contactId', function(val) {
-				return Ext.isEmpty(val) ? '' : 'fas fa-link wt-opacity-50';
+				return Ext.isEmpty(val) ? '' : 'wt-glyph-link wt-opacity-50';
 			}),
 			foHideLocationAsAddress: WTF.foMultiGetFn(undefined, ['hidden.fldlocation', 'foHasLocation', 'foLocationIsMeeting'], function(v) {
 				if (v['hidden.fldlocation']) return true;
@@ -547,7 +547,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 				me.createTagsFieldCfg(),
 				{
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskSubject',
+					labelIconCls: 'wttasks-icon-sectionSubject',
 					items: [
 						{
 							xtype: 'sofieldhgroup',
@@ -598,7 +598,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskLocation',
+					labelIconCls: 'wttasks-icon-sectionLocation',
 					bind: {
 						hidden: '{foHideLocationAsAddress}'
 					},
@@ -618,7 +618,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskLocation',
+					labelIconCls: 'wttasks-icon-sectionLocation',
 					bind: {
 						hidden: '{foHideLocationAsMeeting}'
 					},
@@ -637,13 +637,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								{
 									xtype: 'button',
 									ui: '{secondary}',
-									iconCls: 'wt-glyph-clone',
+									iconCls: 'wt-icon-clipboard-copy',
 									tooltip: me.res('task.btn-copyMeeting.tip'),
 									handler: function() {
 										var location = me.getModel().get('location');
 										if (!Ext.isEmpty(location)) {
 											Sonicle.ClipboardMgr.copy(location);
-											WT.toast(me.res('task.toast.meetinglink.copied'));
+											WT.toast(WT.res('toast.info.copied'));
 										}
 									}
 								}, {
@@ -652,7 +652,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 								}, {
 									xtype: 'button',
 									ui: '{secondary}',
-									iconCls: 'fas fa-arrow-up-right-from-square',
+									iconCls: 'wt-glyph-open',
 									text: me.res('task.btn-goToMeeting.lbl'),
 									handler: function() {
 										var location = me.getModel().get('location');
@@ -666,7 +666,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskContact',
+					labelIconCls: 'wttasks-icon-sectionContact',
 					bind: {
 						hidden: '{hidden.fldcontact}'
 					},
@@ -697,7 +697,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskDescription',
+					labelIconCls: 'wttasks-icon-sectionDescription',
 					items: [
 						{
 							xtype: 'sofieldhgroup',
@@ -711,7 +711,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskDateTime',
+					labelIconCls: 'wttasks-icon-sectionDateTime',
 					items: [
 						{
 							xtype: 'sofieldhgroup',
@@ -865,7 +865,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskReminder',
+					labelIconCls: 'wttasks-icon-sectionReminder',
 					bind: {
 						hidden: '{!foHasReminder}'
 					},
@@ -886,7 +886,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskStatus',
+					labelIconCls: 'wttasks-icon-sectionStatus',
 					items: [
 						{
 							xtype: 'sofieldhgroup',
@@ -944,7 +944,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				}, {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskDocRef',
+					labelIconCls: 'wttasks-icon-sectionDocRef',
 					//bind: {
 					//	hidden: '{!foHasDocRef}'
 					//},
@@ -997,7 +997,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					]
 				},*/ {
 					xtype: 'sofieldsection',
-					labelIconCls: 'wttasks-icon-taskAttachments',
+					labelIconCls: 'wttasks-icon-sectionAttachments',
 					bind: {
 						hidden: '{!foHasAttachments}'
 					},
@@ -1125,7 +1125,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							hidden: '{foIsNew}'
 						},
 						tooltip: WT.res('act-auditLog.lbl'),
-						iconCls: 'fas fa-history',
+						iconCls: 'wt-icon-audit',
 						handler: function() {
 							me.mys.openAuditUI(Sonicle.String.substrBefore(me.getModel().getId(), '.'), 'TASK');
 						},

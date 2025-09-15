@@ -114,7 +114,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 			foSubject: WTF.foGetFn('record', 'subject', function(v) {
 				var tipAttrs = Sonicle.Utils.generateTooltipAttrs,
 					s = '';
-				if (this.get('record.isPrivate') === true) s += '<i class="fas fa-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
+				if (this.get('record.isPrivate') === true) s += '<i class="wt-glyph-lock" aria-hidden="true" '+tipAttrs(me.mys.res('task.fld-private.lbl'))+' style="margin-right:5px;font-size:initial"></i>';
 				return s + Ext.String.htmlEncode(Ext.String.ellipsis(v, 50));
 			}),
 			foSubjectIconCls: WTF.foGetFn('record', 'isPrivate', function(v) {
@@ -481,7 +481,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											value: me.mys.res('taskPreview.single.task.start.lbl') + ': {foStart}',
 											hidden: '{!foHasStart}'
 										},
-										iconCls: 'wttasks-icon-taskStart',
+										iconCls: 'wttasks-icon-sectionStart',
 										labelWidth: 25 // Reduce label in order to display icon only
 									}, {
 										xtype: 'so-displayfield',
@@ -490,7 +490,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											hidden: '{!foHasDue}'
 										},
 										htmlEncode: false,
-										iconCls: 'wttasks-icon-taskDue',
+										iconCls: 'wttasks-icon-sectionDue',
 										labelWidth: 25 // Reduce label in order to display icon only
 									}, {
 										xtype: 'so-displayfield',
@@ -499,7 +499,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											hidden: '{!foHasReminder}'
 										},
 										htmlEncode: false,
-										iconCls: 'wttasks-icon-taskDue',
+										iconCls: 'wttasks-icon-sectionDue',
 										labelWidth: 25 // Reduce label in order to display icon only
 									}, {
 										xtype: 'so-displayfield',
@@ -507,7 +507,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											value: me.mys.res('taskPreview.single.task.location.lbl') + ': {record.location}',
 											hidden: '{!foHasLocation}'
 										},
-										iconCls: 'wttasks-icon-taskLocation',
+										iconCls: 'wttasks-icon-sectionLocation',
 										labelWidth: 25 // Reduce label in order to display icon only
 									}, {
 										xtype: 'so-displayfield',
@@ -515,7 +515,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											value: me.mys.res('taskPreview.single.task.contact.lbl') + ': {record.contactEmail}',
 											hidden: '{!foHasContact}'
 										},
-										iconCls: 'wttasks-icon-taskContact',
+										iconCls: 'wttasks-icon-sectionContact',
 										labelWidth: 25 // Reduce label in order to display icon only
 									}, {
 										xtype: 'so-displayfield',
@@ -523,7 +523,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 											value: me.mys.res('taskPreview.single.task.docRef.lbl') + ': {record.docRef}',
 											hidden: '{!foHasDocRef}'
 										},
-										iconCls: 'wttasks-icon-taskDocRef',
+										iconCls: 'wttasks-icon-sectionDocRef',
 										labelWidth: 25 // Reduce label in order to display icon only
 									},
 									me.createDescriptionFieldCfg({
@@ -559,7 +559,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 									ui: 'default-toolbar',
 									text: null,
 									tooltip: WT.res('act-auditLog.lbl'),
-									iconCls: 'fas fa-history',
+									iconCls: 'wt-icon-audit',
 									handler: function() {
 										var vm = me.getVM();
 										me.fireEvent('showaudit', me, vm.get('record.isList'), vm.get('record.id'));

@@ -2360,7 +2360,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						getTooltip: function(v, rec) {
 							return Sonicle.webtop.tasks.Service.calcCategoryLabel(rec.get('categoryName'), rec.get('_orDN'));
 						},
-						text: WTF.headerWithGlyphIcon('fas fa-folder'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-folder'),
 						menuText: me.res('gptasks.category.lbl'),
 						sortable: nest ? false : true,
 						hidden: true,
@@ -2369,13 +2369,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						xtype: 'soiconcolumn',
 						dataIndex: 'reminder',
 						getIconCls: function(v, rec) {
-							return v !== null ? 'far fa-bell' : '';
+							return v !== null ? 'wt-glyph-bell' : '';
 						},
 						getTip: function(v, rec) {
 							return v !== null ? me.res('store.taskReminder.'+v) : null;
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-bell'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-bell'),
 						menuText: me.res('gptasks.reminder.lbl'),
 						sortable: nest ? false : true,
 						width: 35
@@ -2390,7 +2390,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-triangle-exclamation'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-priority'),
 						menuText: me.res('gptasks.importance.lbl'),
 						sortable: nest ? false : true,
 						width: 35
@@ -2405,7 +2405,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+v);
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-tachometer-alt'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-status'),
 						menuText: me.res('gptasks.status.i.lbl'),
 						sortable: nest ? false : true,
 						width: 35
