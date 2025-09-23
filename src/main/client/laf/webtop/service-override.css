@@ -11,6 +11,7 @@
 /*.wttasks-icon-editCategory { background-image: url('category-edit_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-deleteCategory { background-image: url('category-delete_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-newTask { background-image: url('task-new_16.svg') !important; background-size: contain; }*/
+.x-btn-ui-default .wttasks-icon-newTask { background-image: url('task-new-primary_16.svg') !important; background-size: contain; }
 /*.wttasks-icon-addTask { background-image: url('task-add_16.svg') !important; background-size: contain; }*/
 /*.wttasks-icon-addSubTask { background-image: none !important; background-size: contain; }*/
 /*.wttasks-icon-openTask { background-image: none !important; background-size: contain; }*/
