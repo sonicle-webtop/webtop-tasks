@@ -69,12 +69,11 @@
 .wttasks-icon-viewToday { background-image: url('viewtoday_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewToday-grayed { background-image: url('viewtoday-grayed_16.svg') !important; background-size: contain; }
 
-/* ---------- ToolPanel */
+/* ---------- Tool */
 .wttasks-tool-searchpanel-body {
     padding: 0px 8px 10px 8px;
 }
-
-/* ---------- Main (center) container */
+/* ---------- Main */
 .wttask-main {
 	border-top-left-radius: 10px;
 	border-bottom-left-radius: 10px;
