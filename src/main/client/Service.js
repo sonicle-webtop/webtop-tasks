@@ -191,6 +191,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					],
 					tooltip: me.res('fld-search.tip'),
 					searchTooltip: me.res('fld-search.tip'),
+					listTopButtonText: me.res('fld-search.topbutton.lbl'),
 					emptyText: me.res('fld-search.emp'),
 					listeners: {
 						query: function(s, value, qObj) {
