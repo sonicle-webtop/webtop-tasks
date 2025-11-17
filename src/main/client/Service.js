@@ -2338,8 +2338,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		createGridCfg: function(tagsStore, nest, cfg) {
 			var me = this,
-				durRes = function(sym) { return WT.res('word.dur.'+sym); },
-				durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+				durSym = WTF.durationSymbols('narrow');
 
 			return Ext.merge({
 				xtype: 'grid',
@@ -2479,7 +2478,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							if (Ext.isDate(v) && !rec.isCompleted()) {
 								var SoD = Sonicle.Date,
 									diff = SoD.diffDays(v, new Date()),
-									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {units: 'yd', symbols: durSym});
 								return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), hrd);
 							}
 							return '';
@@ -2505,12 +2504,12 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							} else {
 								var SoD = Sonicle.Date,
 									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
-								return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
+								return diff ? SoD.humanReadableDuration(Math.abs(diff), {units: 'yd', symbols: durSym}) : '';
 							}
 						},
+						text: me.res('gptasks.duration.lbl'),
 						sortable: false,
 						hidden: true,
-						text: me.res('gptasks.duration.lbl'),
 						maxWidth: 80,
 						flex: 1
 					}, {
@@ -2522,8 +2521,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								var due = rec.get('due'), key;
 								if (Ext.isDate(due)) {
 									var SoD = Sonicle.Date,
-											diff = SoD.diffDays(due, v),
-											hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+										diff = SoD.diffDays(due, v),
+										hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {units: 'yd', symbols: durSym});
 									return Ext.String.format(me.res((diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip'), hrd);
 								}
 							}
@@ -2564,7 +2563,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						flex: 1
 					}, {
 						xtype: 'soactioncolumn',
-						menuText: WT.res('grid.actions.lbl'),
 						items: [
 							{
 								iconCls: 'wt-glyph-menu-kebab',
@@ -2574,6 +2572,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								}
 							}
 						],
+						menuText: WT.res('grid.actions.lbl'),
 						draggable: true,
 						hideable: true
 					}

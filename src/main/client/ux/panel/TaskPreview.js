@@ -97,12 +97,11 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 	 */
 	
 	constructor: function(cfg) {
-		var me = this;
-		me.config.viewModel = Ext.create('Ext.app.ViewModel');
-		me.callParent([cfg]);
+		var me = this,
+			durSym = WTF.durationSymbols('narrow');
 		
-		var durRes = function(sym) { return WT.res('word.dur.'+sym); },
-			durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+		me.config.viewModel = Ext.create('Ext.app.ViewModel');
+		me.callParent([cfg]); 
 		
 		Sonicle.VMUtils.applyFormulas(me.getVM(), {
 			foIsEditable: WTF.foGetFn('record', '_itPerms', function(v) {
@@ -155,7 +154,7 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 							diff = SoD.diffDays(v, new Date()),
 							hrd;
 						if (diff > 0) {
-							hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+							hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {units: 'yd', symbols: durSym});
 							if (!Ext.isEmpty(hrd)) {
 								s += '<span class="' + infoCls + '">('+me.mys.res('taskPreview.single.task.due.late', '+'+hrd)+')</span>';
 							}
