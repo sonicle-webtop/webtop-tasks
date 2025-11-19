@@ -191,6 +191,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					],
 					tooltip: me.res('fld-search.tip'),
 					searchTooltip: me.res('fld-search.tip'),
+					listTopButtonText: me.res('fld-search.topbutton.lbl'),
 					emptyText: me.res('fld-search.emp'),
 					listeners: {
 						query: function(s, value, qObj) {
@@ -353,7 +354,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 			sortFieldGroup = Ext.id(null, 'tasks-sortfield-'),
 			sortDirGroup = Ext.id(null, 'tasks-sortdir-');
 		me.setMainComponent(Ext.create({
-			xtype: 'container',
+			xtype: 'wtpanelct',
+			cls: 'wttask-main',
 			layout: 'border',
 			referenceHolder: true,
 			items: [
@@ -583,7 +585,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							xtype: 'wtpanel',
 							itemId: 'search',
 							layout: 'vbox',
-							cls: 'wttasks-main-search',
+							cls: 'wttasks-main-results',
 							defaults: {
 								width: '100%'
 							},
@@ -1166,12 +1168,14 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 		me.addAct('copyTask', {
 			tooltip: null,
+			iconCls: 'wt-icon-copy',
 			handler: function() {
 				me.moveTasksUI(true, me.getSelectedTasks());
 			}
 		});
 		me.addAct('moveTask', {
 			tooltip: null,
+			iconCls: 'wt-icon-move',
 			handler: function() {
 				me.moveTasksUI(false, me.getSelectedTasks());
 			}
@@ -2334,16 +2338,15 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		
 		createGridCfg: function(tagsStore, nest, cfg) {
 			var me = this,
-				durRes = function(sym) { return WT.res('word.dur.'+sym); },
-				durSym = [durRes('y'), durRes('d'), durRes('h'), durRes('m'), durRes('s')];
+				durSym = WTF.durationSymbols('narrow');
 
 			return Ext.merge({
 				xtype: 'grid',
 				componentCls: 'wttasks-main-grid',
 				viewConfig: {
 					getRowClass: function (rec, idx) {
-						if (rec.isCompleted()) return 'wt-text-striked wt-text-off wt-theme-text-color-off';
-						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-theme-color-error';
+						if (rec.isCompleted()) return 'wt-text-striked wt-text-off wt-color-off';
+						if (!rec.isSeriesMaster() && rec.isOverdue()) return 'wt-color-error';
 						return '';
 					}
 				},
@@ -2357,7 +2360,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						getTooltip: function(v, rec) {
 							return Sonicle.webtop.tasks.Service.calcCategoryLabel(rec.get('categoryName'), rec.get('_orDN'));
 						},
-						text: WTF.headerWithGlyphIcon('fas fa-folder'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-folder'),
 						menuText: me.res('gptasks.category.lbl'),
 						sortable: nest ? false : true,
 						hidden: true,
@@ -2366,13 +2369,13 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						xtype: 'soiconcolumn',
 						dataIndex: 'reminder',
 						getIconCls: function(v, rec) {
-							return v !== null ? 'far fa-bell' : '';
+							return v !== null ? 'wt-glyph-bell' : '';
 						},
 						getTip: function(v, rec) {
 							return v !== null ? me.res('store.taskReminder.'+v) : null;
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-bell'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-bell'),
 						menuText: me.res('gptasks.reminder.lbl'),
 						sortable: nest ? false : true,
 						width: 35
@@ -2387,7 +2390,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							return me.res('gptasks.importance.lbl') + ': ' + Sonicle.webtop.tasks.store.TaskImportance.buildLabel(v);
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-triangle-exclamation'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-priority'),
 						menuText: me.res('gptasks.importance.lbl'),
 						sortable: nest ? false : true,
 						width: 35
@@ -2402,7 +2405,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							return me.res('gptasks.status.lbl') + ': ' + me.res('store.taskStatus.'+v);
 						},
 						iconSize: 16,
-						text: WTF.headerWithGlyphIcon('fas fa-tachometer-alt'),
+						text: WTF.headerWithGlyphIcon('wt-glyph-status'),
 						menuText: me.res('gptasks.status.i.lbl'),
 						sortable: nest ? false : true,
 						width: 35
@@ -2458,7 +2461,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2475,7 +2478,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 							if (Ext.isDate(v) && !rec.isCompleted()) {
 								var SoD = Sonicle.Date,
 									diff = SoD.diffDays(v, new Date()),
-									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+									hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {units: 'yd', symbols: durSym});
 								return Ext.String.format(me.res((diff <= 0) ? 'gptasks.due.value.left.tip' : 'gptasks.due.value.late.tip'), hrd);
 							}
 							return '';
@@ -2483,7 +2486,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						usingDefaultRenderer: true, // Necessary for renderer usage below
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								return this.defaultRenderer.apply(this, arguments);
@@ -2496,17 +2499,17 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						dataIndex: 'start',
 						renderer : function(v, meta, rec) {
 							if (rec.isSeriesMaster()) {
-								meta.tdCls = 'wt-text-off wt-theme-text-color-off';
+								meta.tdCls = 'wt-text-off wt-color-off';
 								return me.res('task.repeated.info');
 							} else {
 								var SoD = Sonicle.Date,
 									diff = SoD.diff(v, rec.get('due'), Ext.Date.SECOND, true);
-								return diff ? SoD.humanReadableDuration(Math.abs(diff), {hours: false, minutes: false, seconds: false}, durSym) : '';
+								return diff ? SoD.humanReadableDuration(Math.abs(diff), {units: 'yd', symbols: durSym}) : '';
 							}
 						},
+						text: me.res('gptasks.duration.lbl'),
 						sortable: false,
 						hidden: true,
-						text: me.res('gptasks.duration.lbl'),
 						maxWidth: 80,
 						flex: 1
 					}, {
@@ -2518,8 +2521,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								var due = rec.get('due'), key;
 								if (Ext.isDate(due)) {
 									var SoD = Sonicle.Date,
-											diff = SoD.diffDays(due, v),
-											hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {hours: false, minutes: false, seconds: false}, durSym);
+										diff = SoD.diffDays(due, v),
+										hrd = SoD.humanReadableDuration(Math.abs(diff * 86400), {units: 'yd', symbols: durSym});
 									return Ext.String.format(me.res((diff <= 0) ? 'gptasks.completedOn.value.advance.tip' : 'gptasks.completedOn.value.delayed.tip'), hrd);
 								}
 							}
@@ -2560,7 +2563,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 						flex: 1
 					}, {
 						xtype: 'soactioncolumn',
-						menuText: WT.res('grid.actions.lbl'),
 						items: [
 							{
 								iconCls: 'wt-glyph-menu-kebab',
@@ -2570,6 +2572,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 								}
 							}
 						],
+						menuText: WT.res('grid.actions.lbl'),
 						draggable: true,
 						hideable: true
 					}

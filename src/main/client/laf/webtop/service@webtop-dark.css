@@ -1,0 +1,9 @@
+/* ---------- Main */
+.wttasks-main-list .x-panel-body,
+.wttasks-main-list .x-toolbar {
+    background-color: var(--wt-theme-color-surface-l0);
+}
+.wttasks-preview .x-toolbar,
+.wttasks-preview .x-panel-body {
+    background-color: var(--wt-theme-color-surface-l0);
+}

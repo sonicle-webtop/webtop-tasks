@@ -72,7 +72,7 @@ Ext.define('Sonicle.webtop.tasks.portlet.TasksBody', {
 				deferEmptyText: false,
 				emptyText: me.mys.res('portlet.tasks.gp.emp'),
 				getRowClass: function (rec, indx) {
-					if (rec.isOverdue()) return 'wt-theme-color-error';
+					if (rec.isOverdue()) return 'wt-color-error';
 					return '';
 				}
 			},

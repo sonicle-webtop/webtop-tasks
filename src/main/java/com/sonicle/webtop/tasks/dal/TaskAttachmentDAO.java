@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.List;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 /**
  *
@@ -185,6 +186,21 @@ public class TaskAttachmentDAO extends BaseDAO {
 			.insertInto(TASKS_ATTACHMENTS_DATA)
 			.set(TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID, attachmentId)
 			.set(TASKS_ATTACHMENTS_DATA.BYTES, bytes)
+			.execute();
+	}
+	
+	public int insertBytesFromClone(Connection con, String attachmentId, String cloneAttachmentId) throws DAOException {
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.insertInto(TASKS_ATTACHMENTS_DATA)
+			.select(
+				DSL.select(
+					DSL.value(attachmentId),
+					TASKS_ATTACHMENTS_DATA.BYTES
+				)
+				.from(TASKS_ATTACHMENTS_DATA)
+				.where(TASKS_ATTACHMENTS_DATA.TASK_ATTACHMENT_ID.equal(cloneAttachmentId))
+			)
 			.execute();
 	}
 	

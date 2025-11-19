@@ -86,6 +86,7 @@ import com.sonicle.webtop.core.sdk.UserProfile;
 import com.sonicle.webtop.core.sdk.UserProfileId;
 import com.sonicle.webtop.core.sdk.WTException;
 import com.sonicle.webtop.core.util.RRuleStringify;
+import com.sonicle.webtop.tasks.ITasksManager.TaskGetOption;
 import com.sonicle.webtop.tasks.bol.js.JsCategory;
 import com.sonicle.webtop.tasks.bol.js.JsCategoryLkp;
 import com.sonicle.webtop.tasks.bol.js.JsCategorySharing;
@@ -105,7 +106,7 @@ import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 import com.sonicle.webtop.tasks.model.CategoryPropSet;
 import com.sonicle.webtop.tasks.model.TaskAttachment;
 import com.sonicle.webtop.tasks.model.TaskAttachmentWithBytes;
-import com.sonicle.webtop.tasks.model.TaskAttachmentWithStream;
+import com.sonicle.webtop.tasks.model.TaskAttachmentWithInputStream;
 import com.sonicle.webtop.tasks.model.TaskEx;
 import com.sonicle.webtop.tasks.model.TaskInstance;
 import com.sonicle.webtop.tasks.model.TaskInstanceId;
@@ -1008,7 +1009,7 @@ public class Service extends BaseService {
 				TaskEx task = pl.data.createTaskForAdd(up.getTimeZone());
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
-					TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
+					TaskAttachmentWithInputStream att = new TaskAttachmentWithInputStream(upFile.getFile());
 					att.setAttachmentId(jsatt.id);
 					att.setFilename(upFile.getFilename());
 					att.setSize(upFile.getSize());
@@ -1025,7 +1026,7 @@ public class Service extends BaseService {
 				for (JsTask.Attachment jsatt : pl.data.attachments) {
 					if (!StringUtils.isBlank(jsatt._uplId)) {
 						UploadedFile upFile = getUploadedFileOrThrow(jsatt._uplId);
-						TaskAttachmentWithStream att = new TaskAttachmentWithStream(upFile.getFile());
+						TaskAttachmentWithInputStream att = new TaskAttachmentWithInputStream(upFile.getFile());
 						att.setAttachmentId(jsatt.id);
 						att.setFilename(upFile.getFilename());
 						att.setSize(upFile.getSize());
@@ -1076,9 +1077,10 @@ public class Service extends BaseService {
 				Integer categoryId = ServletUtils.getIntParameter(request, "targetCategoryId", true);
 				ITasksManager.MoveCopyMode copyMode = ServletUtils.getEnumParameter(request, "copyMode", ITasksManager.MoveCopyMode.NONE, ITasksManager.MoveCopyMode.class);
 				
+				BitFlags<TaskGetOption> options = BitFlags.with(TaskGetOption.ATTACHMENTS, TaskGetOption.TAGS, TaskGetOption.CUSTOM_VALUES);
 				//TaskInstanceId instanceId = TaskInstanceId.parse(iid);
 				//manager.moveTaskInstance(copy, instanceId, categoryId);
-				manager.moveTaskInstance(copyMode, iids, categoryId);
+				manager.moveTaskInstance(copyMode, iids, categoryId, options);
 				new JsonResult().printTo(out);
 			}
 			

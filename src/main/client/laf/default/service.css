@@ -13,10 +13,8 @@
 .wttasks-icon-newTask { background-image: url('task-new_16.svg') !important; background-size: contain; }
 .wttasks-icon-addTask { background-image: url('task-add_16.svg') !important; background-size: contain; }
 .wttasks-icon-addSubTask { background-image: none !important; background-size: contain; }
-.wttasks-icon-openTask { background-image: none !important; background-size: contain; }
+.wttasks-icon-openTask { background-image: url('task-open_16.svg') !important; background-size: contain; }
 .wttasks-icon-openTaskSeries { background-image: none !important; background-size: contain; }
-.wttasks-icon-copyTask { background-image: none !important; background-size: contain; }
-.wttasks-icon-moveTask { background-image: none !important; background-size: contain; }
 .wttasks-icon-importTasks { background-image: url('task-import_16.svg') !important; background-size: contain; }
 .wttasks-icon-exportTasks { background-image: url('task-export_16.svg') !important; background-size: contain; }
 .wttasks-icon-showLocation:before { content: '\f3c5'; font: var(--fa-font-solid); background-size: contain; } /* FIXME: defaults to FA for now */
@@ -42,19 +40,19 @@
 .wttasks-icon-taskImportance-1 { background-image: url('taskimportance-1_16.svg') !important; background-size: contain; }
 .wttasks-icon-taskImportance-5 { background-image: url('taskimportance-5_16.svg') !important; background-size: contain; }
 .wttasks-icon-taskImportance-9 { background-image: url('taskimportance-9_16.svg') !important; background-size: contain; }
-.wttasks-icon-taskSubject:before { background-image: none !important; background-size: contain; }
-.wttasks-icon-taskLocation:before { content: '\f3c5'; font: var(--fa-font-solid); background-size: contain; }
-.wttasks-icon-taskContact:before { content: '\f007'; font: var(--fa-font-solid); background-size: contain; }
-.wttasks-icon-taskDescription:before { background-image: none !important; background-size: contain; }
-.wttasks-icon-taskDateTime:before { background-image: none !important; background-size: contain; }
-.wttasks-icon-taskReminder:before { background-image: none !important; background-size: contain; }
-.wttasks-icon-taskStatus:before { background-image: none !important; background-size: contain; }
-.wttasks-icon-taskPrivate:before { content: '\f023'; font: var(--fa-font-solid); background-size: contain; }
-.wttasks-icon-taskAttachments:before { content: '\f0c6'; font: var(--fa-font-solid); background-size: contain; } /* FIXME: defaults to FA for now */
-.wttasks-icon-taskStart:before { content: '\f783'; font: var(--fa-font-solid); background-size: contain; }
-.wttasks-icon-taskDue:before { content: '\f273'; font: var(--fa-font-solid); background-size: contain; }
-.wttasks-icon-taskDocRef:before { content: '\f15c'; font: var(--fa-font-solid); background-size: contain; }
-
+.wttasks-icon-taskPrivate { background-size: contain; } .wttasks-icon-taskPrivate:before { content: '\f023'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionAttachments { background-size: contain; } .wttasks-icon-sectionAttachments:before { content: '\f0c6'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionAssignees { background-size: contain; } .wttasks-icon-sectionAssignees:before { content: ''; }
+.wttasks-icon-sectionContact { background-size: contain; } .wttasks-icon-sectionContact:before { content: '\f007'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionDateTime { background-size: contain; } .wttasks-icon-sectionDateTime:before { content: '\f017'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionDescription { background-size: contain; } .wttasks-icon-sectionDescription:before { content: '\f036'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionDocRef { background-size: contain; } .wttasks-icon-sectionDocRef:before { content: '\f05a'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionDue { background-size: contain; } .wttasks-icon-sectionDue:before { content: '\f273'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionLocation { background-size: contain; } .wttasks-icon-sectionLocation:before { content: '\f3c5'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionReminder { background-size: contain; } .wttasks-icon-sectionReminder:before { content: '\f0f3'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionStart { background-size: contain; } .wttasks-icon-sectionStart:before { content: '\f783'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionStatus { background-size: contain; } .wttasks-icon-sectionStatus:before { content: '\f46d'; font: var(--fa-font-solid); }
+.wttasks-icon-sectionSubject { background-size: contain; } .wttasks-icon-sectionSubject:before { content: '\f1dc'; font: var(--fa-font-solid); }
 .wttasks-icon-viewAll { background-image: url('viewall_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewAll-grayed { background-image: url('viewall-grayed_16.svg') !important; background-size: contain; }
 .wttasks-icon-viewCompleted { background-image: url('viewcompleted_16.svg') !important; background-size: contain; }
