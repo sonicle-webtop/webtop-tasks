@@ -245,7 +245,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					xtype: 'sotreepanel',
 					reference: 'trfolders',
 					scrollable: { trackPosition: 'v' },
-					cls: 'wt-tool-tree wttasks-tool-tree',
+					cls: 'wt-tool-tree wt-tool-scroll-inset wttasks-tool-tree',
 					bodyCls: 'wt-tool-bg',
 					border: false,
 					useArrows: true,
