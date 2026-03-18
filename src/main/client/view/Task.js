@@ -84,12 +84,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 	},
 	
 	constructor: function(cfg) {
-		var me = this;
+		var me = this,
+			SoVMU = Sonicle.VMUtils;
 		me.callParent([cfg]);
 		
-		Sonicle.VMUtils.applyFormulas(me.getVM(), {
-			foIsView: WTF.foIsEqual('_mode', null, me.MODE_VIEW),
-			foIsNew: WTF.foIsEqual('_mode', null, me.MODE_NEW),
+		SoVMU.applyFormulas(me.getVM(), {
+			foIsView: SoVMU.foPropIsEqual('', '_mode', me.MODE_VIEW),
+			foIsNew: SoVMU.foPropIsEqual('', '_mode', me.MODE_NEW),
 			startDate: {
 				bind: {bindTo: '{record.start}'},
 				get: function(val) {
@@ -144,17 +145,17 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					this.get('record').setTimePart('reminderDate', val);
 				}
 			},
-			importance: WTF.foFieldTwoWay('record', 'importance', function(v) {
+			importance: WTF.foFieldTwoWay('importance', function(v) {
 					return Sonicle.webtop.tasks.store.TaskImportance.homogenizedValue(v);
 				}, function(v) {
 					return v;
 			}),
 			isPrivate: WTF.checkboxBind('record', 'isPrivate'),
-			foHasLocation: WTF.foIsEmpty('record', 'location', true),
-			foHasReminder: WTF.foIsEmpty('record', 'reminder', true),
-			//foHasDocRef: WTF.foIsEmpty('record', 'docRef', true),
-			foHasRecurrence: WTF.foIsEmpty('record', 'rrule', true),
-			foRRuleString: WTF.foFieldTwoWay('record', 'rruleString', function(v) {
+			foHasLocation: WTF.foFieldIsEmpty('location', true),
+			foHasReminder: WTF.foFieldIsEmpty('reminder', true),
+			//foHasDocRef: WTF.foFieldIsEmpty('docRef', true),
+			foHasRecurrence: WTF.foFieldIsEmpty('rrule', true),
+			foRRuleString: WTF.foFieldTwoWay('rruleString', function(v) {
 					return v;
 				}, function(v, rec) {
 					var split = Sonicle.form.field.rr.Recurrence.splitRRuleString(v);
@@ -165,13 +166,13 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			foHumanReadableRRule: WTF.foGetFn('record', 'rruleString', function(v) {
 				return WT.toHumanReadableRRule(v);
 			}),
-			foWasRecurring: WTF.foIsEqual('record', '_recurringInfo', 'recurring'),
-			foTags: WTF.foFieldTwoWay('record', 'tags', function(v) {
+			foWasRecurring: WTF.foFieldIsEqual('_recurringInfo', 'recurring'),
+			foTags: WTF.foFieldTwoWay('tags', function(v) {
 					return Sonicle.String.split(v, '|');
 				}, function(v) {
 					return Sonicle.String.join('|', v);
 			}),
-			foHasTags: WTF.foIsEmpty('record', 'tags', true),
+			foHasTags: WTF.foFieldIsEmpty('tags', true),
 			foIsSeriesMaster: WTF.foGetFn('record', 'id', function(val) {
 				var rec = this.get('record');
 				return !rec.phantom && rec.isSeriesMaster();
@@ -191,7 +192,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 			foIsParent: WTF.foGetFn('record', '_childTotalCount', function(val) {
 				return val > 0;
 			}),
-			foIsChild: WTF.foIsEmpty('record', 'parentId', true),
+			foIsChild: WTF.foFieldIsEmpty('parentId', true),
 			foLocationIsMeeting: WTF.foGetFn('record', 'location', function(val) {
 				return WT.isMeetingUrl(val);
 			}),

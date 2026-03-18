@@ -33,6 +33,7 @@
 Ext.define('Sonicle.webtop.tasks.view.RecurrenceEditor', {
 	extend: 'WTA.sdk.UIView',
 	requires: [
+		'Sonicle.VMUtils',
 		'Sonicle.form.field.rr.Recurrence'
 	],
 	
@@ -54,11 +55,12 @@ Ext.define('Sonicle.webtop.tasks.view.RecurrenceEditor', {
 	defaultButton: 'btnok',
 	
 	constructor: function(cfg) {
-		var me = this;
+		var me = this,
+			SoVMU = Sonicle.VMUtils;
 		me.callParent([cfg]);
 		
-		Sonicle.VMUtils.applyFormulas(me.getVM(), {
-			foStart: WTF.foPropTwoWay('data', 'rruleString', function(v) {
+		SoVMU.applyFormulas(me.getVM(), {
+			foStart: SoVMU.foPropTwoWay('data', 'rruleString', function(v) {
 					var split = Sonicle.form.field.rr.Recurrence.splitRRuleString(v);
 					return split.start;
 				}, function(v, path) {

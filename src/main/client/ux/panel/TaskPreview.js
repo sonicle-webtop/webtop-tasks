@@ -98,12 +98,13 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 	
 	constructor: function(cfg) {
 		var me = this,
+			SoVMU = Sonicle.VMUtils,
 			durSym = WTF.durationSymbols('narrow');
 		
 		me.config.viewModel = Ext.create('Ext.app.ViewModel');
 		me.callParent([cfg]); 
 		
-		Sonicle.VMUtils.applyFormulas(me.getVM(), {
+		SoVMU.applyFormulas(me.getVM(), {
 			foIsEditable: WTF.foGetFn('record', '_itPerms', function(v) {
 				return WTA.util.FoldersTree2.toRightsObj(v).UPDATE;
 			}),
@@ -164,19 +165,19 @@ Ext.define('Sonicle.webtop.tasks.ux.panel.TaskPreview', {
 				}
 				return ret;
 			}),
-			foHasStart: WTF.foIsEmpty('record', 'start', true),
-			foHasDue: WTF.foIsEmpty('record', 'due', true),
-			foHasLocation: WTF.foIsEmpty('record', 'location', true),
-			foHasDocRef: WTF.foIsEmpty('record', 'docRef', true),
-			foHasContact: WTF.foIsEmpty('record', 'contactEmail', true),
-			foHasReminder: WTF.foIsEmpty('record', 'reminder', true),
-			foHasTags: WTF.foIsEmpty('record', 'tags', true),
-			foHasDescription: WTF.foIsEmpty('record', 'description', true),
+			foHasStart: WTF.foFieldIsEmpty('start', true),
+			foHasDue: WTF.foFieldIsEmpty('due', true),
+			foHasLocation: WTF.foFieldIsEmpty('location', true),
+			foHasDocRef: WTF.foFieldIsEmpty('docRef', true),
+			foHasContact: WTF.foFieldIsEmpty('contactEmail', true),
+			foHasReminder: WTF.foFieldIsEmpty('reminder', true),
+			foHasTags: WTF.foFieldIsEmpty('tags', true),
+			foHasDescription: WTF.foFieldIsEmpty('description', true),
 			foMultiSelTitle: WTF.foGetFn(null, 'records', function(v) {
 				return v ? me.mys.res('taskPreview.multi.tit', v.length) : null;
 			}),
-			foHasEmail: WTF.foIsEmpty('record', 'contactEmail', true),
-			foIsCompleted: WTF.foIsEqual('record', 'status', 'CO'),
+			foHasEmail: WTF.foFieldIsEmpty('contactEmail', true),
+			foIsCompleted: WTF.foFieldIsEqual('status', 'CO'),
 			foWriteMessageTip: WTF.foResFormat('record', 'contactEmail', me.mys.ID, 'taskPreview.act-writeMessage.tip')
 		});
 		me.loadTaskBuffered = Ext.Function.createBuffered(me.loadTask, 200);
