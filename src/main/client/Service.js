@@ -2354,7 +2354,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				columns: [
 					{
 						xtype: 'socolorcolumn',
-						dataIndex: 'categoryColor',
+						dataIndex: 'categoryName',
+						colorField: 'categoryColor',
 						labelField: 'categoryName',
 						swatchGeometry: 'circle',
 						hideLabel: true,
@@ -2558,7 +2559,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}, {
 						dataIndex: 'docRef',
 						text: me.res('gptasks.docRef.lbl'),
-						sortable: false,
+						sortable: nest ? false : true,
 						hidden: true,
 						maxWidth: 100,
 						flex: 1
