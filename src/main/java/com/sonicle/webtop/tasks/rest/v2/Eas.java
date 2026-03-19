@@ -266,9 +266,9 @@ public class Eas extends EasApi {
 	private ApiEasSyncFolder createSyncFolder(UserProfileId currentProfileId, Category cat, DateTime lastRevisionTimestamp, FolderShare.Permissions permissions, boolean isDefault) {
 		String displayName = cat.getName();
 		if (!currentProfileId.equals(cat.getProfileId())) {
-			UserProfile.Data owud = WT.getUserData(cat.getProfileId());
+			UserProfile.Data pdata = WT.getProfileData(cat.getProfileId());
 			//String apn = LangUtils.abbreviatePersonalName(false, owud.getDisplayName());
-			displayName = "[" + owud.getDisplayName() + "] " + displayName;
+			displayName = "[" + pdata.getDisplayName() + "] " + displayName;
 		}
 		//String ownerUsername = owud.getProfileEmailAddress();
 		

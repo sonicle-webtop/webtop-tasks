@@ -1752,13 +1752,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	@Override
 	public void addTaskObject(final int categoryId, final String href, final net.fortuna.ical4j.model.Calendar iCalendar) throws WTException {
 		CoreManager coreMgr = getCoreManager();
-		UserProfile.Data udata = WT.getUserData(getTargetProfileId());
+		UserProfile.Data pdata = WT.getProfileData(getTargetProfileId());
 		Connection con = null;
 		
 		try {
 			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.CREATE);
 			
-			ICalendarInput in = new ICalendarInput(udata.getTimeZone());
+			ICalendarInput in = new ICalendarInput(pdata.getTimeZone());
 			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
 			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
 			if (tis.size() > 1) throw new WTException("iCalendar object should contain one VTODO");
@@ -1788,13 +1788,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	public void updateTaskObject(final int categoryId, final String href, final net.fortuna.ical4j.model.Calendar iCalendar) throws WTException {
 		CoreManager coreMgr = getCoreManager();
-		UserProfile.Data udata = WT.getUserData(getTargetProfileId());
+		UserProfile.Data pdata = WT.getProfileData(getTargetProfileId());
 		Connection con = null;
 		
 		try {
 			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
 			
-			ICalendarInput in = new ICalendarInput(udata.getTimeZone());
+			ICalendarInput in = new ICalendarInput(pdata.getTimeZone());
 			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
 			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
 			tis.get(0).task.setCategoryId(categoryId);
@@ -2022,17 +2022,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				try {
 					if (shouldLog) logger.debug("[reminders][{}] Working on instance [{}]", i, instance.getId().toString());
 					
-					UserProfile.Data ud = WT.getUserData(instance.getCategoryProfileId());
-					if (ud == null) throw new WTException("UserData is null [{}]", instance.getCategoryProfileId());
-					final DateTime profileNow = now.withZone(ud.getTimeZone());
-					final DateTime remindOn = instance.getStart().withZone(ud.getTimeZone()).minusMinutes(TaskBase.Reminder.getMinutesValue(instance.getReminder()));
+					UserProfile.Data pdata = WT.getProfileData(instance.getCategoryProfileId());
+					if (pdata == null) throw new WTException("UserData is null [{}]", instance.getCategoryProfileId());
+					final DateTime profileNow = now.withZone(pdata.getTimeZone());
+					final DateTime remindOn = instance.getStart().withZone(pdata.getTimeZone()).minusMinutes(TaskBase.Reminder.getMinutesValue(instance.getReminder()));
 					if (profileNow.compareTo(remindOn) < 0) {
 						if (shouldLog) logger.debug("[reminders][{}] Skipped: remind instant '{}' not yet reached [{}]", i, remindOn, instance.getId().toString());
 						continue; // Skip if now is not after remindOn
 					}
 					
 					if (instance.getRemindedOn() != null) { // Instance could have been reminded in the past (only for series)
-						final DateTime lastRemindedOn = instance.getRemindedOn().withZone(ud.getTimeZone());
+						final DateTime lastRemindedOn = instance.getRemindedOn().withZone(pdata.getTimeZone());
 						if (remindOn.compareTo(lastRemindedOn) <= 0) {
 							if (shouldLog) logger.debug("[reminders][{}] Skipped: remind instant '{}' is in past [{}]", i, remindOn, lastRemindedOn, instance.getId().toString());
 							continue; // Skip if remindOn is not after last remindOn
@@ -2048,9 +2048,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					if (shouldLog) logger.debug("[reminders][{}] Building alert [{}]", i, instance.getId().toString());
 					BaseReminder alert = null;
 					if (byEmailCache.get(instance.getCategoryProfileId())) {
-						alert = createTaskReminderAlertEmail(ud.toProfileI18n(), instance.getId().toString(), instance, ud.getPersonalEmailAddress());
+						alert = createTaskReminderAlertEmail(pdata.toProfileI18n(), instance.getId().toString(), instance, pdata.getPersonalEmailAddress());
 					} else {
-						alert = createTaskReminderAlertWeb(ud.toProfileI18n(), instance.getId().toString(), instance, remindOn);
+						alert = createTaskReminderAlertWeb(pdata.toProfileI18n(), instance.getId().toString(), instance, remindOn);
 					}
 					
 					if (shouldLog) logger.debug("[reminders][{}] Updating task record [{}]", i, instance.getId().toString());

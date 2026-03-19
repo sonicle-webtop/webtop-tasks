@@ -45,6 +45,6 @@ import com.sonicle.webtop.tasks.model.CategoryFSOrigin;
 public class MyCategoryFSOrigin extends CategoryFSOrigin {
 	
 	public MyCategoryFSOrigin(UserProfileId originProfileId) {
-		super(new ShareOrigin(originProfileId, WT.getUserData(originProfileId).getDisplayName()), FolderShare.Permissions.full());
+		super(new ShareOrigin(originProfileId, WT.getProfileData(originProfileId).getDisplayName()), FolderShare.Permissions.full());
 	}
 }
