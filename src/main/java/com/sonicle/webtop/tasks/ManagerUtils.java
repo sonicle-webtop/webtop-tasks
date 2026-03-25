@@ -301,8 +301,8 @@ public class ManagerUtils {
 	}
 	
 	public static String buildOrganizer(UserProfileId profileId) {
-		UserProfile.Data ud = WT.getUserData(profileId);
-		InternetAddress ia = InternetAddressUtils.toInternetAddress(ud.getEmail().getAddress(), ud.getDisplayName());
+		UserProfile.Data pdata = WT.getProfileData(profileId);
+		InternetAddress ia = InternetAddressUtils.toInternetAddress(pdata.getEmail().getAddress(), pdata.getDisplayName());
 		return ia.toString();
 	}
 	
@@ -319,8 +319,8 @@ public class ManagerUtils {
 				tgt.setOrganizerId(targetProfile.getUserId());
 			}
 			if (tgt.getTimezone() == null) {
-				UserProfile.Data ud = WT.getUserData(targetProfile);
-				if (ud != null) tgt.setTimezone(ud.getTimeZoneId());
+				UserProfile.Data pdata = WT.getProfileData(targetProfile);
+				if (pdata != null) tgt.setTimezone(pdata.getTimeZoneId());
 			}
 			if (tgt.getDescriptionType() == null) tgt.setDescriptionType(EnumUtils.toSerializedName(TaskBase.BodyType.TEXT));
 			if (tgt.getProgress() == null) tgt.setProgress((short)0);

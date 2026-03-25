@@ -244,7 +244,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				}, {
 					xtype: 'sotreepanel',
 					reference: 'trfolders',
-					cls: 'wt-tool-tree wttasks-tool-tree',
+					scrollable: { trackPosition: 'v' },
+					cls: 'wt-tool-tree wt-tool-scroll-inset wttasks-tool-tree',
 					bodyCls: 'wt-tool-bg',
 					border: false,
 					useArrows: true,
@@ -2353,7 +2354,8 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				columns: [
 					{
 						xtype: 'socolorcolumn',
-						dataIndex: 'categoryColor',
+						dataIndex: 'categoryName',
+						colorField: 'categoryColor',
 						labelField: 'categoryName',
 						swatchGeometry: 'circle',
 						hideLabel: true,
@@ -2557,7 +2559,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 					}, {
 						dataIndex: 'docRef',
 						text: me.res('gptasks.docRef.lbl'),
-						sortable: false,
+						sortable: nest ? false : true,
 						hidden: true,
 						maxWidth: 100,
 						flex: 1
