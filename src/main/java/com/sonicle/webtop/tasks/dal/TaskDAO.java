@@ -369,19 +369,19 @@ public class TaskDAO extends BaseDAO {
 			.fetchOneInto(VTaskObject.class);
 	}
 	
-	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategory(Connection con, boolean stat, int categoryId) throws DAOException {
-		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, null);
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategory(Connection con, boolean statFields, int categoryId) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, statFields, categoryId, null, null);
 	}
 	
-	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefs(Connection con, boolean stat, int categoryId, Collection<String> hrefs) throws DAOException {
-		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, hrefs, null);
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefs(Connection con, boolean statFields, int categoryId, Collection<String> hrefs) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, statFields, categoryId, hrefs, null);
 	}
 	
-	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategorySince(Connection con, boolean stat, int categoryId, DateTime since) throws DAOException {
-		return viewOnlineTaskObjectsByCategoryHrefsSince(con, stat, categoryId, null, since);
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategorySince(Connection con, boolean statFields, int categoryId, DateTime since) throws DAOException {
+		return viewOnlineTaskObjectsByCategoryHrefsSince(con, statFields, categoryId, null, since);
 	}
 	
-	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefsSince(Connection con, boolean stat, int categoryId, Collection<String> hrefs, DateTime since) throws DAOException {
+	public Map<String, List<VTaskObject>> viewOnlineTaskObjectsByCategoryHrefsSince(Connection con, boolean statFields, int categoryId, Collection<String> hrefs, DateTime since) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		
 		Condition inHrefsCndt = DSL.trueCondition();
@@ -402,7 +402,7 @@ public class TaskDAO extends BaseDAO {
 		
 		return dsl
 			.select(
-				getVTaskObjectFields(stat)
+				getVTaskObjectFields(statFields)
 			)
 			.select(
 				hasRecurrence,

@@ -753,7 +753,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			checkRightsOnCategory(categoryId, FolderShare.FolderRight.READ);
 			
 			final Map<String, String> tagNamesByIdMap = coreMgr.listTagNamesById();
-			final BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.TAGS);
+			final BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.TAGS);
 			final ArrayList<ChangedItem<TaskObject>> items = new ArrayList<>();
 			con = WT.getConnection(SERVICE_ID);
 			if (fullSync) {
@@ -2119,7 +2119,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private TaskObject doTaskObjectPrepare(Connection con, VTaskObject vtask, TaskObjectOutputType outputType, Map<String, String> tagNamesByIdMap) throws WTException {
-		return doTaskObjectPrepare(con, vtask, outputType, tagNamesByIdMap, BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.TAGS));
+		return doTaskObjectPrepare(con, vtask, outputType, tagNamesByIdMap, BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.TAGS));
 	}
 	
 	private TaskObject doTaskObjectPrepare(Connection con, VTaskObject vtask, TaskObjectOutputType outputType, Map<String, String> tagNamesByIdMap, final BitFlags<TaskProcessOpt> options) throws WTException {
@@ -2127,14 +2127,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			return ManagerUtils.fillTaskObject(new TaskObject(), vtask);
 			
 		} else {
-			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-			
 			TaskEx task = ManagerUtils.fillTask(new TaskEx(), vtask);
 			if (options.has(TaskProcessOpt.RECUR) && vtask.getHasRecurrence()) {
+				TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 				OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, vtask.getTaskId());
 				if (orec != null) {
 					TaskRecurrence rec = new TaskRecurrence(orec.getRule(), orec.getStart());
-					rec.setExcludedDates(recDao.selectRecurrenceExByTask(con, vtask.getTaskId()));
+					if (options.has(TaskProcessOpt.RECUR_EX)) {
+						rec.setExcludedDates(recDao.selectRecurrenceExByTask(con, vtask.getTaskId()));
+					}
 					task.setRecurrence(rec);
 				}
 			}
@@ -2454,7 +2455,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		DateTime revisionTimestamp = BaseDAO.createRevisionTimestamp();
 		
-		String newTaskId = IdentifierUtils.getUUIDTimeBased(true);
+		final String newTaskId = IdentifierUtils.getUUIDTimeBased(true);
 		OTask otask = ManagerUtils.fillOTask(new OTask(), task);
 		otask.setTaskId(newTaskId);
 		if (task.getParentInstanceId() != null) {
@@ -2587,11 +2588,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			} else if ((orec == null) &&  task.hasRecurrence()) { // New task has recurrence but the old doesn't
 				Recur recur = task.getRecurrence().getRuleRecur();
 				
+				// Inserts recurrence
 				orec = new OTaskRecurrence();
 				orec.setTaskId(taskId);
 				orec.set(recur, task.getRecurrence().getStart(), task.getStart(), task.getTimezoneObject());
 				recDao.insertRecurrence(con, orec);
-
+				
+				// Inserts broken records that exclude some dates
 				if (processOpts.has(TaskProcessOpt.RECUR_EX) && (task.getRecurrence().getExcludedDates() != null)) {
 					recDao.batchInsertRecurrenceEx(con, taskId, task.getRecurrence().getExcludedDates());
 				}
@@ -2802,10 +2805,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		task.setParentInstanceId(targetParentInstanceId);
 		task.setCategoryId(targetCategoryId);
+		task.setPublicUid(null); // Reset value in order to make inner function generate new one!
 		task.setRevisionTimestamp(null); // Reset value in order to make inner function generate new one!
 		task.setRevisionSequence(null); // Reset value in order to make inner function generate new one!
 		task.setCreationTimestamp(null); // Reset value in order to make inner function generate new one!
-		task.setPublicUid(null); // Reset value in order to make inner function generate new one!
 		task.setOrganizer(null); // Reset value in order to make inner function generate new one!
 		task.setOrganizerId(null); // Reset value in order to make inner function generate new one!
 		task.setHref(null); // Reset value in order to make inner function generate new one!
