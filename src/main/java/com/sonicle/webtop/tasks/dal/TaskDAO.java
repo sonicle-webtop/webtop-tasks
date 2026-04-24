@@ -163,7 +163,7 @@ public class TaskDAO extends BaseDAO {
 			.fetchSet(TASKS_.TASK_ID);
 	}
 	
-	public String selectIdBySeriesInstance(Connection con, String seriesTaskId, String seriesInstance) throws DAOException {
+	public String selectOnlineIdBySeriesInstance(Connection con, String seriesTaskId, String seriesInstance) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.select(
@@ -173,6 +173,10 @@ public class TaskDAO extends BaseDAO {
 			.where(
 				TASKS_.SERIES_TASK_ID.in(seriesTaskId)
 				.and(TASKS_.SERIES_INSTANCE_ID.in(seriesInstance))
+				.and(
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
 			)
 			.fetchOne(0, String.class);
 	}
@@ -1047,8 +1051,8 @@ public class TaskDAO extends BaseDAO {
 			.set(TASKS_.REVISION_TIMESTAMP, item.getRevisionTimestamp())
 			.set(TASKS_.SUBJECT, item.getSubject())
 			.set(TASKS_.LOCATION, item.getLocation())
-			.set(TASKS_.DESCRIPTION, item.getDescription())
 			.set(TASKS_.DESCRIPTION_TYPE, item.getDescriptionType())
+			.set(TASKS_.DESCRIPTION, item.getDescription())
 			.set(TASKS_.START, item.getStart())
 			.set(TASKS_.DUE, item.getDue())
 			.set(TASKS_.COMPLETED_ON, item.getCompletedOn())
@@ -1143,6 +1147,10 @@ public class TaskDAO extends BaseDAO {
 			.where(
 				TASKS_.TASK_ID.equal(seriesTaskId)
 					.or(TASKS_.SERIES_TASK_ID.equal(seriesTaskId))
+				.and(
+					TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.NEW))
+					.or(TASKS_.REVISION_STATUS.equal(EnumUtils.toSerializedName(Task.RevisionStatus.MODIFIED)))
+				)
 				.and(TASKS_.CATEGORY_ID.notEqual(categoryId))
 			)
 			.returning(

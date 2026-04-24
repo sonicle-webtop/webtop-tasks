@@ -66,7 +66,8 @@ import org.joda.time.format.DateTimeFormatter;
  */
 public class JsTask {
 	public String id;
-	public String parentId;
+	public String oid; // Read-only
+	public String parentId; // Read-only
 	public Integer categoryId;
 	//public String publicUid;
 	public String subject;
@@ -101,6 +102,7 @@ public class JsTask {
 		DateTimeFormatter fmtYmdHms = JodaTimeUtils.createFormatterYMDHMS(profileTz);
 		
 		this.id = task.getId().toString();
+		this.oid = task.getOriginalTaskId();
 		this.parentId = task.getParentInstanceId() != null ? task.getParentInstanceId().toString() : null;
 		this.categoryId = task.getCategoryId();
 		this.subject = task.getSubject();
@@ -118,12 +120,13 @@ public class JsTask {
 		this.reminder =	TaskBase.Reminder.getMinutesValue(task.getReminder());
 		this.contact = task.getContact();
 		this.contactId = task.getContactId();
-		if (task.getRecurrence() != null) {
+		
+		if (task.hasRecurrence()) {
 			this.rrule = task.getRecurrence().getRule();
 		}
 		
 		this.assignees = new ArrayList<>();
-		for (TaskAssignee ass : task.getAssignees()) {
+		for (TaskAssignee ass : task.getAssigneesOrEmpty()) {
 			Assignee js = new Assignee();
 			js.id = ass.getAssigneeId();
 			js.recipient = ass.getRecipient();
@@ -134,7 +137,7 @@ public class JsTask {
 		this.tags = CId.build(task.getTags()).toString();
 		
 		this.attachments = new ArrayList<>();
-		for (TaskAttachment att : task.getAttachments()) {
+		for (TaskAttachment att : task.getAttachmentsOrEmpty()) {
 			Attachment js = new Attachment();
 			js.id = att.getAttachmentId();
 			//jsatt.lastModified = JodaTimeUtils.printYMDHMS(profileTz, att.getRevisionTimestamp());
@@ -174,8 +177,8 @@ public class JsTask {
 		item.setCategoryId(categoryId);
 		item.setSubject(subject);
 		item.setLocation(location);
-		item.setDescription(description);
 		item.setDescriptionType(TaskBase.BodyType.TEXT);
+		item.setDescription(description);
 		item.setTimezone(tz.getID());
 		item.setStart(JodaTimeUtils.parseDateTime(fmtYmdHms, start));
 		item.setDue(JodaTimeUtils.parseDateTime(fmtYmdHms, due));
@@ -231,8 +234,8 @@ public class JsTask {
 		item.setCategoryId(categoryId);
 		item.setSubject(subject);
 		item.setLocation(location);
-		item.setDescription(description);
 		item.setDescriptionType(TaskBase.BodyType.TEXT);
+		item.setDescription(description);
 		item.setStart(JodaTimeUtils.parseDateTime(fmtYmdHms, start));
 		item.setDue(JodaTimeUtils.parseDateTime(fmtYmdHms, due));
 		item.setProgress(progress);

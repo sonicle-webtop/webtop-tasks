@@ -89,7 +89,7 @@ public class TaskAssigneeDAO extends BaseDAO {
 			.execute();
 	}
 	
-	public int updateAssigneeResponseByTask(Connection con, String responseStatus, String taskId) throws DAOException {
+	public int updateAssigneeResponseById(Connection con, String responseStatus, String taskId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.update(TASKS_ASSIGNEES)

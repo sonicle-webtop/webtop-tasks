@@ -35,6 +35,7 @@ package com.sonicle.webtop.tasks;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.IdentifierUtils;
 import com.sonicle.commons.LangUtils;
+import com.sonicle.commons.LangUtils.ChangeSet;
 import com.sonicle.commons.LangUtils.CollectionChangeSet;
 import com.sonicle.commons.db.DbUtils;
 import com.sonicle.webtop.core.CoreManager;
@@ -919,7 +920,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				boolean keepPrivate = treatTaskAsPrivate(runProfile, vtas.getCategoryProfileId(), vtas.getIsPrivate());
 				
 				TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), vtas);
-				item.setId(TaskInstanceId.build(vtas.getTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
+				item.setId(TaskInstanceId.build(vtas.getOriginalTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
 				if (keepPrivate) item.censorize();
 				instances.add(item);
 			}
@@ -928,7 +929,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				
 				if (TaskListView.ALL.equals(view)) {
 					TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), vtas);
-					item.setId(TaskInstanceId.build(vtas.getTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
+					item.setId(TaskInstanceId.build(vtas.getOriginalTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
 					if (keepPrivate) item.censorize();
 					instances.add(item);
 				} else {
@@ -1045,7 +1046,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					if (keepPrivate) item.censorize();
 					
 					if (nestResults) {
-						if (vtas.getHasChildren()) parents.put(item.getTaskId(), item);
+						if (vtas.getHasChildren()) parents.put(item.getOriginalTaskId(), item);
 						instancesByParent.put(parentId == null ? nullParent : parentId, item);
 					} else {
 						instances.add(item);
@@ -1059,7 +1060,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						item.setId(TaskInstanceId.build(vtas.getTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
 						item.setTaskId(vtas.getTaskId());
 						
-						if (vtas.getHasChildren()) parents.put(item.getTaskId(), item);
+						if (vtas.getHasChildren()) parents.put(item.getOriginalTaskId(), item);
 						instancesByParent.putAll(parentId == null ? nullParent : parentId, items);
 					} else {
 						instances.addAll(items);
@@ -1206,40 +1207,23 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			con = WT.getConnection(SERVICE_ID);
-			String realTaskId = doTaskGetInstanceTaskId(con, instanceId);
-			BitFlags<TaskProcessOpt> options2 = TaskProcessOpt.parseTaskGetOptions(options).set(TaskProcessOpt.RECUR).set(TaskProcessOpt.RECUR_EX);
-			Task task = null;
-			if (realTaskId != null) {
-				task = doTaskGet(con, realTaskId, options2);
-			} else {
-				task = doTaskGet(con, instanceId.getTaskId(), options2);
-			}
+			BitFlags<TaskProcessOpt> processOpts = TaskProcessOpt.parseTaskGetOptions(options)
+				.set(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX);
+			TaskInstance task = doTaskInstanceGet(con, instanceId, processOpts);
 			if (task == null) return null;
 			
-			if (!instanceId.hasNoInstance()) {
-				if (task.getStart() == null) throw new WTException("Start date cannot be null");
-				recalculateStartForInstanceDate(instanceId.getInstanceAsDate(), task);
-			}
-			
 			checkRightsOnCategory(task.getCategoryId(), FolderShare.FolderRight.READ);
-			return new TaskInstance(instanceId, task);
 			
-		} catch(SQLException | DAOException ex) {
-			throw wrapException(ex);
+			boolean keepPrivate = needsTreatAsPrivate(RunContext.getRunProfileId(), task.getIsPrivate(), task.getCategoryId());
+			if (keepPrivate) task.censorize();
+			return task;
+			
+		} catch (Exception ex) {
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
-	
-	private void recalculateStartForInstanceDate(LocalDate instanceDate, TaskBase task) {
-		Integer dueDays = (task.getDue() != null) ? Math.abs(Days.daysBetween(task.getStart().toLocalDate(), task.getDue().toLocalDate()).getDays()) : null;
-		task.setStart(ManagerUtils.instanceDateToDateTime(instanceDate, task.getStart(), task.getTimezoneObject()));
-		if (dueDays != null) {
-			task.setDue(ManagerUtils.instanceDateToDateTime(instanceDate.plusDays(dueDays), task.getDue(), task.getTimezoneObject()));
-		}
-	}
-	
-	
 	
 	@Override
 	public TaskAttachmentWithBytes getTaskInstanceAttachment(final TaskInstanceId instanceId, final String attachmentId) throws WTException {
@@ -1250,7 +1234,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			InstanceInfo info = doTaskGetInstanceInfo(con, instanceId);
-			String taskId = info.realTaskId();
+			String taskId = info.originalEventId();
 			Integer catId = tasDao.selectCategoryId(con, taskId);
 			checkRightsOnCategory(catId, FolderShare.FolderRight.READ);
 			
@@ -1276,7 +1260,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			con = WT.getConnection(SERVICE_ID);
 			InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-			String taskId = info.realTaskId();
+			String taskId = info.originalEventId();
 			Integer catId = tasDao.selectCategoryId(con, taskId);
 			if (catId == null) return null;
 			checkRightsOnCategory(catId, FolderShare.FolderRight.READ);
@@ -1300,34 +1284,42 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		CoreManager coreMgr = getCoreManager();
 		Connection con = null;
 		
+		String newTaskId = null;
+		Task newTask = null;
 		try {
 			checkRightsOnCategory(task.getCategoryId(), FolderShare.ItemsRight.CREATE);
+			
 			con = WT.getConnection(SERVICE_ID, false);
 			
+			Set<String> availTags = coreMgr.listTagIds();
 			if (task.getParentInstanceId() != null) {
-				String newParentTaskId = doTaskGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId());
+				String newParentTaskId = doTaskGetOrCreateBrokenInstance(con, task.getParentInstanceId(), task.getCategoryId(), availTags);
 				task.setParentInstanceId(ManagerUtils.toParentInstanceId(newParentTaskId));
 			}
 			
 			BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.ATTACHMENTS, TaskProcessOpt.TAGS, TaskProcessOpt.CUSTOM_VALUES, TaskProcessOpt.CONTACT_REF, TaskProcessOpt.DOCUMENT_REF);
 			if (!StringUtils.isBlank(rawICalendar)) processOpts.set(TaskProcessOpt.RAW_ICAL);
-			TaskInsertResult result = doTaskInsert(con, task, null, null, rawICalendar, processOpts, BitFlags.noneOf(TaskReminderOpt.class));
-			String newTaskId = result.otask.getTaskId();
+			
+			TaskInsertResult result = doTaskInsert(con, task, null, null, rawICalendar, processOpts, BitFlags.noneOf(TaskReminderOpt.class), availTags);
+			newTaskId = result.otask.getTaskId();
 			
 			DbUtils.commitQuietly(con);
 			if (isAuditEnabled()) {
 				auditLogWrite(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
 			}
+			
 			storeAsSuggestion(coreMgr, SUGGESTION_TASK_SUBJECT, result.otask.getSubject());
 			
-			return doTaskGet(con, newTaskId, BitFlags.with(TaskProcessOpt.ATTACHMENTS, TaskProcessOpt.TAGS, TaskProcessOpt.CUSTOM_VALUES));
+			newTask = doTaskGet(con, newTaskId, BitFlags.with(TaskProcessOpt.ATTACHMENTS, TaskProcessOpt.TAGS, TaskProcessOpt.CUSTOM_VALUES));
 			
-		} catch(SQLException | DAOException | IOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
+		
+		return newTask;
 	}
 	
 	@Override
@@ -1337,35 +1329,43 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void updateTaskInstance(final TaskInstanceId instanceId, final TaskEx task, final BitFlags<TaskUpdateOption> options) throws WTException {
+		CoreManager coreMgr = getCoreManager();
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
 		try {
 			con = WT.getConnection(SERVICE_ID, false);
 			InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-			Integer catId = tasDao.selectCategoryId(con, info.realTaskId());
-			if (catId == null) throw new WTNotFoundException("Task category not found [{}]", info.taskId);
+			Integer categoryId = tasDao.selectCategoryId(con, info.originalEventId());
+			if (categoryId == null) throw new WTException("Unable to get owning category [{}]", instanceId);
 			
-			checkRightsOnCategory(catId, FolderShare.ItemsRight.UPDATE);
+			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
 			//TODO: throw AuthException on private tasks...
+			//if (needsTreatAsPrivate(RunContext.getRunProfileId(), info.taskIsPrivate, categoryId)) {
+			//	throw new AuthException("Task is private and therefore it cannot be updated [{}]", instanceId);
+			//}
 			
-			doTaskInstanceUpdateAndCommit(con, info, task, TaskProcessOpt.parseTaskUpdateOptions(options).set(TaskProcessOpt.RECUR));
+			BitFlags<TaskProcessOpt> processOpts = TaskProcessOpt.parseTaskUpdateOptions(options)
+				.set(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX);
+			Set<String> validTags = processOpts.has(TaskProcessOpt.TAGS) ? coreMgr.listTagIds() : null;
+			doTaskInstanceUpdateAndCommit(con, info, task, processOpts, validTags);
 			
-		} catch(SQLException | DAOException | IOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
 	}
 	
 	@Override
-	public void updateQuickTaskInstance(final TaskInstanceId instanceId, final Boolean completed, final Short progress, final Short importance) throws WTException {
-		updateQuickTaskInstance(Arrays.asList(instanceId), completed, progress, importance);
+	public void updateTaskInstanceQuick(final TaskInstanceId instanceId, final Boolean newCompleted, final Short newProgress, final Short newImportance) throws WTException {
+		updateTaskInstanceQuick(Arrays.asList(instanceId), newCompleted, newProgress, newImportance);
 	}
 	
 	@Override
-	public void updateQuickTaskInstance(final Collection<TaskInstanceId> instanceIds, final Boolean completed, final Short progress, final Short importance) throws WTException {
+	public void updateTaskInstanceQuick(final Collection<TaskInstanceId> instanceIds, final Boolean newCompleted, final Short newProgress, final Short newImportance) throws WTException {
+		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		
@@ -1374,22 +1374,25 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				TaskInstanceId instanceId = instanceIds.iterator().next();
 				con = WT.getConnection(SERVICE_ID, false);
 				InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-				Integer catId = tasDao.selectCategoryId(con, info.realTaskId());
-				if (catId == null) throw new WTNotFoundException("Task category not found [{}]", instanceId);
+				Integer categoryId = tasDao.selectCategoryId(con, info.originalEventId());
+				if (categoryId == null) throw new WTException("Unable to get owning category [{}]", instanceId);
 
-				checkRightsOnCategory(catId, FolderShare.ItemsRight.UPDATE);
-
-				Task origTask = doTaskGet(con, info.realTaskId(), BitFlags.noneOf(TaskProcessOpt.class));
-				if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
-				if (completed != null) {
-					origTask.setStatus(completed ? TaskBase.Status.COMPLETED : TaskBase.Status.NEEDS_ACTION);
-				} else if (progress != null) {
-					origTask.setProgress(progress);
-				} else if (importance != null) {
-					origTask.setImportance(importance);
+				checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
+				
+				BitFlags<TaskProcessOpt> processOpts = BitFlags.noneOf(TaskProcessOpt.class);
+				Task origTask = doTaskGet(con, info.originalEventId(), processOpts);
+				if (origTask == null) throw new WTNotFoundException("Task not found [{}]", info.originalEventId());
+				if (newCompleted != null) {
+					origTask.setStatus(newCompleted ? TaskBase.Status.COMPLETED : TaskBase.Status.NEEDS_ACTION);
+				} else if (newProgress != null) {
+					origTask.setProgress(newProgress);
+				} else if (newImportance != null) {
+					origTask.setImportance(newImportance);
 				}
+				
+				Set<String> availTags = coreMgr.listTagIds();
 				try {
-					this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class));
+					this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class), availTags);
 				} catch (IOException ex1) {/* Due configuration here this will never happen! */}
 				
 			} else {
@@ -1402,10 +1405,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				// Collect necessary data
 				InstancesDataResult idr = collectInstancesData(con, instanceIds);
 				Map<String, Integer> catMap = tasDao.selectCategoriesByIds(con, idr.involvedTaskIds);
+				Set<String> availTags = coreMgr.listTagIds();
 
 				for (Map.Entry<TaskInstanceId, InstanceInfo> entry : idr.infoMap.entrySet()) {
 					InstanceInfo info = entry.getValue();
-					String taskId = info.realTaskId();
+					String taskId = info.originalEventId();
 					if (taskId == null) {
 						logger.debug("Task ID is null");
 						continue;
@@ -1425,22 +1429,22 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						logger.warn("Task not found [{}]", taskId);
 						continue;
 					}
-					if (completed != null) {
-						origTask.setStatus(completed ? TaskBase.Status.COMPLETED : TaskBase.Status.NEEDS_ACTION);
-					} else if (progress != null) {
-						origTask.setProgress(progress);
-					} else if (importance != null) {
-						origTask.setImportance(importance);
+					if (newCompleted != null) {
+						origTask.setStatus(newCompleted ? TaskBase.Status.COMPLETED : TaskBase.Status.NEEDS_ACTION);
+					} else if (newProgress != null) {
+						origTask.setProgress(newProgress);
+					} else if (newImportance != null) {
+						origTask.setImportance(newImportance);
 					}
 					try {
-						this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class));
+						this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class), availTags);
 					} catch (IOException ex1) {/* Due configuration here this will never happen! */}
 				}
 			}
 			
-		} catch (SQLException | DAOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1461,7 +1465,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				TaskInstanceId instanceId = instanceIds.iterator().next();
 				con = WT.getConnection(SERVICE_ID, false);
 				InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-				Integer catId = tasDao.selectCategoryId(con, info.realTaskId());
+				Integer catId = tasDao.selectCategoryId(con, info.originalEventId());
 				if (catId == null) throw new WTNotFoundException("Task category not found [{}]", instanceId);
 				
 				checkRightsOnCategory(catId, FolderShare.ItemsRight.DELETE);
@@ -1483,7 +1487,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				ArrayList<AuditReferenceDataEntry> deleted = new ArrayList<>();
 				for (Map.Entry<TaskInstanceId, InstanceInfo> entry : idr.infoMap.entrySet()) {
 					InstanceInfo info = entry.getValue();
-					String taskId = info.realTaskId();
+					String taskId = info.originalEventId();
 					if (taskId == null) continue;
 					if (!catMap.containsKey(taskId)) throw new WTNotFoundException("Task not found [{}]", entry.getKey());
 					checkRightsOnCategory(deleteOkCache, catMap.get(taskId), FolderShare.ItemsRight.DELETE);
@@ -1500,9 +1504,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				}
 			}
 			
-		} catch(SQLException | DAOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1525,6 +1529,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	@Override
 	public void moveTaskInstance(final MoveCopyMode copyMode, final Collection<TaskInstanceId> instanceIds, final int targetCategoryId, final BitFlags<TaskGetOption> copyOptions) throws WTException {
+		CoreManager coreMgr = WT.getCoreManager(getTargetProfileId());
 		TaskDAO tasDao = TaskDAO.getInstance();
 		Connection con = null;
 		String copyPrefix = lookupResource(getLocale(), "task.copy.prefix");
@@ -1538,6 +1543,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			// Collect necessary data
 			InstancesDataResult idr = collectInstancesData(con, instanceIds);
 			Map<String, Integer> catMap = tasDao.selectCategoriesByIds(con, idr.involvedTaskIds);
+			Set<String> availTags = coreMgr.listTagIds();
 			
 			// Perform delete operation
 			Set<Integer> readOkCache = new HashSet<>();
@@ -1546,7 +1552,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			ArrayList<AuditReferenceDataEntry> moved = new ArrayList<>();
 			for (Map.Entry<TaskInstanceId, InstanceInfo> entry : idr.infoMap.entrySet()) {
 				InstanceInfo info = entry.getValue();
-				String taskId = info.realTaskId();
+				String taskId = info.originalEventId();
 				if (taskId == null) continue;
 				if (!catMap.containsKey(taskId)) throw new WTNotFoundException("Task not found [{}]", entry.getKey());
 				int categoryId = catMap.get(taskId);
@@ -1558,18 +1564,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						if (origTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
 						
 						origTask.prependToSubject(copyPrefix);
-						TaskInsertResult result = doTaskInstanceCopy(con, info, origTask, null, targetCategoryId, processOpts);
+						TaskInsertResult result = doTaskInstanceCopy(con, info, origTask, null, targetCategoryId, processOpts, availTags);
 						copied.add(new AuditTaskCopyObj(result.otask.getTaskId(), origTask.getTaskId()));
 						
 						if (MoveCopyMode.TREE.equals(copyMode) && info.hasChildren) {
 							TaskInstanceId parentInstanceId = TaskInstanceId.buildMaster(result.otask.getTaskId());
-							Set<String> childTaskIds = tasDao.selectOnlineIdsByParent(con, info.realTaskId());
+							Set<String> childTaskIds = tasDao.selectOnlineIdsByParent(con, info.originalEventId());
 							for (String childTaskId : childTaskIds) {
 								TaskInstanceId childInstanceId = TaskInstanceId.buildMaster(childTaskId);
 								InstanceInfo childInfo = new InstanceInfo(childInstanceId, tasDao.selectInstanceInfo(con, childInstanceId));
-								Task childOrigTask = doTaskGet(con, childInfo.realTaskId(), processOpts);
+								Task childOrigTask = doTaskGet(con, childInfo.originalEventId(), processOpts);
 								
-								TaskInsertResult result2 = doTaskInstanceCopy(con, childInfo, childOrigTask, parentInstanceId, targetCategoryId, processOpts);
+								TaskInsertResult result2 = doTaskInstanceCopy(con, childInfo, childOrigTask, parentInstanceId, targetCategoryId, processOpts, availTags);
 								copied.add(new AuditTaskCopyObj(result2.otask.getTaskId(), childOrigTask.getTaskId()));
 							}
 						}
@@ -1611,41 +1617,43 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		try {
 			List<String> okTagIds = null;
-			Set<String> validTags = coreMgr.listTagIds();
+			Set<String> availTags = coreMgr.listTagIds();
 			okTagIds = tagIds.stream()
-				.filter(tagId -> validTags.contains(tagId))
+				.filter(tagId -> availTags.contains(tagId))
 				.collect(Collectors.toList());
+			BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.TAGS);
 			
 			if (instanceIds.size() == 1) {
 				TaskInstanceId instanceId = instanceIds.iterator().next();
 				con = WT.getConnection(SERVICE_ID, false);
 				InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-				Integer catId = tasDao.selectCategoryId(con, info.realTaskId());
-				if (catId == null) throw new WTNotFoundException("Task category not found [{}]", instanceId);
+				Integer categoryId = tasDao.selectCategoryId(con, info.originalEventId());
+				if (categoryId == null) throw new WTException("Unable to get owning category [{}]", instanceId);
 
-				checkRightsOnCategory(catId, FolderShare.ItemsRight.UPDATE);
+				checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
 				
-				Task origTask = doTaskGet(con, info.realTaskId(), BitFlags.with(TaskProcessOpt.TAGS));
-				if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
+				Task targetTask = doTaskGet(con, info.originalEventId(), processOpts);
+				if (targetTask == null) throw new WTNotFoundException("Task not found [{}]", info.originalEventId());
 				
+				// Audit: dump tags for later use
 				ArrayList<String> auditOldTags = null;				
-				if (isAuditEnabled()) auditOldTags = new ArrayList<>(origTask.getTagsOrEmpty());
+				if (isAuditEnabled()) auditOldTags = new ArrayList<>(targetTask.getTagsOrEmpty());
 				
+				// Perform tag operation in target event
 				if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
-					if (UpdateTagsOperation.RESET.equals(operation)) origTask.getTags().clear();
-					origTask.getTags().addAll(okTagIds);
+					if (UpdateTagsOperation.RESET.equals(operation)) targetTask.getTags().clear();
+					targetTask.getTags().addAll(okTagIds);
 				} else if (UpdateTagsOperation.UNSET.equals(operation)) {
-					origTask.getTags().removeAll(okTagIds);
+					targetTask.getTags().removeAll(okTagIds);
 				}
 				
 				TaskInsertResult taskResult = null;
-
 				try {
-					taskResult = this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.with(TaskProcessOpt.TAGS), true);
+					taskResult = doTaskInstanceUpdateAndCommit(con, info, targetTask, BitFlags.with(TaskProcessOpt.TAGS), availTags);
 				} catch (IOException ex1) {/* Due configuration here this will never happen! */}
 
 				if (isAuditEnabled()) {
-					String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : origTask.getTaskId();
+					String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : targetTask.getTaskId();
 					if (UpdateTagsOperation.RESET.equals(operation)) {
 						HashMap<String, List<String>> data = coreMgr.compareTags(auditOldTags, new ArrayList<>(okTagIds));
 						auditLogWrite(
@@ -1677,11 +1685,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				// Collect necessary data
 				InstancesDataResult idr = collectInstancesData(con, instanceIds);
 				Map<String, Integer> catMap = tasDao.selectCategoriesByIds(con, idr.involvedTaskIds);
-				AuditLogManager.Batch auditBatch = auditLogGetBatch(AuditContext.TASK, AuditAction.TAG);
 				
+				// Audit: prepare batch
+				AuditLogManager.Batch auditBatch = null;
+				if (isAuditEnabled()) auditBatch = auditLogGetBatch(AuditContext.TASK, AuditAction.TAG);
+				
+				// Perform update operation on instances
 				for (Map.Entry<TaskInstanceId, InstanceInfo> entry : idr.infoMap.entrySet()) {
 					InstanceInfo info = entry.getValue();
-					String taskId = info.realTaskId();
+					String taskId = info.originalEventId();
 					if (taskId == null) {
 						logger.debug("Task ID is null");
 						continue;
@@ -1696,30 +1708,27 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						continue;
 					}
 
-					Task origTask = doTaskGet(con, taskId, BitFlags.with(TaskProcessOpt.TAGS));
-					if (origTask == null) {
-						logger.warn("Task not found [{}]", taskId);
-						continue;
-					}
+					Task targetTask = doTaskGet(con, taskId, processOpts);
+					if (targetTask == null) throw new WTNotFoundException("Task not found [{}]", taskId);
 					
+					// Audit: dump tags for later use
 					ArrayList<String> auditOldTags = null;				
-					if (auditBatch != null) auditOldTags = new ArrayList<>(origTask.getTagsOrEmpty());
+					if (auditBatch != null) auditOldTags = new ArrayList<>(targetTask.getTagsOrEmpty());
 					
 					if (UpdateTagsOperation.SET.equals(operation) || UpdateTagsOperation.RESET.equals(operation)) {
-						if (UpdateTagsOperation.RESET.equals(operation)) origTask.getTags().clear();
-						origTask.getTags().addAll(okTagIds);
+						if (UpdateTagsOperation.RESET.equals(operation)) targetTask.getTags().clear();
+						targetTask.getTags().addAll(okTagIds);
 					} else if (UpdateTagsOperation.UNSET.equals(operation)) {
-						origTask.getTags().removeAll(okTagIds);
+						targetTask.getTags().removeAll(okTagIds);
 					}
 					
 					TaskInsertResult taskResult = null;
-
 					try {
-						taskResult = this.doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.with(TaskProcessOpt.TAGS), true);
+						taskResult = doTaskInstanceUpdateAndCommit(con, info, targetTask, BitFlags.with(TaskProcessOpt.TAGS), availTags);
 					} catch (IOException ex1) {/* Due configuration here this will never happen! */}
 
 					if (auditBatch != null) {
-						String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : origTask.getTaskId();
+						String auditTaskId = taskResult != null ? taskResult.otask.getTaskId() : targetTask.getTaskId();
 						if (UpdateTagsOperation.RESET.equals(operation)) {
 							HashMap<String, List<String>> data = coreMgr.compareTags(auditOldTags, new ArrayList<>(okTagIds));
 							auditBatch.write(
@@ -1738,12 +1747,14 @@ public class TasksManager extends BaseManager implements ITasksManager {
 						}
 					}
 				}
-				auditBatch.flush();
+				
+				// Audit: finalize batch if available
+				if (auditBatch != null) auditBatch.flush();
 			}
 			
-		} catch (SQLException | DAOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1758,19 +1769,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.CREATE);
 			
-			ICalendarInput in = new ICalendarInput(pdata.getTimeZone());
+			ICalendarInput in = new ICalendarInput(pdata.getTimeZone(), coreMgr.listTagNamesById(), coreMgr.listTagIdsByName());
 			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
-			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
-			if (tis.size() > 1) throw new WTException("iCalendar object should contain one VTODO");
+			if (tis.isEmpty()) throw new WTException("iCalendar does not contain any VTODO");
+			if (tis.size() > 1) throw new WTException("iCalendar should contain one VTODO");
 			TaskInput input = tis.get(0);
 			input.task.setCategoryId(categoryId);
 			input.task.setHref(href);
 			
-			Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
-			
 			con = WT.getConnection(SERVICE_ID, false);
 			BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.RAW_ICAL);
-			TaskInsertResult result = doTaskInputInsert(con, tagIdsByNameMap, new HashMap<>(), input, processOpts, BitFlags.with(TaskReminderOpt.IGNORE));
+			TaskInsertResult result = doTaskInputInsert(con, input, processOpts, BitFlags.with(TaskReminderOpt.IGNORE), coreMgr.listTagIds());
 			String newTaskId = result.otask.getTaskId();
 			
 			DbUtils.commitQuietly(con);
@@ -1778,9 +1787,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				auditLogWrite(AuditContext.TASK, AuditAction.CREATE, newTaskId, null);
 			}
 			
-		} catch(SQLException | DAOException | IOException | WTException ex) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw wrapException(ex);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1794,25 +1803,23 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		try {
 			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
 			
-			ICalendarInput in = new ICalendarInput(pdata.getTimeZone());
+			ICalendarInput in = new ICalendarInput(pdata.getTimeZone(), coreMgr.listTagNamesById(), coreMgr.listTagIdsByName());
 			List<TaskInput> tis = in.parseToDoObjects(iCalendar);
-			if (tis.isEmpty()) throw new WTException("iCalendar object does not contain any VTODO");
+			if (tis.isEmpty()) throw new WTException("iCalendar does not contain any VTODO");
 			tis.get(0).task.setCategoryId(categoryId);
 			tis.get(0).task.setHref(href);
-			
-			Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
 			
 			con = WT.getConnection(SERVICE_ID, false);
 			String taskId = doGetTaskIdByCategoryHref(con, categoryId, href, true);
 			BitFlags<TaskProcessOpt> processOpts = BitFlags.with(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.RAW_ICAL);
-			boolean ret = doTaskInputUpdate(con, tagIdsByNameMap, taskId, tis, processOpts);
+			boolean ret = doTaskInputUpdate(con, taskId, tis, processOpts, coreMgr.listTagIds());
 			if (!ret) throw new WTNotFoundException("Task not found [{}]", taskId);
 			
 			DbUtils.commitQuietly(con);
 			
-		} catch (Throwable t) {
+		} catch (Exception ex) {
 			DbUtils.rollbackQuietly(con);
-			throw ExceptionUtils.wrapThrowable(t);
+			throw ExceptionUtils.wrapThrowable(ex);
 		} finally {
 			DbUtils.closeQuietly(con);
 		}
@@ -1856,7 +1863,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 			logHandler.handleMessage(0, LogMessage.Level.INFO, "{} tasks/s found!", items.size());
 			
-			Map<String, List<String>> tagIdsByNameMap = coreMgr.listTagIdsByName();
+			Set<String> availTags = coreMgr.listTagIds();
 			con = WT.getConnection(SERVICE_ID, false);
 			
 			if (ImportMode.COPY.equals(mode)) {
@@ -1873,7 +1880,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			for (TaskInput item : items) {
 				item.task.setCategoryId(categoryId);
 				try {
-					doTaskInputInsert(con, tagIdsByNameMap, publicIdToMap, item, processOpts, reminderOpts);
+					doTaskInputInsert(con, item, processOpts, reminderOpts, availTags, publicIdToMap);
 					DbUtils.commitQuietly(con);
 					count++;
 					
@@ -2170,8 +2177,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					}
 				}
 				TaskObjectWithICalendar ret = ManagerUtils.fillTaskObject(new TaskObjectWithICalendar(), vtask);
-				ICalendarOutput out = new ICalendarOutput(ICalendarUtils.buildProdId(ManagerUtils.getProductName()))
-					.withTagNamesByIdMap(tagNamesByIdMap);
+				ICalendarOutput out = new ICalendarOutput(ICalendarUtils.buildProdId(ManagerUtils.getProductName()), tagNamesByIdMap);
 				try {
 					//TODO: maybe add support to relatedTo (last null param here below)
 					ret.setIcalendar(out.writeICalendar(task, extraProps, null));
@@ -2207,7 +2213,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
 			infoMap.put(instanceId, info);
 			// Fill involvedTaskIds collection only if we have a valid task ID!
-			String taskId = info.realTaskId();
+			String taskId = info.originalEventId();
 			if (taskId != null) involvedTaskIds.add(taskId);
 		}
 		return new InstancesDataResult(infoMap, involvedTaskIds);
@@ -2235,7 +2241,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		 * Reports if the instance is a broken element of the series.
 		 * After being edited, a series instance template become a broken instance.
 		 */
-		public final boolean isBroken;
+		public final boolean isSeriesBroken;
 		
 		/**
 		 * Reports the underlying task ID of the instance: valued for master, broken and single
@@ -2249,6 +2255,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		 * in case of broken or single instances
 		 */
 		public final String taskTimezone;
+		
+		/**
+		 * Reports if the instance is private for the owner.
+		 */
+		public final boolean taskIsPrivate;
 		
 		/**
 		 * Reports the taskId of the master series, only if this instance clearly
@@ -2306,7 +2317,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				this.masterTaskId = belongsToSeries ? instanceId.getTaskId() : null;
 				this.taskId = instanceId.getTaskId();
 				this.taskTimezone = otii.getTimezone();
-				this.isBroken = false;
+				this.taskIsPrivate = false;
+				this.isSeriesBroken = false;
 				this.seriesInstance = null;
 				this.seriesInstanceDate = null;
 				
@@ -2317,13 +2329,47 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				this.masterTaskId = belongsToSeries ? instanceId.getTaskId() : null;
 				this.taskId = otii.getTaskIdByInstance();
 				this.taskTimezone = otii.getTimezone();
-				this.isBroken = (taskId != null);
+				this.taskIsPrivate = false;
+				this.isSeriesBroken = (taskId != null);
 				this.seriesInstance = instanceId.getInstance();
 				this.seriesInstanceDate = instanceId.getInstanceAsDate();
 			}
 		}
 		
-		public String realTaskId() {
+		/*
+		public InstanceInfo(TaskInstance instance) {
+			this(instance.getId(), instance.getOriginalEventId(), instance);
+		}
+		
+		public InstanceInfo(TaskInstanceId instanceId, String originalEventId, TaskEx event) {
+			if (TaskInstanceId.isSeriesMaster(instanceId, originalEventId)) {
+				this.hasParent = event.getHasParent();
+				this.hasChildren = event.getHasChildren();
+				this.belongsToSeries = event.hasRecurrence();
+				this.masterTaskId = belongsToSeries ? instanceId.getOriginalTaskId() : null;
+				this.taskId = instanceId.getOriginalTaskId();
+				this.taskTimezone = event.getTimezone();
+				this.taskIsPrivate = event.getIsPrivate();
+				this.isSeriesException = false;
+				this.seriesInstance = null;
+				this.seriesInstanceDate = null;
+				
+			} else {
+				this.hasParent = event.getHasParent();
+				this.hasChildren = event.getHasChildren();
+				this.belongsToSeries = event.hasRecurrence();
+				this.masterTaskId = belongsToSeries ? instanceId.getOriginalTaskId() : null;
+				this.taskId = originalEventId;
+				this.taskTimezone = event.getTimezone();
+				this.taskIsPrivate = event.getIsPrivate();
+				this.isSeriesException = TaskInstanceId.isSeriesException(instanceId, originalEventId);
+				this.seriesInstance = instanceId.getInstance();
+				this.seriesInstanceDate = instanceId.getInstanceAsDate();
+			}
+		}
+		*/
+		
+		public String originalEventId() {
 			return LangUtils.coalesceStrings(taskId, masterTaskId);
 		}
 		
@@ -2374,43 +2420,13 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
 	}
 	
-	private String doTaskGetOrCreateBrokenInstance(Connection con, TaskInstanceId instanceId, int categoryId) throws WTException {
-		TaskDAO tasDao = TaskDAO.getInstance();
-		InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
-		
-		if (info.belongsToSeries && info.taskId == null) {
-			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
-			
-			Task origTask = doTaskGet(con, info.realTaskId(), BitFlags.noneOf(TaskProcessOpt.class));
-			if (origTask == null) throw new WTException("Task not found [{}]", info.realTaskId());
-			
-			TaskInsertResult result = null;
-			try {
-				result = doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class));
-			} catch (IOException ex1) {/* Due configuration here this will never happen! */}
-			
-			return result.otask.getTaskId();
-			
-		} else if (info.belongsToSeries && info.isBroken) {
-			return info.taskId;
-			
-		} else {
-			return info.taskId;
-		}
-	}
-	
 	private String doTaskGetInstanceTaskId(Connection con, TaskInstanceId instanceId) throws DAOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		return tasDao.selectIdBySeriesInstance(con, instanceId.getTaskId(), instanceId.getInstance());
+		return tasDao.selectOnlineIdBySeriesInstance(con, instanceId.getTaskId(), instanceId.getInstance());
 	}
 	
 	private Task doTaskGet(Connection con, String taskId, BitFlags<TaskProcessOpt> processOptions) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-		TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
-		TaskTagDAO tagDao = TaskTagDAO.getInstance();
-		TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
-		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		
 		OTask otask = tasDao.selectOnlineById(con, taskId);
 		if (otask == null) return null;
@@ -2418,41 +2434,82 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		Task task = ManagerUtils.fillTask(new Task(childrenCount.getTotalCount(), childrenCount.getCompletedCount()), otask);
 		task.setParentInstanceId(ManagerUtils.toParentInstanceId(otask.getParentTaskId()));
 		
-		List<OTaskAssignee> oassignees = assDao.selectByTask(con, taskId);
-		task.setAssignees(ManagerUtils.createTaskAssigneeList(oassignees));
-		
 		if (processOptions.has(TaskProcessOpt.RECUR)) {
+			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 			OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, taskId);
 			if (orec != null) {
 				TaskRecurrence rec = new TaskRecurrence(orec.getRule(), orec.getStart());
-				//TaskRecurrence rec = new TaskRecurrence(orec.getRule(), orec.getLocalStartDate(otask.getDateTimezone()));
 				if (processOptions.has(TaskProcessOpt.RECUR_EX)) {
 					rec.setExcludedDates(recDao.selectRecurrenceExByTask(con, taskId));
 				}
 				task.setRecurrence(rec);
 			}
 		}
-		if (processOptions.has(TaskProcessOpt.TAGS)) {
-			task.setTags(tagDao.selectTagsByTask(con, taskId));
+		if (processOptions.has(TaskProcessOpt.ASSIGNEES)) {
+			TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
+			List<OTaskAssignee> oassignees = assDao.selectByTask(con, taskId);
+			task.setAssignees(ManagerUtils.createTaskAssigneeList(oassignees));
 		}
 		if (processOptions.has(TaskProcessOpt.ATTACHMENTS)) {
+			TaskAttachmentDAO attDao = TaskAttachmentDAO.getInstance();
 			List<OTaskAttachment> oatts = attDao.selectByTask(con, taskId);
 			task.setAttachments(ManagerUtils.createTaskAttachmentList(oatts));
 		}
+		if (processOptions.has(TaskProcessOpt.TAGS)) {
+			TaskTagDAO tagDao = TaskTagDAO.getInstance();
+			task.setTags(tagDao.selectTagsByTask(con, taskId));
+		}
 		if (processOptions.has(TaskProcessOpt.CUSTOM_VALUES)) {
+			TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 			List<OTaskCustomValue> ovals = cvalDao.selectByTask(con, taskId);
 			task.setCustomValues(ManagerUtils.createCustomValuesMap(ovals));
 		}
 		return task;
 	}
 	
-	private TaskInsertResult doTaskInsert(Connection con, TaskEx task, String seriesTaskId, String seriesInstance, String rawICalendar, BitFlags<TaskProcessOpt> processOpts, BitFlags<TaskReminderOpt> reminderOpts) throws DAOException, IOException {
+	private String doTaskGetOrCreateBrokenInstance(Connection con, TaskInstanceId instanceId, int categoryId, Set<String> validTags) throws WTException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-		TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
-		TaskTagDAO tagDao = TaskTagDAO.getInstance();
-		TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
-		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
+		InstanceInfo info = new InstanceInfo(instanceId, tasDao.selectInstanceInfo(con, instanceId));
+		
+		if (info.belongsToSeries && info.taskId == null) {
+			checkRightsOnCategory(categoryId, FolderShare.ItemsRight.UPDATE);
+			
+			Task origTask = doTaskGet(con, info.originalEventId(), BitFlags.noneOf(TaskProcessOpt.class));
+			if (origTask == null) throw new WTException("Task not found [{}]", info.originalEventId());
+			
+			TaskInsertResult result = null;
+			try {
+				result = doTaskInstanceUpdateAndCommit(con, info, origTask, BitFlags.noneOf(TaskProcessOpt.class), validTags);
+			} catch (IOException ex1) {/* Due configuration here this will never happen! */}
+			
+			return result.otask.getTaskId();
+			
+		} else if (info.belongsToSeries && info.isSeriesBroken) {
+			return info.taskId;
+			
+		} else {
+			return info.taskId;
+		}
+	}
+	
+	private TaskInstance doTaskInstanceGet(Connection con, TaskInstanceId instanceId, BitFlags<TaskProcessOpt> processOpts) throws DAOException, WTException {
+		Task event = null;
+		String originalEventId = doTaskGetInstanceTaskId(con, instanceId);
+		if (originalEventId != null) {
+			event = doTaskGet(con, originalEventId, processOpts);
+		} else {
+			event = doTaskGet(con, instanceId.getTaskId(), processOpts);
+		}
+		if (event == null) return null;
+		
+		if (TaskInstanceId.isSeriesItem(instanceId, event.getTaskId())) {
+			event.recalculateStartDueForInstance(instanceId.getInstanceAsDate());
+		}
+		return new TaskInstance(instanceId, event);
+	}
+	
+	private TaskInsertResult doTaskInsert(Connection con, TaskEx task, String seriesTaskId, String seriesInstance, String rawICalendar, BitFlags<TaskProcessOpt> processOpts, BitFlags<TaskReminderOpt> reminderOpts, Set<String> validTags) throws DAOException, IOException {
+		TaskDAO tasDao = TaskDAO.getInstance();
 		DateTime revisionTimestamp = BaseDAO.createRevisionTimestamp();
 		
 		final String newTaskId = IdentifierUtils.getUUIDTimeBased(true);
@@ -2480,17 +2537,19 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (!ret) return null;
 		
 		if (processOpts.has(TaskProcessOpt.RAW_ICAL) && !StringUtils.isBlank(rawICalendar)) {
+			TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
 			icalDao.upsert(con, newTaskId, rawICalendar);
 		}
 		
-		OTaskRecurrence orec = null;
+		OTaskRecurrence orecurrence = null;
 		if (processOpts.has(TaskProcessOpt.RECUR) && task.hasRecurrence()) {
+			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 			Recur recur = task.getRecurrence().getRuleRecur();
 			
-			orec = new OTaskRecurrence();
-			orec.setTaskId(newTaskId);
-			orec.set(recur, task.getRecurrence().getStart(), task.getStart(), task.getTimezoneObject());
-			recDao.insertRecurrence(con, orec);
+			orecurrence = new OTaskRecurrence();
+			orecurrence.setTaskId(newTaskId);
+			orecurrence.set(recur, task.getRecurrence().getStart(), task.getStart(), task.getTimezoneObject());
+			recDao.insertRecurrence(con, orecurrence);
 			
 			if (processOpts.has(TaskProcessOpt.RECUR_EX) && (task.getRecurrence().getExcludedDates() != null)) {
 				recDao.batchInsertRecurrenceEx(con, newTaskId, task.getRecurrence().getExcludedDates());
@@ -2499,6 +2558,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		ArrayList<OTaskAssignee> oassignees = null;
 		if (processOpts.has(TaskProcessOpt.ASSIGNEES) && task.hasAssignees()) {
+			TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
 			oassignees = new ArrayList<>();
 			for (TaskAssignee assignee : task.getAssignees()) {
 				if (!ManagerUtils.validateForInsert(assignee)) continue;
@@ -2512,16 +2572,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		Set<String> otags = null;
 		if (processOpts.has(TaskProcessOpt.TAGS) && task.hasTags()) {
+			TaskTagDAO tagDao = TaskTagDAO.getInstance();
 			otags = new LinkedHashSet<>(task.getTags());
-			tagDao.batchInsert(con, newTaskId, task.getTags());
+			tagDao.batchInsert(con, newTaskId, sanitizeTagsCollection(task.getTags(), validTags));
 		}
 		
-		ArrayList<OTaskAttachment> oatts = null;
+		ArrayList<OTaskAttachment> oattachments = null;
 		if (processOpts.has(TaskProcessOpt.ATTACHMENTS) && task.hasAttachments()) {
-			oatts = new ArrayList<>();
+			oattachments = new ArrayList<>();
 			for (TaskAttachment att : task.getAttachments()) {
 				if (att instanceof TaskAttachmentWithInput) {
-					oatts.add(doTaskAttachmentInsert(con, newTaskId, (TaskAttachmentWithInput)att));
+					oattachments.add(doTaskAttachmentInsert(con, newTaskId, (TaskAttachmentWithInput)att));
 				} else {
 					throw new IOException("Attachment object not supported [" + att.getAttachmentId() + "]");
 				}
@@ -2530,6 +2591,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		ArrayList<OTaskCustomValue> ocvals = null;
 		if (processOpts.has(TaskProcessOpt.CUSTOM_VALUES) && task.hasCustomValues()) {
+			TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 			ocvals = new ArrayList<>(task.getCustomValues().size());
 			for (CustomFieldValue cfv : task.getCustomValues().values()) {
 				OTaskCustomValue ocv = ManagerUtils.fillOTaskCustomValue(new OTaskCustomValue(), cfv);
@@ -2539,17 +2601,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			cvalDao.batchInsert(con, ocvals);
 		}
 		
-		return new TaskInsertResult(otask, oassignees, otags, oatts, ocvals);
+		return new TaskInsertResult(otask, orecurrence, oassignees, otags, oattachments, ocvals);
 	}
 	
-	private OTask doTaskUpdate(Connection con, String taskId, TaskEx task, String rawICalendar, BitFlags<TaskProcessOpt> processOpts) throws DAOException, IOException {
+	private Set<String> sanitizeTagsCollection(Set<String> inputSet, Set<String> validSet) {
+		if (inputSet == null || validSet == null) return inputSet;
+		return inputSet.stream()
+			.filter(tagId -> validSet.contains(tagId))
+			.collect(Collectors.toSet());
+	}
+	
+	private OTask doTaskUpdate(Connection con, String taskId, TaskEx task, String rawICalendar, BitFlags<TaskProcessOpt> processOpts, Set<String> validTags) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
-		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-		TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
-		TaskTagDAO tagDao = TaskTagDAO.getInstance();
-		TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
-		TaskAttachmentDAO attcDao = TaskAttachmentDAO.getInstance();
-		TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 		DateTime revisionTimestamp = BaseDAO.createRevisionTimestamp();
 		
 		Check.notNull(task.getTimezone(), "task.getTimezone() must not be null!");
@@ -2562,10 +2625,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (!ret) return null;
 		
 		if (processOpts.has(TaskProcessOpt.RAW_ICAL)) {
+			TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
 			icalDao.upsert(con, taskId, rawICalendar);
 		}
 		
 		if (processOpts.has(TaskProcessOpt.RECUR)) {
+			TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 			OTaskRecurrence orec = recDao.selectRecurrenceByTask(con, taskId);
 			if ((orec != null) && task.hasRecurrence()) { // New task has recurrence and the old too
 				Recur recur = task.getRecurrence().getRuleRecur();
@@ -2577,12 +2642,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				if (processOpts.has(TaskProcessOpt.RECUR_EX)) {
 					// If rule is changed, cleanup stored exceptions (we lose any broken events restore information)
 					if (recurChanged) recDao.deleteRecurrenceExByTask(con, taskId);
-					
+					// Inserts broken records that exclude some dates
 					Set<LocalDate> newDates = (task.getRecurrence().getExcludedDates() != null) ? task.getRecurrence().getExcludedDates() : new LinkedHashSet<>();
 					Set<LocalDate> oldDates = recDao.selectRecurrenceExByTask(con, taskId);
-					CollectionChangeSet<LocalDate> changeSet = LangUtils.getCollectionChanges(oldDates, newDates);
-					recDao.batchInsertRecurrenceEx(con, taskId, changeSet.inserted);
-					recDao.deleteRecurrenceExByTaskDates(con, taskId, changeSet.deleted);
+					ChangeSet<LocalDate> changeSet = LangUtils.computeChangeSet(oldDates, newDates);
+					recDao.batchInsertRecurrenceEx(con, taskId, changeSet.getAdded());
+					recDao.deleteRecurrenceExByTaskDates(con, taskId, changeSet.getRemoved());
 				}
 				
 			} else if ((orec == null) &&  task.hasRecurrence()) { // New task has recurrence but the old doesn't
@@ -2606,50 +2671,62 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		
 		if (processOpts.has(TaskProcessOpt.ASSIGNEES)) {
+			TaskAssigneeDAO assDao = TaskAssigneeDAO.getInstance();
 			List<TaskAssignee> oldAssignees = ManagerUtils.createTaskAssigneeList(assDao.selectByTask(con, taskId));
-			CollectionChangeSet<TaskAssignee> changeSet = LangUtils.getCollectionChanges(oldAssignees, task.getAssigneesOrEmpty());
+			ChangeSet<TaskAssignee> changeSet = LangUtils.computeChangeSet(oldAssignees, task.getAssigneesOrEmpty());
 			
-			for (TaskAssignee assignee : changeSet.inserted) {
-				if (!ManagerUtils.validateForInsert(assignee)) continue;
-				final OTaskAssignee oassignee = ManagerUtils.fillOTaskAssignee(new OTaskAssignee(), assignee);
-				oassignee.setAssigneeId(IdentifierUtils.getUUIDTimeBased(true));
-				oassignee.setTaskId(taskId);
-				assDao.insert(con, oassignee);
+			if (changeSet.hasAdded()) {
+				for (TaskAssignee assignee : changeSet.getAdded()) {
+					if (!ManagerUtils.validateForInsert(assignee)) continue;
+					final OTaskAssignee oassignee = ManagerUtils.fillOTaskAssignee(new OTaskAssignee(), assignee);
+					oassignee.setAssigneeId(IdentifierUtils.getUUIDTimeBased(true));
+					oassignee.setTaskId(taskId);
+					assDao.insert(con, oassignee);
+				}
 			}
-			for (TaskAssignee assignee : changeSet.updated) {
-				if (!ManagerUtils.validateForUpdate(assignee)) continue;
-				final OTaskAssignee oassignee = ManagerUtils.fillOTaskAssignee(new OTaskAssignee(), assignee);
-				assDao.update(con, oassignee);
+			if (changeSet.hasUpdated()) {
+				for (TaskAssignee assignee : changeSet.getUpdated()) {
+					if (!ManagerUtils.validateForUpdate(assignee)) continue;
+					final OTaskAssignee oassignee = ManagerUtils.fillOTaskAssignee(new OTaskAssignee(), assignee);
+					assDao.update(con, oassignee);
+				}
 			}
-			assDao.deleteByIdsTask(con, changeSet.deleted.stream().map(att -> att.getAssigneeId()).collect(Collectors.toList()), taskId);
+			if (changeSet.hasRemoved()) assDao.deleteByIdsTask(con, changeSet.getRemoved().stream().map(att -> att.getAssigneeId()).collect(Collectors.toList()), taskId);
 		}
 		
 		if (processOpts.has(TaskProcessOpt.TAGS)) {
+			TaskTagDAO tagDao = TaskTagDAO.getInstance();
 			Set<String> oldTags = tagDao.selectTagsByTask(con, taskId);
-			CollectionChangeSet<String> changeSet = LangUtils.getCollectionChanges(oldTags, task.getTagsOrEmpty());
-			tagDao.batchInsert(con, taskId, changeSet.inserted);
-			tagDao.deleteByIdTags(con, taskId, changeSet.deleted);
+			ChangeSet<String> changeSet = LangUtils.computeChangeSet(oldTags, task.getTagsOrEmpty());
+			if (changeSet.hasAdded()) tagDao.batchInsert(con, taskId, changeSet.getAdded());
+			if (changeSet.hasRemoved()) tagDao.deleteByIdTags(con, taskId, changeSet.getRemoved());
 		}
 		
 		if (processOpts.has(TaskProcessOpt.ATTACHMENTS)) {
+			TaskAttachmentDAO attcDao = TaskAttachmentDAO.getInstance();
 			List<TaskAttachment> oldAttchs = ManagerUtils.createTaskAttachmentList(attcDao.selectByTask(con, taskId));
-			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAttchs, task.getAttachmentsOrEmpty());
-
-			for (TaskAttachment att : changeSet.inserted) {
-				if (att instanceof TaskAttachmentWithInput) {
-					doTaskAttachmentInsert(con, taskId, (TaskAttachmentWithInput)att);
-				} else {
-					throw new IOException("Attachment object not supported [" + att.getAttachmentId() + "]");
+			ChangeSet<TaskAttachment> changeSet = LangUtils.computeChangeSet(oldAttchs, task.getAttachmentsOrEmpty());
+			
+			if (changeSet.hasAdded()) {
+				for (TaskAttachment att : changeSet.getAdded()) {
+					if (att instanceof TaskAttachmentWithInput) {
+						doTaskAttachmentInsert(con, taskId, (TaskAttachmentWithInput)att);
+					} else {
+						throw new IOException("Attachment object not supported [" + att.getAttachmentId() + "]");
+					}
 				}
 			}
-			for (TaskAttachment att : changeSet.updated) {
-				if (!(att instanceof TaskAttachmentWithInputStream)) continue;
-				doTaskAttachmentUpdate(con, (TaskAttachmentWithInputStream)att);
+			if (changeSet.hasUpdated()) {
+				for (TaskAttachment att : changeSet.getUpdated()) {
+					if (!(att instanceof TaskAttachmentWithInputStream)) continue;
+					doTaskAttachmentUpdate(con, (TaskAttachmentWithInputStream)att);
+				}
 			}
-			attcDao.deleteByIdsTask(con, changeSet.deleted.stream().map(att -> att.getAttachmentId()).collect(Collectors.toList()), taskId);
+			if (changeSet.hasRemoved()) attcDao.deleteByIdsTask(con, changeSet.getRemoved().stream().map(att -> att.getAttachmentId()).collect(Collectors.toList()), taskId);
 		}
 		
 		if (processOpts.has(TaskProcessOpt.CUSTOM_VALUES) && task.hasCustomValues()) {
+			TaskCustomValueDAO cvalDao = TaskCustomValueDAO.getInstance();
 			ArrayList<String> customFieldIds = new ArrayList<>();
 			ArrayList<OTaskCustomValue> ocvals = new ArrayList<>(task.getCustomValues().size());
 			for (CustomFieldValue cfv : task.getCustomValues().values()) {
@@ -2658,6 +2735,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				ocvals.add(ocv);
 				customFieldIds.add(ocv.getCustomFieldId());
 			}
+			//TODO: use upsert when available
 			cvalDao.deleteByTaskFields(con, taskId, customFieldIds);
 			cvalDao.batchInsert(con, ocvals);
 		}
@@ -2688,20 +2766,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private TaskInsertResult doTaskInputInsert(Connection con, Map<String, List<String>> tagIdsByNameMap, Map<String, String> taskIdByPublicIdMap, TaskInput input, BitFlags<TaskProcessOpt> processOpts, BitFlags<TaskReminderOpt> reminderOpts) throws IOException {
-		TaskEx task = new TaskEx(input.task);
-		if (input.taskRecurrence != null) {
-			task.setRecurrence(input.taskRecurrence);
-		}
-		if (input.tagNames != null) {
-			Set<String> tagIds = new HashSet<>();
-			for (String tagName : input.tagNames) {
-				if (tagIdsByNameMap.containsKey(tagName)) {
-					tagIds.addAll(tagIdsByNameMap.get(tagName));
-				}
-			}
-			task.setTags(tagIds);
-		}
+	private TaskInsertResult doTaskInputInsert(Connection con, TaskInput input, BitFlags<TaskProcessOpt> processOpts, BitFlags<TaskReminderOpt> reminderOpts, Set<String> validTags) throws DAOException, IOException {
+		return doTaskInputInsert(con, input, processOpts, reminderOpts, validTags, new HashMap<>());
+	}
+	
+	private TaskInsertResult doTaskInputInsert(Connection con, TaskInput input, BitFlags<TaskProcessOpt> processOpts, BitFlags<TaskReminderOpt> reminderOpts, Set<String> validTags, Map<String, String> taskIdByPublicIdMap) throws IOException {
+		
 		if (input.relatedToUid != null) {
 			//TODO: find task with publicId = relatedToUid
 		}
@@ -2711,11 +2781,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			rawICalendar = ICalendarUtils.printProperties(input.extraProps, "VTODO");
 		}
 		
-		TaskInsertResult ret = doTaskInsert(con, task, null, null, rawICalendar, processOpts, reminderOpts);
+		TaskInsertResult insert = doTaskInsert(con, input.task, null, null, rawICalendar, processOpts, reminderOpts, validTags);
 		
-		if (input.taskRecurrence != null) {
-			if (ret.otask.getPublicUid() != null) {
-				taskIdByPublicIdMap.put(ret.otask.getPublicUid(), ret.otask.getTaskId());
+		if (insert.orecurrence != null) {
+			if (insert.otask.getPublicUid() != null) {
+				taskIdByPublicIdMap.put(insert.otask.getPublicUid(), insert.otask.getTaskId());
 			} else {
 				//TODO: warn no publicid
 			}
@@ -2727,18 +2797,19 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			}
 		}
 		
-		return ret;
+		return insert;
 	}
 	
-	private boolean doTaskInputUpdate(Connection con, Map<String, List<String>> tagIdsByNameMap, String taskId, List<TaskInput> inputs, BitFlags<TaskProcessOpt> processOpts) throws IOException, WTException {
+	private boolean doTaskInputUpdate(Connection con, String taskId, List<TaskInput> inputs, BitFlags<TaskProcessOpt> processOpts, Set<String> validTags) throws IOException, WTException {
 		TaskInput input1st = inputs.remove(0);
 		
 		if (StringUtils.isEmpty(input1st.task.getPublicUid())) throw new WTException("Public ID not set");
+		
 		Map<String, String> taskIdByPublicIdMap = new HashMap<>();
 		taskIdByPublicIdMap.put(taskId, input1st.task.getPublicUid());
 		
 		// Prepares items for generating exceptions dates and objects
-		ArrayList<TaskInput> tiExs = new ArrayList<>();
+		ArrayList<TaskInput> exInputs = new ArrayList<>();
 		LinkedHashSet<LocalDate> exDates = new LinkedHashSet<>();
 		for (TaskInput ti : inputs) {
 			if (ti.recurringRefs == null) continue;
@@ -2747,44 +2818,32 @@ public class TasksManager extends BaseManager implements ITasksManager {
 
 			exDates.add(ti.recurringRefs.exRefersToDate);
 			//if (!ti.isSourceEventCancelled()) tiExs.add(ti);
-			tiExs.add(ti);
+			exInputs.add(ti);
 		}
 		
 		// Adds new collected dates exceptions and update the reference task
-		if (input1st.taskRecurrence != null && !exDates.isEmpty()) {
-			input1st.taskRecurrence.addExcludedDates(exDates);
+		if (input1st.task.hasRecurrence() && !exDates.isEmpty()) {
+			input1st.task.getRecurrence().addExcludedDates(exDates);
 		}
 		
-		TaskEx task = new TaskEx(input1st.task);
-		if (input1st.taskRecurrence != null) {
-			task.setRecurrence(input1st.taskRecurrence);
-		}
-		if (input1st.tagNames != null) {
-			Set<String> tagIds = new HashSet<>();
-			for (String tagName : input1st.tagNames) {
-				if (tagIdsByNameMap.containsKey(tagName)) {
-					tagIds.addAll(tagIdsByNameMap.get(tagName));
-				}
-			}
-			task.setTags(tagIds);
-		}
-		if (input1st.relatedToUid != null) {
-			//TODO: find task of publicId = relatedToUid
-		}
 		String rawICalendar = null;
 		if (input1st.extraProps != null) {
 			// Creates a rawICalendar using only not-used properties
-			rawICalendar = ICalendarUtils.printProperties(input1st.extraProps, "VTODO");
+			rawICalendar = ICalendarUtils.printProperties(input1st.extraProps, "VEVENT");
 		}
 		
-		OTask otask = doTaskUpdate(con, taskId, task, rawICalendar, processOpts);
+		if (input1st.relatedToUid != null) {
+			//TODO: find task of publicId = relatedToUid
+		}
+		
+		OTask otask = doTaskUpdate(con, taskId, input1st.task, rawICalendar, processOpts, validTags);
 		if (otask == null) return false;
 		
 		// Inserts collected object exceptions
-		for (TaskInput tiEx : tiExs) {
+		for (TaskInput tiEx : exInputs) {
 			tiEx.task.setCategoryId(otask.getCategoryId());
 			tiEx.task.setPublicUid(null); // Reset value in order to make inner function generate new one!
-			TaskInsertResult result = doTaskInputInsert(con, tagIdsByNameMap, new HashMap<>(), tiEx, BitFlags.noneOf(TaskProcessOpt.class), BitFlags.with(TaskReminderOpt.IGNORE));
+			TaskInsertResult result = doTaskInputInsert(con, tiEx, BitFlags.noneOf(TaskProcessOpt.class), BitFlags.with(TaskReminderOpt.IGNORE), validTags, taskIdByPublicIdMap);
 		}
 		return true;
 	}
@@ -2800,7 +2859,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 	}
 	
-	private TaskInsertResult doTaskCopy(Connection con, String sourceTaskId, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId, BitFlags<TaskProcessOpt> processOptions) throws DAOException, IOException {
+	private TaskInsertResult doTaskCopy(Connection con, String sourceTaskId, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId, BitFlags<TaskProcessOpt> processOptions, Set<String> validTags) throws DAOException, IOException {
 		TaskICalendarsDAO icalDao = TaskICalendarsDAO.getInstance();
 		
 		task.setParentInstanceId(targetParentInstanceId);
@@ -2820,7 +2879,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		String rawICalendar = icalDao.selectRawDataById(con, sourceTaskId);
 		
-		return doTaskInsert(con, task, null, null, rawICalendar, processOptions.copy().set(TaskProcessOpt.RAW_ICAL), BitFlags.noneOf(TaskReminderOpt.class));
+		return doTaskInsert(con, task, null, null, rawICalendar, processOptions.copy().set(TaskProcessOpt.RAW_ICAL), BitFlags.noneOf(TaskReminderOpt.class), validTags);
 	}
 	
 	private OTaskAttachment doTaskAttachmentInsert(Connection con, String taskId, TaskAttachmentWithInput attachment) throws DAOException, IOException {
@@ -2865,20 +2924,20 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			IOUtils.closeQuietly(is);
 		}
 	}
-
-	private TaskInsertResult doTaskInstanceUpdateAndCommit(Connection con, InstanceInfo info, TaskEx task, BitFlags<TaskProcessOpt> processOpts) throws DAOException, IOException {
-		return doTaskInstanceUpdateAndCommit(con, info, task, processOpts, false);
-	}
 	
-	private TaskInsertResult doTaskInstanceUpdateAndCommit(Connection con, InstanceInfo info, TaskEx task, BitFlags<TaskProcessOpt> processOpts, boolean isApplyTags) throws DAOException, IOException {
+	private TaskInsertResult doTaskInstanceUpdateAndCommit(final Connection con, final InstanceInfo info, final TaskEx task, final BitFlags<TaskProcessOpt> processOpts, final Set<String> validTags) throws DAOException, IOException {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 		TaskInsertResult result = null;
+		boolean isApplyTags = processOpts.hasOnly(TaskProcessOpt.TAGS);
 		
 		task.setTimezone(info.taskTimezone);
-		if (info.belongsToSeries && info.isBroken) { // -> BROKEN INSTANCE
+		if (info.belongsToSeries && info.isSeriesBroken) { // -> BROKEN INSTANCE
+			BitFlags<TaskProcessOpt> updateOpts = processOpts.copy()
+				.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.RAW_ICAL);
+			
 			// 1 - Updates the broken item with new data
-			OTask updateResult = doTaskUpdate(con, info.taskId, task, null, processOpts.copy().unset(TaskProcessOpt.RECUR).unset(TaskProcessOpt.RAW_ICAL));
+			OTask updateResult = doTaskUpdate(con, info.taskId, task, null, updateOpts, validTags);
 			
 			DateTime revision = BaseDAO.createRevisionTimestamp();
 			Set<String> updatedTaskIds = tasDao.updateCategoryByParent(con, info.taskId, updateResult.getCategoryId(), revision);
@@ -2898,9 +2957,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
 			// 1 - Inserts new broken item (rr is not supported here)
-			recalculateStartForInstanceDate(info.seriesInstanceDate, task);
-			BitFlags<TaskProcessOpt> processOpts2 = processOpts.copy().unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.ATTACHMENTS, TaskProcessOpt.RAW_ICAL);
-			TaskInsertResult insert = doTaskInsert(con, task, info.masterTaskId, info.seriesInstance, null, processOpts2, BitFlags.noneOf(TaskReminderOpt.class));
+			BitFlags<TaskProcessOpt> insertOpts = processOpts.copy()
+				.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX, TaskProcessOpt.ASSIGNEES, TaskProcessOpt.ATTACHMENTS, TaskProcessOpt.RAW_ICAL);
+			task.recalculateStartDueForInstance(info.seriesInstanceDate);
+			TaskInsertResult insert = doTaskInsert(con, task, info.masterTaskId, info.seriesInstance, null, insertOpts, BitFlags.noneOf(TaskReminderOpt.class), validTags);
 			
 			Set<String> updatedTaskIds = new LinkedHashSet<>();
 			boolean parentProgressUpdated = tasDao.updateParentProgressByChild(con, info.taskId, BaseDAO.createRevisionTimestamp()) == 1;
@@ -2923,8 +2983,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			result = insert;
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE
+			BitFlags<TaskProcessOpt> updateOpts = processOpts.copy()
+				.unset(TaskProcessOpt.RECUR_EX, TaskProcessOpt.RAW_ICAL);
+			
 			// 1 - Updates this item with new data
-			OTask updateResult = doTaskUpdate(con, info.taskId, task, null, processOpts.copy().unset(TaskProcessOpt.RECUR_EX).unset(TaskProcessOpt.RAW_ICAL));
+			OTask updateResult = doTaskUpdate(con, info.taskId, task, null, updateOpts, validTags);
 			
 			DateTime revision = BaseDAO.createRevisionTimestamp();
 			Set<String> updatedTaskIds = tasDao.updateCategoryByParent(con, info.taskId, updateResult.getCategoryId(), revision);
@@ -2982,7 +3045,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TaskDAO tasDao = TaskDAO.getInstance();
 		TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
 		
-		if (info.belongsToSeries && info.isBroken) { // -> BROKEN INSTANCE
+		if (info.belongsToSeries && info.isSeriesBroken) { // -> BROKEN INSTANCE
 			// 1 - Deletes (logically) this event, the broken
 			Set<String> deletedTaskIds = doTaskDelete(con, info.taskId, true);
 			if (deletedTaskIds.isEmpty()) return false;
@@ -3033,17 +3096,17 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		return true;
 	}
 	
-	private TaskInsertResult doTaskInstanceCopy(Connection con, InstanceInfo info, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId, BitFlags<TaskProcessOpt> processOptions) throws DAOException, IOException {
-		String taskId = info.realTaskId();
-		if (info.belongsToSeries && info.isBroken) { // -> BROKEN INSTANCE
-			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX));
+	private TaskInsertResult doTaskInstanceCopy(Connection con, InstanceInfo info, TaskEx task, TaskInstanceId targetParentInstanceId, int targetCategoryId, BitFlags<TaskProcessOpt> processOptions, final Set<String> validTags) throws DAOException, IOException {
+		String taskId = info.originalEventId();
+		if (info.belongsToSeries && info.isSeriesBroken) { // -> BROKEN INSTANCE
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX), validTags);
 			
 		} else if (info.belongsToSeries && (info.seriesInstanceDate != null)) { // -> SERIES TEMPLATE INSTANCE
-			recalculateStartForInstanceDate(info.seriesInstanceDate, task);
-			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX));
+			task.recalculateStartDueForInstance(info.seriesInstanceDate);
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions.unset(TaskProcessOpt.RECUR, TaskProcessOpt.RECUR_EX), validTags);
 			
 		} else { // -> SINGLE INSTANCE or MASTER INSTANCE
-			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions);
+			return doTaskCopy(con, taskId, task, targetParentInstanceId, targetCategoryId, processOptions, validTags);
 		}
 	}
 	
@@ -3078,8 +3141,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		
 		for (VTaskLookup vtas : tasDao.viewExpiredForUpdateByRange(false, con, from, to)) {
 				TaskAlertLookupInstance item = ManagerUtils.fillTaskAlertLookup(new TaskAlertLookupInstance(), vtas);
-				item.setId(TaskInstanceId.build(vtas.getTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
-				item.setTaskId(vtas.getTaskId());
+				item.setId(TaskInstanceId.build(vtas.getOriginalTaskId(), vtas.getSeriesTaskId(), vtas.getSeriesInstanceId()));
+				item.setTaskId(vtas.getOriginalTaskId());
 				instances.add(item);
 		}
 		for (VTaskLookup vtas : tasDao.viewExpiredForUpdateByRange(true, con, from, to)) {
@@ -3253,13 +3316,15 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private static class TaskInsertResult {
 		public final OTask otask;
+		public final OTaskRecurrence orecurrence;
 		public final List<OTaskAssignee> oassignees;
 		public final Set<String> otags;
 		public final List<OTaskAttachment> oattachments;
 		public final List<OTaskCustomValue> ocustomvalues;
 		
-		public TaskInsertResult(OTask otask, List<OTaskAssignee> oassignees, Set<String> otags, List<OTaskAttachment> oattachments, ArrayList<OTaskCustomValue> ocustomvalues) {
+		public TaskInsertResult(OTask otask, OTaskRecurrence orecurrence, List<OTaskAssignee> oassignees, Set<String> otags, List<OTaskAttachment> oattachments, ArrayList<OTaskCustomValue> ocustomvalues) {
 			this.otask = otask;
+			this.orecurrence = orecurrence;
 			this.oassignees = oassignees;
 			this.otags = otags;
 			this.oattachments = oattachments;
@@ -3606,8 +3671,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		
 		@Override
-		public String getTaskId() {
-			return task.getTaskId();
+		public String getOriginalTaskId() {
+			return task.getOriginalTaskId();
 		}
 
 		@Override
@@ -3624,7 +3689,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		public TaskLookupInstance createInstance(TaskInstanceId id, DateTime start, DateTime due) {
 			TaskLookupInstance item = ManagerUtils.fillTaskLookup(new TaskLookupInstance(), task);
 			item.setId(id);
-			item.setTaskId(task.getTaskId());
+			item.setTaskId(task.getOriginalTaskId());
 			item.setStart(start);
 			item.setDue(due);
 			if (censorize) item.censorize();
@@ -3645,8 +3710,8 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		}
 		
 		@Override
-		public String getTaskId() {
-			return task.getTaskId();
+		public String getOriginalTaskId() {
+			return task.getOriginalTaskId();
 		}
 
 		@Override
@@ -3663,7 +3728,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		public TaskAlertLookupInstance createInstance(TaskInstanceId id, DateTime start, DateTime due) {
 			TaskAlertLookupInstance item = ManagerUtils.fillTaskAlertLookup(new TaskAlertLookupInstance(), task);
 			item.setId(id);
-			item.setTaskId(task.getTaskId());
+			item.setTaskId(task.getOriginalTaskId());
 			item.setStart(start);
 			item.setDue(due);
 			return item;
@@ -3672,7 +3737,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	private interface RecurringInstanceMapper<T> {
 		public DateTimeZone getTimezone();
-		public String getTaskId();
+		public String getOriginalTaskId();
 		public DateTime getTaskStart();
 		public DateTime getTaskDue();
 		public T createInstance(TaskInstanceId id, DateTime start, DateTime due);
@@ -3683,7 +3748,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		ArrayList<T> instances = new ArrayList<>();
 		
 		DateTimeZone timezone = instanceMapper.getTimezone();
-		String taskId = instanceMapper.getTaskId();
+		String taskId = instanceMapper.getOriginalTaskId();
 		DateTime taskStart = instanceMapper.getTaskStart();
 		DateTime taskDue = instanceMapper.getTaskDue();
 		
@@ -3767,7 +3832,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			for (String tag : task.getTags()) {
 				if (validTags != null && !validTags.contains(tag)) continue;
 				//TODO: optimize insertion using multivalue insert
-				tagDao.insert(con, otask.getTaskId(), tag);
+				tagDao.insert(con, otask.getOriginalTaskId(), tag);
 			}
 		}
 		
@@ -3776,7 +3841,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			oatts = new ArrayList<>();
 			for (TaskAttachment att : task.getAttachments()) {
 				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");
-				oatts.add(doTaskAttachmentInsert(con, otask.getTaskId(), (TaskAttachmentWithStream)att));
+				oatts.add(doTaskAttachmentInsert(con, otask.getOriginalTaskId(), (TaskAttachmentWithStream)att));
 			}
 		}
 		
@@ -3785,7 +3850,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				ocvals = new ArrayList<>(task.getCustomValues().size());
 				for (CustomFieldValue cfv : task.getCustomValues().values()) {
 					OTaskCustomValue ocv = ManagerUtils.createOTaskCustomValue(cfv);
-					ocv.setTaskId(otask.getTaskId());
+					ocv.setTaskId(otask.getOriginalTaskId());
 					ocvals.add(ocv);
 				}
 				cvalDao.batchInsert(con, ocvals);
@@ -3807,24 +3872,24 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		boolean ret = tasDao.update(con, otask, BaseDAO.createRevisionTimestamp()) == 1;
 		
 		if (processTags && task.hasTags()) {
-			Set<String> oldTags = tagDao.selectTagsByTask(con, task.getTaskId());
+			Set<String> oldTags = tagDao.selectTagsByTask(con, task.getOriginalTaskId());
 			CollectionChangeSet<String> changeSet = LangUtils.getCollectionChanges(oldTags, task.getTags());
 			for (String tag : changeSet.inserted) {
 				if (validTags != null && !validTags.contains(tag)) continue;
-				tagDao.insert(con, task.getTaskId(), tag);
+				tagDao.insert(con, task.getOriginalTaskId(), tag);
 			}
 			for (String tag : changeSet.deleted) {
-				tagDao.delete(con, task.getTaskId(), tag);
+				tagDao.delete(con, task.getOriginalTaskId(), tag);
 			}
 		}
 		
 		if (processAttachments && task.hasAttachments()) {
-			List<TaskAttachment> oldAtts = ManagerUtils.createTaskAttachmentList(attDao.selectByTask(con, task.getTaskId()));
+			List<TaskAttachment> oldAtts = ManagerUtils.createTaskAttachmentList(attDao.selectByTask(con, task.getOriginalTaskId()));
 			CollectionChangeSet<TaskAttachment> changeSet = LangUtils.getCollectionChanges(oldAtts, task.getAttachments());
 
 			for (TaskAttachment att : changeSet.inserted) {
 				if (!(att instanceof TaskAttachmentWithStream)) throw new IOException("Attachment stream not available [" + att.getAttachmentId() + "]");
-				doTaskAttachmentInsert(con, task.getTaskId(), (TaskAttachmentWithStream)att);
+				doTaskAttachmentInsert(con, task.getOriginalTaskId(), (TaskAttachmentWithStream)att);
 			}
 			for (TaskAttachment att : changeSet.updated) {
 				if (!(att instanceof TaskAttachmentWithStream)) continue;
@@ -3840,12 +3905,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 			ArrayList<OTaskCustomValue> ocvals = new ArrayList<>(task.getCustomValues().size());
 			for (CustomFieldValue cfv : task.getCustomValues().values()) {
 				OTaskCustomValue ocv = ManagerUtils.createOTaskCustomValue(cfv);
-				ocv.setTaskId(otask.getTaskId());
+				ocv.setTaskId(otask.getOriginalTaskId());
 				ocvals.add(ocv);
 				customFieldIds.add(ocv.getCustomFieldId());
 			}
 			//TODO: use upsert when available
-			cvalDao.deleteByTaskFields(con, otask.getTaskId(), customFieldIds);
+			cvalDao.deleteByTaskFields(con, otask.getOriginalTaskId(), customFieldIds);
 			cvalDao.batchInsert(con, ocvals);
 		}
 		

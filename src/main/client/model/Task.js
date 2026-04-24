@@ -55,8 +55,8 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 	idProperty: 'id',
 	fields: [
 		WTF.field('id', 'string', false),
-		WTF.roField('taskId', 'string'),
-		WTF.field('parentId', 'string', true),
+		WTF.roField('oid', 'string'),
+		WTF.roField('parentId', 'string'),
 		WTF.field('categoryId', 'int', false),
 		WTF.field('subject', 'string', false),
 		WTF.field('location', 'string', true),
@@ -102,18 +102,36 @@ Ext.define('Sonicle.webtop.tasks.model.Task', {
 		WTF.hasMany('cvalues', 'Sonicle.webtop.core.ux.data.CustomFieldValueModel')
 	],
 	
-	isSeriesMaster: function() {
-		var id = this.getId();
-		return !Ext.isEmpty(id) && Sonicle.String.endsWith(id, '.00000000') && !Ext.isEmpty(this.get('rrule'));
-	},
-	
-	isSeriesInstance: function() {
-		var id = this.getId();
-		return !Ext.isEmpty(id) && !Sonicle.String.endsWith(id, '.00000000');
-	},
-	
 	isParent: function() {
 		return this.get('_childTotalCount') > 0;
+	},
+	
+	hasChildren: function() {
+		return this.get('_childTotalCount') > 0;
+	},
+	
+	isSeriesMaster: function() {
+		var me = this;
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesMaster(me.getId(), me.get('oid')) && !Ext.isEmpty(me.get('rrule'));
+	},
+	
+	isSeriesItem: function() {
+		var me = this;
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesItem(me.getId(), me.get('oid')) && !Ext.isEmpty(me.get('rrule'));
+	},
+	
+	isSeriesBroken: function() {
+		var me = this;
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesBroken(me.getId(), me.get('oid'));
+	},
+	
+	hasRecurrence: function() {
+		return !this.isFieldEmpty('rrule');
+	},
+	
+	hasAssignees: function() {
+		var sto = this.assignees();
+		return !sto ? false : (sto.getCount() > 0);
 	},
 	
 	setStartDate: function(date, options) {

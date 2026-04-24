@@ -49,7 +49,7 @@ import org.joda.time.format.DateTimeFormatter;
  */
 public class JsGridTask {
 	public String id;
-	public String taskId;
+	public String oid;
 	public String parentId;
 	public String subject;
 	public String description;
@@ -81,7 +81,7 @@ public class JsGridTask {
 		Category category = folder.getCategory();
 		
 		this.id = task.getId().toString();
-		this.taskId = task.getTaskId();
+		this.oid = task.getOriginalTaskId();
 		this.parentId = Hierarchy.CHILD.equals(hierarchy) ? task.getParentInstanceId().toString() : null;
         this.subject = task.getSubject();
         this.description = task.getDescription();
