@@ -32,6 +32,7 @@
  */
 package com.sonicle.webtop.tasks;
 
+import com.sonicle.commons.Check;
 import com.sonicle.commons.EnumUtils;
 import com.sonicle.commons.IdentifierUtils;
 import com.sonicle.commons.LangUtils;
@@ -169,7 +170,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import net.fortuna.ical4j.data.ParserException;
-import net.sf.qualitycheck.Check;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.joda.time.DateTimeComparator;
