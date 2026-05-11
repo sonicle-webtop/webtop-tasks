@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Sonicle S.r.l.
+/*
+ * Copyright (C) 2026 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,43 +28,45 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2014 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2026 Sonicle S.r.l.".
  */
 package com.sonicle.webtop.tasks;
 
-import com.sonicle.webtop.tasks.bol.model.GridView;
-import com.sonicle.webtop.core.sdk.BaseServiceSettings;
-import static com.sonicle.webtop.tasks.TasksSettings.*;
-import com.sonicle.webtop.tasks.model.Category;
+import com.sonicle.webtop.core.sdk.BaseBackgroundService;
+import com.sonicle.webtop.tasks.bg.HistoryCleanupTask;
+import java.util.Arrays;
+import java.util.Collection;
 import org.joda.time.LocalTime;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.TriggerBuilder;
 
 /**
  *
  * @author malbinola
  */
-public class TasksServiceSettings extends BaseServiceSettings {
+public class BackgroundService extends BaseBackgroundService {
 
-	public TasksServiceSettings(String serviceId, String domainId) {
-		super(serviceId, domainId);
+	@Override
+	public void initialize() throws Exception {}
+
+	@Override
+	public void cleanup() throws Exception {}
+	
+	@Override
+	protected Collection<BaseBackgroundService.TaskDefinition> createTasks() {
+		return Arrays.asList(
+			// History cleanup task
+			new BaseBackgroundService.TaskDefinition(
+				HistoryCleanupTask.class,
+				TriggerBuilder.newTrigger()
+					.withSchedule(historyCleanupTaskScheduleBuilder()) // every 1st day of month at...
+					.build()
+			)
+		);
 	}
 	
-	public LocalTime getHistoryCleanupTime() {
-		return getTime(HISTORY_CLEANUP_TIME, "00:30", "HH:mm");
-	}
-	
-	public boolean getDavCategoryDeleteEnabled() {
-		return getBoolean(DAV_CATEGORY_DELETE_ENABLED, false);
-	}
-	
-	public Category.Sync getDefaultCategorySync() {
-		return getEnum(DEFAULT_PREFIX + CATEGORY_SYNC, Category.Sync.OFF, Category.Sync.class);
-	}
-	
-	public GridView getDefaultGridView() {
-		return getEnum(DEFAULT_PREFIX + GRID_VIEW, GridView.TODAY, GridView.class);
-	}
-	
-	public String getDefaultTaskReminderDelivery() {
-		return getString(DEFAULT_PREFIX + TASK_REMINDER_DELIVERY, TASK_REMINDER_DELIVERY_APP);
+	private CronScheduleBuilder historyCleanupTaskScheduleBuilder() {
+		LocalTime time = new TasksServiceSettings(SERVICE_ID, "*").getHistoryCleanupTime();
+		return CronScheduleBuilder.monthlyOnDayAndHourAndMinute(1, time.getHourOfDay(), time.getMinuteOfHour());
 	}
 }

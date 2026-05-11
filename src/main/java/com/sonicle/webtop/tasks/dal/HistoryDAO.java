@@ -34,8 +34,10 @@ package com.sonicle.webtop.tasks.dal;
 
 import com.sonicle.webtop.core.dal.BaseDAO;
 import com.sonicle.webtop.core.dal.DAOException;
+import static com.sonicle.webtop.tasks.jooq.Tables.HISTORY_CATEGORIES;
 import static com.sonicle.webtop.tasks.jooq.Tables.HISTORY_TASKS;
 import java.sql.Connection;
+import org.joda.time.DateTime;
 import org.jooq.DSLContext;
 
 /**
@@ -48,12 +50,34 @@ public class HistoryDAO extends BaseDAO {
 		return INSTANCE;
 	}
 	
+	public int deleteCategoriesHistoryByAge(Connection con, int retentionYears) throws DAOException {
+		DateTime cutoff = BaseDAO.createRevisionTimestamp().minusYears(retentionYears);
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.delete(HISTORY_CATEGORIES)
+			.where(
+				HISTORY_CATEGORIES.CHANGE_TIMESTAMP.lessThan(cutoff)
+			)
+			.execute();
+	}
+	
 	public int deleteTasksHistoryByCategory(Connection con, int categoryId) throws DAOException {
 		DSLContext dsl = getDSL(con);
 		return dsl
 			.delete(HISTORY_TASKS)
 			.where(
 				HISTORY_TASKS.CATEGORY_ID.equal(categoryId)
+			)
+			.execute();
+	}
+	
+	public int deleteTasksHistoryByAge(Connection con, int retentionYears) throws DAOException {
+		DateTime cutoff = BaseDAO.createRevisionTimestamp().minusYears(retentionYears);
+		DSLContext dsl = getDSL(con);
+		return dsl
+			.delete(HISTORY_TASKS)
+			.where(
+				HISTORY_TASKS.CHANGE_TIMESTAMP.lessThan(cutoff)
 			)
 			.execute();
 	}

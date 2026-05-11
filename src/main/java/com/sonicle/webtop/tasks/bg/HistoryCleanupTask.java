@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Sonicle S.r.l.
+/*
+ * Copyright (C) 2026 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,43 +28,40 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2014 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2026 Sonicle S.r.l.".
  */
-package com.sonicle.webtop.tasks;
+package com.sonicle.webtop.tasks.bg;
 
-import com.sonicle.webtop.tasks.bol.model.GridView;
-import com.sonicle.webtop.core.sdk.BaseServiceSettings;
-import static com.sonicle.webtop.tasks.TasksSettings.*;
-import com.sonicle.webtop.tasks.model.Category;
-import org.joda.time.LocalTime;
+import com.sonicle.webtop.core.BackgroundService;
+import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.sdk.Result;
+import com.sonicle.webtop.core.sdk.BaseBackgroundServiceTask;
+import com.sonicle.webtop.tasks.TasksManager;
+import org.quartz.JobExecutionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author malbinola
  */
-public class TasksServiceSettings extends BaseServiceSettings {
-
-	public TasksServiceSettings(String serviceId, String domainId) {
-		super(serviceId, domainId);
+public class HistoryCleanupTask extends BaseBackgroundServiceTask {
+	private static final Logger LOGGER = (Logger)LoggerFactory.getLogger(HistoryCleanupTask.class);
+	public static final int RETENTION_YEARS = 1;
+	
+	@Override
+	public Logger getLogger() {
+		return LOGGER;
 	}
 	
-	public LocalTime getHistoryCleanupTime() {
-		return getTime(HISTORY_CLEANUP_TIME, "00:30", "HH:mm");
-	}
-	
-	public boolean getDavCategoryDeleteEnabled() {
-		return getBoolean(DAV_CATEGORY_DELETE_ENABLED, false);
-	}
-	
-	public Category.Sync getDefaultCategorySync() {
-		return getEnum(DEFAULT_PREFIX + CATEGORY_SYNC, Category.Sync.OFF, Category.Sync.class);
-	}
-	
-	public GridView getDefaultGridView() {
-		return getEnum(DEFAULT_PREFIX + GRID_VIEW, GridView.TODAY, GridView.class);
-	}
-	
-	public String getDefaultTaskReminderDelivery() {
-		return getString(DEFAULT_PREFIX + TASK_REMINDER_DELIVERY, TASK_REMINDER_DELIVERY_APP);
+	@Override
+	public void executeWork(JobExecutionContext jec, BaseBackgroundServiceTask.TaskContext context) throws Exception {
+		BackgroundService bs = ((BackgroundService)getBackgroundService(jec));
+		TasksManager tasMgr = (TasksManager)WT.getServiceManager(bs.SERVICE_ID);
+		
+		Result<Integer[]> result = tasMgr.cleanupHistory(RETENTION_YEARS);
+		if (result.hasExceptions()) LOGGER.warn("Cleanup process return errors: {}", result.collectExceptionsMessages());
+		LOGGER.debug("Categories history: cleaned {} rows", result.getObject()[0]);
+		LOGGER.debug("Tasks history: cleaned {} rows", result.getObject()[1]);
 	}
 }

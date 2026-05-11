@@ -39,6 +39,13 @@ package com.sonicle.webtop.tasks;
 public class TasksSettings {
 	
 	/**
+	 * [system]
+	 * [time(hh:mm)]
+	 * Time instant at which the history cleanup task will run every 1st day of the month.
+	 */
+	public static final String HISTORY_CLEANUP_TIME = "history.cleanup.time";
+	
+	/**
 	 * [system+domain]
 	 * [boolean](false)
 	 * Enable/Disable category deletions through DAV rest-api interface. Defaults to `false`.
