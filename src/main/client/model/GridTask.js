@@ -43,7 +43,7 @@ Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 	idProperty: 'id',
 	fields: [
 		WTF.roField('id', 'string'),
-		WTF.roField('taskId', 'string'),
+		WTF.roField('oid', 'string'),
 		WTF.roField('parentId', 'string'),
 		WTF.roField('subject', 'string'),
 		WTF.roField('description', 'string'),
@@ -89,20 +89,18 @@ Ext.define('Sonicle.webtop.tasks.model.GridTask', {
 	},
 	
 	isSeriesMaster: function() {
-		var SoS = Sonicle.String,
-				id = this.getId();
-		return SoS.startsWith(id, this.get('taskId')) && SoS.endsWith(id, '.00000000') && this.get('hasRecur');
+		var me = this;
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesMaster(me.getId(), me.get('oid')) && me.get('hasRecur');
 	},
 	
 	isSeriesItem: function() {
 		var me = this;
-		return !me.isSeriesMaster() && !me.isSeriesBroken() && !Sonicle.String.endsWith(me.getId(), '.00000000');
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesItem(me.getId(), me.get('oid')) && me.get('hasRecur');
 	},
 	
 	isSeriesBroken: function() {
-		var SoS = Sonicle.String,
-				id = this.getId();
-		return !SoS.startsWith(id, this.get('taskId')) && !SoS.endsWith(id, '.00000000');
+		var me = this;
+		return Sonicle.webtop.tasks.TaskInstanceId.isSeriesBroken(me.getId(), me.get('oid'));
 	},
 	
 	isCompleted: function() {

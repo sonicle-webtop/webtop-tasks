@@ -36,6 +36,7 @@ import com.sonicle.webtop.tasks.bol.model.GridView;
 import com.sonicle.webtop.core.sdk.BaseServiceSettings;
 import static com.sonicle.webtop.tasks.TasksSettings.*;
 import com.sonicle.webtop.tasks.model.Category;
+import org.joda.time.LocalTime;
 
 /**
  *
@@ -45,6 +46,10 @@ public class TasksServiceSettings extends BaseServiceSettings {
 
 	public TasksServiceSettings(String serviceId, String domainId) {
 		super(serviceId, domainId);
+	}
+	
+	public LocalTime getHistoryCleanupTime() {
+		return getTime(HISTORY_CLEANUP_TIME, "00:30", "HH:mm");
 	}
 	
 	public boolean getDavCategoryDeleteEnabled() {

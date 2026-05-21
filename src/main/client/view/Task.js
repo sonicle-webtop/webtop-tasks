@@ -173,21 +173,21 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					return Sonicle.String.join('|', v);
 			}),
 			foHasTags: WTF.foFieldIsEmpty('tags', true),
-			foIsSeriesMaster: WTF.foGetFn('record', 'id', function(val) {
-				var rec = this.get('record');
-				return !rec.phantom && rec.isSeriesMaster();
+			//foIsSeriesMaster: WTF.foFieldGet('id', function(val, rec) {
+			//	return !rec.phantom && rec.isSeriesMaster();
+			//}),
+			foIsSeriesItem: WTF.foFieldGet('id', function(val, rec) {
+				return !rec.phantom && rec.isSeriesItem();
 			}),
-			foIsSeriesInstance: WTF.foGetFn('record', 'id', function(val) {
-				var rec = this.get('record');
-				return !rec.phantom && rec.isSeriesInstance();
+			foIsSeriesBroken: WTF.foFieldGet('id', function(val, rec) {
+				return !rec.phantom && rec.isSeriesBroken();
 			}),
-			foRRDisabled: WTF.foGetFn('record', 'id', function(val) {
-				var rec = this.get('record');
-				return (!rec.phantom && rec.isSeriesInstance()) || rec.get('_childTotalCount') > 0;
+			foRRDisabled: WTF.foFieldMGet('id', function(val, rec) {
+				return (!rec.phantom && (rec.isSeriesItem() || rec.isSeriesBroken())) || rec.hasChildren();
 			}),
 			foHasHierarchy: WTF.foGetFn('record', 'parentId', function(val) {
 				var rec = this.get('record');
-				return rec.get('_childTotalCount') > 0 || !Ext.isEmpty(rec.get('parentId'));
+				return rec.hasChildren() || !Ext.isEmpty(rec.get('parentId'));
 			}),
 			foIsParent: WTF.foGetFn('record', '_childTotalCount', function(val) {
 				return val > 0;
@@ -276,7 +276,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 					handler: function(s, e) {
 						var rec = e.menuData.rec;
 						if (rec) me.openAttachmentUI(rec, false);
-					}
+					}	
 				}, {
 					iconCls: 'wt-icon-download',
 					text: WT.res('act-download.lbl'),
@@ -369,6 +369,27 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		me.dockedItems = SoU.mergeDockedItems(me.dockedItems, 'bottom', [
 			me.createStatusbarCfg()
 		]);
+	},
+	
+	openSeriesTaskUI: function() {
+		var me = this,
+			edit = me.isMode('edit'),
+			mo = me.getModel();
+		
+		if (mo.isDirty()) {
+			WT.confirmOk(me.res('tasks.confirm.open.series.dirty'), function(bid) {
+				if (bid === 'ok') {
+					me.closeView(false);
+					me.mys.openTaskUI(edit, mo.getId(), true);
+				}
+			}, me, {
+				okText: this.res('tasks.confirm.open.series.dirty.ok')
+			});
+			
+		} else {
+			me.closeView(false);
+			me.mys.openTaskUI(edit, mo.getId(), true);
+		}
 	},
 	
 	manageTagsUI: function(selTagIds) {
@@ -721,7 +742,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 									xtype: 'datefield',
 									bind: {
 										value: '{startDate}',
-										disabled: '{foIsSeriesInstance}'
+										disabled: '{foIsSeriesItem}'
 									},
 									startDay: WT.getStartDay(),
 									format: WT.getShortDateFmt(),
@@ -748,7 +769,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 									xtype: 'timefield',
 									bind: {
 										value: '{startTime}',
-										disabled: '{foIsSeriesInstance}'
+										disabled: '{foIsSeriesItem}'
 									},
 									format: WT.getShortTimeFmt(),
 									listeners: {
@@ -839,27 +860,41 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						}, {
 							xtype: 'sofieldvgroup',
 							bind: {
-								hidden: '{!foHasRecurrence}'
+								hidden: '{!foRRDisabled}'
 							},
 							items: [
 								{
-									xtype: 'sotext',
+									xtype: 'soformactionfeedback',
 									bind: {
-										hidden: '{!foIsSeriesInstance}'
+										hidden: '{!foIsSeriesItem}'
 									},
 									hidden: true,
-									iconType: 'info',
-									cls: 'wt-color-info',
-									text: me.res('task.rrnoteditable.series.info')
+									text: me.res('task.info.recurring.rrnoteditable'),
+									buttons: [
+										{
+											xtype: 'button',
+											ui: '{icon|toolbar}',
+											iconCls: 'wtcal-icon-openSeries',
+											tooltip: me.res('act-openSeries.lbl'),
+											handler: function(s, e) {
+												me.openSeriesTaskUI();
+											}
+										}
+									]
 								}, {
-									xtype: 'sotext',
+									xtype: 'soformactionfeedback',
+									bind: {
+										hidden: '{!foIsSeriesBroken}'
+									},
+									hidden: true,
+									text: me.res('task.info.broken.rrnoteditable')
+								}, {
+									xtype: 'soformactionfeedback',
 									bind: {
 										hidden: '{!foIsParent}'
 									},
 									hidden: true,
-									iconType: 'info',
-									cls: 'wt-color-info',
-									text: me.res('task.rrnoteditable.parent.info')
+									text: me.res('task.info.parent.rrnoteditable')
 								}
 							]
 						}
@@ -1168,7 +1203,19 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		},
 		
 		onViewLoad: function(s, success) {
-			var me = this;
+			var me = this,
+				mo = me.getModel();
+			
+			if (success && !mo.isNewlyCreated()) {
+				if (mo.isSeriesMaster()) {
+					me.setViewTitle(me.res('task.series.tit'));
+					me.setViewIconCls('wttasks-icon-taskType-seriesMaster');
+				} else if (mo.isSeriesBroken()) {
+					me.setViewIconCls('wttasks-icon-taskType-seriesBroken');
+				} else if (mo.isSeriesItem()) {
+					me.setViewIconCls('wttasks-icon-taskType-seriesItem');
+				}
+			}
 			
 			if (me.isMode(me.MODE_NEW)) {
 				me.getAct('saveClose').setDisabled(false);

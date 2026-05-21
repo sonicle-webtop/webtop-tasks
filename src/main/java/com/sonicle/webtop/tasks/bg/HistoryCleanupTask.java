@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2021 Sonicle S.r.l.
+/*
+ * Copyright (C) 2026 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,43 +28,40 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2021 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2026 Sonicle S.r.l.".
  */
-Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
-	extend: 'WTA.ux.data.EmptyModel',
-	mixins: [
-		'WTA.sdk.mixin.ItemWithinFolder'	
-	],
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'GetTaskPreview'),
+package com.sonicle.webtop.tasks.bg;
+
+import com.sonicle.webtop.core.BackgroundService;
+import com.sonicle.webtop.core.app.WT;
+import com.sonicle.webtop.core.app.sdk.Result;
+import com.sonicle.webtop.core.sdk.BaseBackgroundServiceTask;
+import com.sonicle.webtop.tasks.TasksManager;
+import org.quartz.JobExecutionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ *
+ * @author malbinola
+ */
+public class HistoryCleanupTask extends BaseBackgroundServiceTask {
+	private static final Logger LOGGER = (Logger)LoggerFactory.getLogger(HistoryCleanupTask.class);
+	public static final int RETENTION_YEARS = 1;
 	
-	idProperty: 'id',
-	fields: [
-		WTF.roField('id', 'string'),
-		WTF.roField('oid', 'string'),
-		WTF.roField('subject', 'string'),
-		WTF.roField('location', 'string'),
-		WTF.roField('start', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('due', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('completedOn', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('status', 'string'),
-		WTF.roField('progress', 'int'),
-		WTF.roField('importance', 'int'),
-		WTF.roField('isPrivate', 'boolean'),
-		WTF.roField('docRef', 'string'),
-		WTF.roField('reminder', 'int'),
-		WTF.roField('contactEmail', 'string'),
-		WTF.roField('tags', 'string'),
-		WTF.roField('hasRecur', 'boolean'),
-		WTF.roField('categoryId', 'int'),
-		WTF.roField('categoryName', 'string'),
-		WTF.roField('categoryColor', 'string'),
-		WTF.roField('_orDN', 'string'), // Empty when mine!
-		WTF.roField('_owPid', 'string'),
-		WTF.roField('_foPerms', 'string'),
-		WTF.roField('_itPerms', 'string'),
-		WTF.roField('_cfdefs', 'string')
-	],
-	hasMany: [
-		WTF.hasMany('cvalues', 'Sonicle.webtop.core.ux.data.CustomFieldValueModel')
-	]
-});
+	@Override
+	public Logger getLogger() {
+		return LOGGER;
+	}
+	
+	@Override
+	public void executeWork(JobExecutionContext jec, BaseBackgroundServiceTask.TaskContext context) throws Exception {
+		BackgroundService bs = ((BackgroundService)getBackgroundService(jec));
+		TasksManager tasMgr = (TasksManager)WT.getServiceManager(bs.SERVICE_ID);
+		
+		Result<Integer[]> result = tasMgr.cleanupHistory(RETENTION_YEARS);
+		if (result.hasExceptions()) LOGGER.warn("Cleanup process return errors: {}", result.collectExceptionsMessages());
+		LOGGER.debug("Categories history: cleaned {} rows", result.getObject()[0]);
+		LOGGER.debug("Tasks history: cleaned {} rows", result.getObject()[1]);
+	}
+}

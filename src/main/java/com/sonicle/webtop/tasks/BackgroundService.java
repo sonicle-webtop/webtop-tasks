@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2021 Sonicle S.r.l.
+/*
+ * Copyright (C) 2026 Sonicle S.r.l.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by
@@ -28,43 +28,45 @@
  * version 3, these Appropriate Legal Notices must retain the display of the
  * Sonicle logo and Sonicle copyright notice. If the display of the logo is not
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
- * display the words "Copyright (C) 2021 Sonicle S.r.l.".
+ * display the words "Copyright (C) 2026 Sonicle S.r.l.".
  */
-Ext.define('Sonicle.webtop.tasks.model.TaskPreview', {
-	extend: 'WTA.ux.data.EmptyModel',
-	mixins: [
-		'WTA.sdk.mixin.ItemWithinFolder'	
-	],
-	proxy: WTF.apiProxy('com.sonicle.webtop.tasks', 'GetTaskPreview'),
+package com.sonicle.webtop.tasks;
+
+import com.sonicle.webtop.core.sdk.BaseBackgroundService;
+import com.sonicle.webtop.tasks.bg.HistoryCleanupTask;
+import java.util.Arrays;
+import java.util.Collection;
+import org.joda.time.LocalTime;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.TriggerBuilder;
+
+/**
+ *
+ * @author malbinola
+ */
+public class BackgroundService extends BaseBackgroundService {
+
+	@Override
+	public void initialize() throws Exception {}
+
+	@Override
+	public void cleanup() throws Exception {}
 	
-	idProperty: 'id',
-	fields: [
-		WTF.roField('id', 'string'),
-		WTF.roField('oid', 'string'),
-		WTF.roField('subject', 'string'),
-		WTF.roField('location', 'string'),
-		WTF.roField('start', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('due', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('completedOn', 'date', {dateFormat: 'Y-m-d H:i:s'}),
-		WTF.roField('status', 'string'),
-		WTF.roField('progress', 'int'),
-		WTF.roField('importance', 'int'),
-		WTF.roField('isPrivate', 'boolean'),
-		WTF.roField('docRef', 'string'),
-		WTF.roField('reminder', 'int'),
-		WTF.roField('contactEmail', 'string'),
-		WTF.roField('tags', 'string'),
-		WTF.roField('hasRecur', 'boolean'),
-		WTF.roField('categoryId', 'int'),
-		WTF.roField('categoryName', 'string'),
-		WTF.roField('categoryColor', 'string'),
-		WTF.roField('_orDN', 'string'), // Empty when mine!
-		WTF.roField('_owPid', 'string'),
-		WTF.roField('_foPerms', 'string'),
-		WTF.roField('_itPerms', 'string'),
-		WTF.roField('_cfdefs', 'string')
-	],
-	hasMany: [
-		WTF.hasMany('cvalues', 'Sonicle.webtop.core.ux.data.CustomFieldValueModel')
-	]
-});
+	@Override
+	protected Collection<BaseBackgroundService.TaskDefinition> createTasks() {
+		return Arrays.asList(
+			// History cleanup task
+			new BaseBackgroundService.TaskDefinition(
+				HistoryCleanupTask.class,
+				TriggerBuilder.newTrigger()
+					.withSchedule(historyCleanupTaskScheduleBuilder()) // every 1st day of month at...
+					.build()
+			)
+		);
+	}
+	
+	private CronScheduleBuilder historyCleanupTaskScheduleBuilder() {
+		LocalTime time = new TasksServiceSettings(SERVICE_ID, "*").getHistoryCleanupTime();
+		return CronScheduleBuilder.monthlyOnDayAndHourAndMinute(1, time.getHourOfDay(), time.getMinuteOfHour());
+	}
+}

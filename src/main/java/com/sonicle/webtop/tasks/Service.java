@@ -702,7 +702,7 @@ public class Service extends BaseService {
 					if (!instance.getHasChildren() && instance.getParentInstanceId() == null) { // simple task
 						js = new JsGridTask(folder, props, instance, null, 0, userTimeZone);
 					} else if (instance.getHasChildren()) { // parent task
-						parents.add(instance.getTaskId());
+						parents.add(instance.getOriginalTaskId());
 						js = new JsGridTask(folder, props, instance, JsGridTask.Hierarchy.PARENT, 0, userTimeZone);
 					} else if (instance.getParentInstanceId() != null) { // child task
 						boolean parentInResultset = parents.contains(instance.getParentInstanceId().getTaskId());
@@ -735,7 +735,7 @@ public class Service extends BaseService {
 					.filter(id -> id != null)
 					.collect(Collectors.toList());
 				
-				manager.updateQuickTaskInstance(iids, true, null, null);
+				manager.updateTaskInstanceQuick(iids, true, null, null);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals("setProgress")) {
@@ -746,7 +746,7 @@ public class Service extends BaseService {
 					.filter(id -> id != null)
 					.collect(Collectors.toList());
 				
-				manager.updateQuickTaskInstance(iids, null, progress, null);
+				manager.updateTaskInstanceQuick(iids, null, progress, null);
 				new JsonResult().printTo(out);
 				
 			} else if (crud.equals("setImportance")) {
@@ -757,7 +757,7 @@ public class Service extends BaseService {
 					.filter(id -> id != null)
 					.collect(Collectors.toList());
 				
-				manager.updateQuickTaskInstance(iids, null, null, importance);
+				manager.updateTaskInstanceQuick(iids, null, null, importance);
 				new JsonResult().printTo(out);
 			}
 		
@@ -815,7 +815,7 @@ public class Service extends BaseService {
 						final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 						boolean showNested = false;
 						if (instance.isParent()) {
-							lastParent = instance.getTaskId();
+							lastParent = instance.getOriginalTaskId();
 						} else if (instance.isChild()) {
 							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
 						}
@@ -841,7 +841,7 @@ public class Service extends BaseService {
 						final CategoryPropSet props = foldersPropsCache.get(folder.getFolderId()).orElse(null);
 						boolean showNested = false;
 						if (instance.isParent()) {
-							lastParent = instance.getTaskId();
+							lastParent = instance.getOriginalTaskId();
 						} else if (instance.isChild()) {
 							showNested = StringUtils.equals(instance.getParentInstanceId().getTaskId(), lastParent);
 						}
@@ -1170,7 +1170,6 @@ public class Service extends BaseService {
 				ITasksManager.ImportMode mode = ServletUtils.getEnumParameter(request, "importMode", ITasksManager.ImportMode.COPY, ITasksManager.ImportMode.class);
 				
 				WebTopSession wts = getWts();
-				
 				ICalendarInput in = new ICalendarInput(up.getTimeZone())
 					.withLogHandler(new LogHandler() {
 						@Override
@@ -1178,6 +1177,7 @@ public class Service extends BaseService {
 							if (entries != null) wts.notify(toTaskImportLogSMs(oid, true, entries));
 						}
 					});
+				
 				FileInputStream fis = null;
 				try {	
 					fis = new FileInputStream(file);

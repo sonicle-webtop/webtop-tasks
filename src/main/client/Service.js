@@ -52,6 +52,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		'WTA.ux.menu.TagMenu',
 		'WTA.ux.data.EmptyModel',
 		'WTA.ux.data.SimpleModel',
+		'Sonicle.webtop.tasks.TaskInstanceId',
 		'Sonicle.webtop.tasks.store.TaskImportance',
 		'Sonicle.webtop.tasks.store.TaskStatus',
 		'Sonicle.webtop.tasks.model.FolderNode',
@@ -1205,7 +1206,7 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 				tooltip: null,
 				handler: function(s, e) {
 					var rec = me.getSelectedTask();
-					me.openAuditUI(rec.get('taskId'), 'TASK');
+					me.openAuditUI(rec.get('oid'), 'TASK');
 				},
 				scope: me
 			});
@@ -1700,9 +1701,9 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 		});
 	},
 	
-	openTaskUI: function(edit, id, series) {
+	openTaskUI: function(edit, id, master) {
 		var me = this,
-			id2 = (series === true) ? Sonicle.webtop.tasks.Service.taskInstanceIdToSeriesId(id) : id;
+			id2 = (master === true) ? Sonicle.webtop.tasks.TaskInstanceId.instanceIdToMasterId(id) : id;
 		
 		me.openTask(edit, id2, {
 			callback: function(success) {
@@ -1714,16 +1715,16 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	completeTasksUI: function(recs) {
 		recs = Ext.Array.from(recs);
 		var me = this,
-				SoD = Sonicle.Data,
-				ids = SoD.collectValues(recs),
-				doFn = function(reloadCallback) {
-					me.setTaskItemsCompleted(ids, {
-						callback: function(success) {
-							if (success) me.reloadTasks({callback: reloadCallback});
-						}
-					});
-				},
-				rec, s;
+			SoD = Sonicle.Data,
+			ids = SoD.collectValues(recs),
+			doFn = function(reloadCallback) {
+				me.setTaskItemsCompleted(ids, {
+					callback: function(success) {
+						if (success) me.reloadTasks({callback: reloadCallback});
+					}
+				});
+			},
+			rec, s;
 		
 		if (recs.length === 1) {
 			var SoS = Sonicle.String,
@@ -2680,29 +2681,6 @@ Ext.define('Sonicle.webtop.tasks.Service', {
 	},
 	
 	statics: {
-		
-		/**
-		 * Builds a Task instance ID from passed parameters.
-		 * @param {String} taskId The task ID.
-		 * @param {String} [yyyymmdd] The instance Data in format 'yyyymmdd'.
-		 * @returns {String}
-		 */
-		createTaskInstanceId: function(taskId, yyyymmdd) {
-			if (Ext.isString(yyyymmdd)) {
-				return taskId + '.' + Sonicle.String.left(yyyymmdd, 8);
-			} else {
-				return taskId + '.00000000';
-			}
-		},
-		
-		/**
-		 * Calculates the Task series ID from a passed instance ID.
-		 * @param {String} iid A task instance ID.
-		 * @returns {String}
-		 */
-		taskInstanceIdToSeriesId: function(iid) {
-			return Sonicle.String.substrBefore(iid, '.') + '.00000000';
-		},
 		
 		/**
 		 * Computes a label for displaying category info.
