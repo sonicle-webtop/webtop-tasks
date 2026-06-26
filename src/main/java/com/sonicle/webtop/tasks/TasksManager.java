@@ -2191,7 +2191,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 					String rawICalendar = icalDao.selectRawDataById(con, vtask.getTaskId());
 					if (rawICalendar != null) {
 						try {
-							extraProps = ICalendarUtils.extractProperties(ICalendarUtils.parse(rawICalendar), net.fortuna.ical4j.model.component.VToDo.class);
+							extraProps = ICalendarUtils.extractProperties(ICalendarUtils.parse(rawICalendar), net.fortuna.ical4j.model.component.VToDo.class, null);
 						} catch (IOException | ParserException ex) {
 							logger.debug("ICalendarUtils.extractProperties", ex);
 						}
