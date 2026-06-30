@@ -2811,10 +2811,10 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				//TODO: warn no publicid
 			}
 		} else {
-			if (input.recurringRefs != null && taskIdByPublicIdMap.containsKey(input.recurringRefs.exRefersToMasterUid)) {
+			if (input.recurringInstanceInfo != null && taskIdByPublicIdMap.containsKey(input.recurringInstanceInfo.masterUid)) {
 				TaskRecurrenceDAO recDao = TaskRecurrenceDAO.getInstance();
-				String taskId = taskIdByPublicIdMap.get(input.recurringRefs.exRefersToMasterUid);
-				recDao.insertRecurrenceEx(con, taskId, input.recurringRefs.exRefersToDate);
+				String taskId = taskIdByPublicIdMap.get(input.recurringInstanceInfo.masterUid);
+				recDao.insertRecurrenceEx(con, taskId, input.recurringInstanceInfo.instanceDate);
 			}
 		}
 		
@@ -2833,11 +2833,11 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		ArrayList<TaskInput> exInputs = new ArrayList<>();
 		LinkedHashSet<LocalDate> exDates = new LinkedHashSet<>();
 		for (TaskInput ti : inputs) {
-			if (ti.recurringRefs == null) continue;
-			if (!StringUtils.equals(ti.recurringRefs.exRefersToMasterUid, input1st.task.getPublicUid())) continue;
-			if (exDates.contains(ti.recurringRefs.exRefersToDate)) continue;
+			if (ti.recurringInstanceInfo == null) continue;
+			if (!StringUtils.equals(ti.recurringInstanceInfo.masterUid, input1st.task.getPublicUid())) continue;
+			if (exDates.contains(ti.recurringInstanceInfo.instanceDate)) continue;
 
-			exDates.add(ti.recurringRefs.exRefersToDate);
+			exDates.add(ti.recurringInstanceInfo.instanceDate);
 			//if (!ti.isSourceEventCancelled()) tiExs.add(ti);
 			exInputs.add(ti);
 		}
