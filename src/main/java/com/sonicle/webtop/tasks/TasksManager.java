@@ -51,6 +51,7 @@ import com.sonicle.webtop.core.model.ProfileI18n;
 import com.sonicle.webtop.core.sdk.AbstractMapCache;
 import com.sonicle.webtop.core.sdk.AuthException;
 import com.sonicle.webtop.core.sdk.BaseManager;
+import com.sonicle.webtop.core.sdk.SharedManager;
 import com.sonicle.webtop.core.sdk.BaseReminder;
 import com.sonicle.webtop.core.sdk.ReminderEmail;
 import com.sonicle.webtop.core.sdk.ReminderInApp;
@@ -182,7 +183,7 @@ import org.joda.time.LocalTime;
  *
  * @author malbinola
  */
-public class TasksManager extends BaseManager implements ITasksManager {
+public class TasksManager extends BaseManager implements SharedManager, ITasksManager {
 	public static final Logger logger = WT.getLogger(TasksManager.class);
 	private static final String SHARE_CONTEXT_CATEGORY = "CATEGORY";
 	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
@@ -196,6 +197,18 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		if (!fastInit) {
 			shareCache.init();
 		}
+	}
+
+	@Override
+	public void onSharedStartup() {
+		logger.info("[{}] shared TasksManager created", getTargetProfileId());
+	}
+
+	@Override
+	public void onSharedShutdown() {
+		logger.info("[{}] shared TasksManager shutting down", getTargetProfileId());
+		shareCache.clear();
+		ownerCache.clear();
 	}
 	
 	private CoreManager getCoreManager() {
@@ -333,8 +346,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TasksUserSettings us = new TasksUserSettings(SERVICE_ID, getTargetProfileId());
 		
 		Integer categoryId = null;
+		boolean locked = false;
 		try {
-			locks.tryLock("getDefaultCategoryId", 60, TimeUnit.SECONDS);
+			locked = locks.tryLock("getDefaultCategoryId", 60, TimeUnit.SECONDS);
 			categoryId = us.getDefaultCategoryFolder();
 			if (categoryId == null || !quietlyCheckRightsOnCategory(categoryId, FolderShare.ItemsRight.CREATE)) {
 				try {
@@ -348,7 +362,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		} catch (InterruptedException ex) {
 			// Do nothing...
 		} finally {
-			locks.unlock("getDefaultCategoryId");
+			if (locked) locks.unlock("getDefaultCategoryId");
 		}
 		return categoryId;
 	}
@@ -3198,6 +3212,7 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private void onAfterCategoryAction(int categoryId, UserProfileId owner) {
+		ownerCache.remove(categoryId);
 		if (!owner.equals(getTargetProfileId())) shareCache.init();
 	}
 	
