@@ -162,10 +162,10 @@ public class Service extends BaseService {
 	
 	@Override
 	public void initialize() throws Exception {
-		UserProfile up = getEnv().getProfile();
-		manager = (TasksManager)WT.getServiceManager(SERVICE_ID);
-		ss = new TasksServiceSettings(SERVICE_ID, up.getDomainId());
-		us = new TasksUserSettings(SERVICE_ID, up.getId());
+		UserProfileId upId = getEnv().getProfileId();
+		manager = (TasksManager)WT.getServiceManager(SERVICE_ID, upId);
+		ss = new TasksServiceSettings(SERVICE_ID, upId.getDomainId());
+		us = new TasksUserSettings(SERVICE_ID, upId);
 		initFolders();
 		
 		// Default lookup: if not yet configured this will implicitly set built-in folder as default!
