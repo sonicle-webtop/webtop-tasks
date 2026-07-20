@@ -857,7 +857,7 @@ public class Service extends BaseService {
 				ArrayList<RBTaskDetail> items = new ArrayList<>();
 				
 				RRuleStringify.Strings strings = WT.getRRuleStringifyStrings(userProfile.getLocale());
-				RRuleStringify rrs = new RRuleStringify(strings, userTimeZone);
+				RRuleStringify rrs = new RRuleStringify(userProfile.getLocale(), strings);
 				
 				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, false);
 				List<TaskInstanceId> iids = ids.stream()
