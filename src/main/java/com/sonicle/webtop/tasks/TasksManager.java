@@ -183,7 +183,7 @@ import org.joda.time.LocalTime;
  *
  * @author malbinola
  */
-public class TasksManager extends BaseManager implements SharedManager, ITasksManager {
+public class TasksManager extends BaseManager implements /*SharedManager,*/ ITasksManager {
 	public static final Logger logger = WT.getLogger(TasksManager.class);
 	private static final String SHARE_CONTEXT_CATEGORY = "CATEGORY";
 	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
@@ -199,17 +199,17 @@ public class TasksManager extends BaseManager implements SharedManager, ITasksMa
 		}
 	}
 
-	@Override
+/*	@Override
 	public void onSharedStartup() {
 		logger.info("[{}] shared TasksManager created", getTargetProfileId());
-	}
+	}*/
 
-	@Override
+/*	@Override
 	public void onSharedShutdown() {
 		logger.info("[{}] shared TasksManager shutting down", getTargetProfileId());
 		shareCache.clear();
 		ownerCache.clear();
-	}
+	}*/
 	
 	private CoreManager getCoreManager() {
 		return WT.getCoreManager(getTargetProfileId());
