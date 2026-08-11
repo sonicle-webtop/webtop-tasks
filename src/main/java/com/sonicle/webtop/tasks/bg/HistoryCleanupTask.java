@@ -32,11 +32,11 @@
  */
 package com.sonicle.webtop.tasks.bg;
 
-import com.sonicle.webtop.core.BackgroundService;
 import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.sdk.Result;
 import com.sonicle.webtop.core.sdk.BaseBackgroundServiceTask;
+import com.sonicle.webtop.tasks.BackgroundService;
 import com.sonicle.webtop.tasks.TasksManager;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
