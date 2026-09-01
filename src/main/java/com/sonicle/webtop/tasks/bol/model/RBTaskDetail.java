@@ -92,7 +92,7 @@ public class RBTaskDetail {
 		this.documentRef = task.getDocumentRef();
 		if (task.hasRecurrence()) {
 			this.recurrenceHRFreqText = rrStringify.toHumanReadableFrequencyQuietly(task.getRecurrence().getRule());
-			this.recurrenceHRRuleText = rrStringify.toHumanReadableTextQuietly(task.getRecurrence().getRule());
+			this.recurrenceHRRuleText = rrStringify.toHumanReadableTextQuietly(task.getRecurrence().getRule(), task.getTimezoneObject());
 		}
 		this.categoryOwner = categoryOwner;
 		//this.categoryId = category.getCategoryId();

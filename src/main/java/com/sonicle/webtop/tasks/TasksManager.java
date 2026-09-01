@@ -51,6 +51,7 @@ import com.sonicle.webtop.core.model.ProfileI18n;
 import com.sonicle.webtop.core.sdk.AbstractMapCache;
 import com.sonicle.webtop.core.sdk.AuthException;
 import com.sonicle.webtop.core.sdk.BaseManager;
+import com.sonicle.webtop.core.sdk.SharedManager;
 import com.sonicle.webtop.core.sdk.BaseReminder;
 import com.sonicle.webtop.core.sdk.ReminderEmail;
 import com.sonicle.webtop.core.sdk.ReminderInApp;
@@ -182,7 +183,11 @@ import org.joda.time.LocalTime;
  *
  * @author malbinola
  */
-public class TasksManager extends BaseManager implements ITasksManager {
+//Hybrid scope: web sessions keep PRIVATE per-session TasksManagers (re-login =
+//fresh); only sessionless consumers (REST, DAV/EAS) share the registry
+//instance. Remove the annotation for everyone-shares-one.
+@com.sonicle.webtop.core.sdk.SharedManagerScope(com.sonicle.webtop.core.sdk.SharedManagerScope.Scope.SESSIONLESS_ONLY)
+public class TasksManager extends BaseManager implements SharedManager, ITasksManager {
 	public static final Logger logger = WT.getLogger(TasksManager.class);
 	private static final String SHARE_CONTEXT_CATEGORY = "CATEGORY";
 	public static final String SUGGESTION_TASK_SUBJECT = "tasksubject";
@@ -193,9 +198,26 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	
 	public TasksManager(boolean fastInit, UserProfileId targetProfileId) {
 		super(fastInit, targetProfileId);
-		if (!fastInit) {
-			shareCache.init();
-		}
+		//no eager shareCache.init() here: in shared mode the constructor runs
+		//under the registry bin lock and must stay cheap (no DB access); the
+		//cache lazily builds on first getter access in any mode
+	}
+
+	@Override
+	public void onSharedStartup() {
+		logger.info("[{}] shared TasksManager created", getTargetProfileId());
+		//warm the share cache off the request path: latch-gated on the first
+		//caller's thread, AFTER the registry bin lock is released. Safe here
+		//because it resolves CoreManager (a different registry key) — it never
+		//re-enters this manager's own (serviceId, profile) key
+		shareCache.init();
+	}
+
+	@Override
+	public void onSharedShutdown() {
+		logger.info("[{}] shared TasksManager shutting down", getTargetProfileId());
+		shareCache.clear();
+		ownerCache.clear();
 	}
 	
 	private CoreManager getCoreManager() {
@@ -333,22 +355,30 @@ public class TasksManager extends BaseManager implements ITasksManager {
 		TasksUserSettings us = new TasksUserSettings(SERVICE_ID, getTargetProfileId());
 		
 		Integer categoryId = null;
+		boolean locked = false;
 		try {
-			locks.tryLock("getDefaultCategoryId", 60, TimeUnit.SECONDS);
-			categoryId = us.getDefaultCategoryFolder();
-			if (categoryId == null || !quietlyCheckRightsOnCategory(categoryId, FolderShare.ItemsRight.CREATE)) {
-				try {
-					categoryId = getBuiltInCategoryId();
-					if (categoryId == null) throw new WTException("Built-in category is null");
-					us.setDefaultCategoryFolder(categoryId);
-				} catch (Throwable t) {
-					logger.error("Unable to get built-in category", t);
+			locked = locks.tryLock("getDefaultCategoryId", 60, TimeUnit.SECONDS);
+			if (locked) {
+				categoryId = us.getDefaultCategoryFolder();
+				if (categoryId == null || !quietlyCheckRightsOnCategory(categoryId, FolderShare.ItemsRight.CREATE)) {
+					try {
+						categoryId = getBuiltInCategoryId();
+						if (categoryId == null) throw new WTException("Built-in category is null");
+						us.setDefaultCategoryFolder(categoryId);
+					} catch (Throwable t) {
+						logger.error("Unable to get built-in category", t);
+					}
 				}
+			} else {
+				//on lock timeout the check-and-repair must NOT run unsynchronized:
+				//serve the stored value as-is
+				logger.warn("[{}] getDefaultCategoryId lock timeout, returning stored value", getTargetProfileId());
+				categoryId = us.getDefaultCategoryFolder();
 			}
 		} catch (InterruptedException ex) {
-			// Do nothing...
+			Thread.currentThread().interrupt();
 		} finally {
-			locks.unlock("getDefaultCategoryId");
+			if (locked) locks.unlock("getDefaultCategoryId");
 		}
 		return categoryId;
 	}
@@ -2113,6 +2143,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	private boolean treatTaskAsPrivate(UserProfileId runningProfile, UserProfileId taskOwner, boolean taskIsPrivate) {
 		if (!taskIsPrivate) return false;
 		if (RunContext.isWebTopAdmin(runningProfile)) return false;
+		//owner may be null when the cache lookup failed (e.g. DB error):
+		//fail SAFE by masking the private task instead of NPEing
+		if (taskOwner == null) return true;
 		return !taskOwner.equals(runningProfile);
 	}
 	
@@ -3198,7 +3231,12 @@ public class TasksManager extends BaseManager implements ITasksManager {
 	}
 	
 	private void onAfterCategoryAction(int categoryId, UserProfileId owner) {
-		if (!owner.equals(getTargetProfileId())) shareCache.init();
+		ownerCache.remove(categoryId);
+		//invalidate only, no eager init(): callers run this while their own JDBC
+		//connection is still open, and rebuilding here nests more pooled
+		//connections inside it (pool-exhaustion risk under concurrent load).
+		//The cleared cache lazily rebuilds on next access.
+		if (!owner.equals(getTargetProfileId())) shareCache.clear();
 	}
 	
 	private void checkRightsOnCategoryOrigin(UserProfileId originPid, String action) throws WTException {
@@ -3365,7 +3403,9 @@ public class TasksManager extends BaseManager implements ITasksManager {
 				if (owner == null) throw new WTException("Owner not found [{0}]", key);
 				mapObject.put(key, owner);
 			} catch(WTException ex) {
-				logger.trace("OwnerCache miss", ex);
+				//never at trace: a DB failure here silently yields a null owner,
+				//degrading rights checks into "Owner not found" with no evidence
+				logger.error("OwnerCache: unable to resolve category owner [{}]", key, ex);
 			}
 		}
 	}

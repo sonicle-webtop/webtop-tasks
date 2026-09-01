@@ -3,14 +3,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sonicle.webtop</groupId>
 	<artifactId>webtop-tasks</artifactId>
-	<version>5.19.1</version>
+	<version>5.20.0</version>
 	<packaging>jar</packaging>
 	<name>webtop-tasks</name>
 	
 	<parent>
 		<groupId>com.sonicle.webtop</groupId>
 		<artifactId>webtop-superpom-service</artifactId>
-		<version>11</version>
+		<version>12</version>
 	</parent>
 	
 	<properties>

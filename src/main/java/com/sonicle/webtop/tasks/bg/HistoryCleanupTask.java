@@ -32,10 +32,11 @@
  */
 package com.sonicle.webtop.tasks.bg;
 
-import com.sonicle.webtop.core.BackgroundService;
+import com.sonicle.webtop.core.app.RunContext;
 import com.sonicle.webtop.core.app.WT;
 import com.sonicle.webtop.core.app.sdk.Result;
 import com.sonicle.webtop.core.sdk.BaseBackgroundServiceTask;
+import com.sonicle.webtop.tasks.BackgroundService;
 import com.sonicle.webtop.tasks.TasksManager;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
@@ -57,7 +58,7 @@ public class HistoryCleanupTask extends BaseBackgroundServiceTask {
 	@Override
 	public void executeWork(JobExecutionContext jec, BaseBackgroundServiceTask.TaskContext context) throws Exception {
 		BackgroundService bs = ((BackgroundService)getBackgroundService(jec));
-		TasksManager tasMgr = (TasksManager)WT.getServiceManager(bs.SERVICE_ID);
+		TasksManager tasMgr = (TasksManager)WT.getServiceManager(bs.SERVICE_ID, true, RunContext.getSysAdminProfileId());
 		
 		Result<Integer[]> result = tasMgr.cleanupHistory(RETENTION_YEARS);
 		if (result.hasExceptions()) LOGGER.warn("Cleanup process return errors: {}", result.collectExceptionsMessages());

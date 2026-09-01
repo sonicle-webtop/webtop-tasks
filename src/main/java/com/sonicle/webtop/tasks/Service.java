@@ -162,10 +162,10 @@ public class Service extends BaseService {
 	
 	@Override
 	public void initialize() throws Exception {
-		UserProfile up = getEnv().getProfile();
-		manager = (TasksManager)WT.getServiceManager(SERVICE_ID);
-		ss = new TasksServiceSettings(SERVICE_ID, up.getDomainId());
-		us = new TasksUserSettings(SERVICE_ID, up.getId());
+		UserProfileId upId = getEnv().getProfileId();
+		manager = (TasksManager)WT.getServiceManager(SERVICE_ID, upId);
+		ss = new TasksServiceSettings(SERVICE_ID, upId.getDomainId());
+		us = new TasksUserSettings(SERVICE_ID, upId);
 		initFolders();
 		
 		// Default lookup: if not yet configured this will implicitly set built-in folder as default!
@@ -857,7 +857,7 @@ public class Service extends BaseService {
 				ArrayList<RBTaskDetail> items = new ArrayList<>();
 				
 				RRuleStringify.Strings strings = WT.getRRuleStringifyStrings(userProfile.getLocale());
-				RRuleStringify rrs = new RRuleStringify(strings, userTimeZone);
+				RRuleStringify rrs = new RRuleStringify(userProfile.getLocale(), strings);
 				
 				ServletUtils.StringArray ids = ServletUtils.getObjectParameter(request, "ids", ServletUtils.StringArray.class, false);
 				List<TaskInstanceId> iids = ids.stream()
@@ -1306,9 +1306,10 @@ public class Service extends BaseService {
 		toggleActiveOrigins(new String[]{originKey}, active);
 	}
 	
-	private void toggleActiveOrigins(String[] originKeys, boolean active) {	
+	private void toggleActiveOrigins(String[] originKeys, boolean active) {
+		boolean locked = false;
 		try {
-			locks.tryLock("inactiveOrigins", 60, TimeUnit.SECONDS);
+			locked = locks.tryLock("inactiveOrigins", 60, TimeUnit.SECONDS);
 			for (String originId : originKeys) {
 				if (active) {
 					inactiveOrigins.remove(originId);
@@ -1321,7 +1322,7 @@ public class Service extends BaseService {
 		} catch (InterruptedException ex) {
 			// Do nothing...
 		} finally {
-			locks.unlock("inactiveOrigins");
+			if (locked) locks.unlock("inactiveOrigins");
 		}
 	}
 	
@@ -1330,8 +1331,9 @@ public class Service extends BaseService {
 	}
 	
 	private void toggleActiveFolders(Integer[] folderIds, boolean active) {
+		boolean locked = false;
 		try {
-			locks.tryLock("inactiveFolders", 60, TimeUnit.SECONDS);
+			locked = locks.tryLock("inactiveFolders", 60, TimeUnit.SECONDS);
 			for (int folderId : folderIds) {
 				if (active) {
 					inactiveFolders.remove(folderId);
@@ -1344,13 +1346,14 @@ public class Service extends BaseService {
 		} catch (InterruptedException ex) {
 			// Do nothing...
 		} finally {
-			locks.unlock("inactiveFolders");
+			if (locked) locks.unlock("inactiveFolders");
 		}
 	}
 	
 	private void updateCategoryFolderVisibility(int categoryId, Boolean hidden) {
+		boolean locked = false;
 		try {
-			locks.tryLock("folderVisibility-"+categoryId, 60, TimeUnit.SECONDS);
+			locked = locks.tryLock("folderVisibility-"+categoryId, 60, TimeUnit.SECONDS);
 			CategoryPropSet pset = manager.getCategoryCustomProps(categoryId);
 			pset.setHidden(hidden);
 			manager.updateCategoryCustomProps(categoryId, pset);
@@ -1365,7 +1368,7 @@ public class Service extends BaseService {
 		} catch (InterruptedException ex) {
 			// Do nothing...
 		} finally {
-			locks.unlock("folderVisibility-"+categoryId);
+			if (locked) locks.unlock("folderVisibility-"+categoryId);
 		}
 	}
 	
