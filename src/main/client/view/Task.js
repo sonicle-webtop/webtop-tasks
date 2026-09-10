@@ -1123,7 +1123,9 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 		},
 		
 		createStatusbarCfg: function() {
-			var me = this;
+			var me = this,
+				SoS = Sonicle.String,
+				color = SoS.deflt(Sonicle.CssUtils.getVariable('--wt-theme-color-1'), 'red');
 			return {
 				xtype: 'statusbar',
 				items: [
@@ -1134,7 +1136,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							hidden: '{!foIsParent}',
 							text: '{record._childComplCount}/{record._childTotalCount}'
 						},
-						icon: Sonicle.String.toDataURL('image/svg+xml', Sonicle.grid.column.Nest.hierarchySvg(null, null, 'red')),
+						icon: SoS.toDataURL('image/svg+xml', Sonicle.grid.column.Nest.hierarchySvg(null, null, color)),
 						tooltip: me.res('task.btn-openChildren.tip'),
 						hidden: true,
 						handler: function(s, e) {
@@ -1148,7 +1150,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 							hidden: '{!foIsChild}',
 							text: '{record._parentSubject:ellipsis(30)}'
 						},
-						icon: Sonicle.String.toDataURL('image/svg+xml', Sonicle.grid.column.Nest.hierarchySvg(null, 'red')),
+						icon: SoS.toDataURL('image/svg+xml', Sonicle.grid.column.Nest.hierarchySvg(null, color)),
 						tooltip: me.res('task.btn-openParent.tip'),
 						hidden: true,
 						handler: function() {
@@ -1163,7 +1165,7 @@ Ext.define('Sonicle.webtop.tasks.view.Task', {
 						tooltip: WT.res('act-auditLog.lbl'),
 						iconCls: 'wt-icon-audit',
 						handler: function() {
-							me.mys.openAuditUI(Sonicle.String.substrBefore(me.getModel().getId(), '.'), 'TASK');
+							me.mys.openAuditUI(SoS.substrBefore(me.getModel().getId(), '.'), 'TASK');
 						},
 						scope: me
 					}) : null
